@@ -41,8 +41,9 @@ body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-ser
 #overlay p { color: #94a3b8; font-size: 13px; }
 
 /* ── SCREENS ── */
-.screen { display: none; }
-.screen.active { display: block; }
+.screen { display: none !important; }
+.screen.active { display: block !important; }
+#screen-login.active { display: flex !important; min-height: 100vh; align-items: center; justify-content: center; background: radial-gradient(ellipse at 50% 0%, rgba(15,118,110,0.15) 0%, transparent 60%), var(--bg); }
 
 /* ══════════════════════════════════
    LOGIN SCREEN
