@@ -340,88 +340,102 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   body > *:not(#print-container) { display: none !important; }
   #print-container { display: block !important; }
-
-  @page { size: A4 portrait; margin: 0; }
+  @page { size: A4 portrait; margin: 14mm 22mm 14mm 22mm; }
 
   .print-page {
-    width: 210mm;
-    padding: 14mm 22mm 20mm 22mm;
-    position: relative;
-    page-break-after: always;
-    break-after: page;
+    width: 100%;
     box-sizing: border-box;
     font-family: 'Times New Roman', Times, serif;
-    overflow: hidden;
+    page-break-after: always;
+    break-after: page;
+    display: flex;
+    flex-direction: column;
+    min-height: calc(297mm - 28mm);
   }
   .print-page:last-child { page-break-after: avoid; break-after: avoid; }
 
+  /* ── HEADER ── */
   .print-header {
     text-align: center;
     border-bottom: 2px solid #000;
     padding-bottom: 8px;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
   }
-  .ph-main { font-size: 15pt; font-weight: bold; font-family: 'Times New Roman', serif; }
-  .ph-sub { font-size: 10pt; margin-top: 2px; }
-  .ph-crm { font-size: 10pt; margin-top: 1px; }
+  .ph-main { font-size: 14pt; font-weight: bold; }
+  .ph-sub  { font-size: 9.5pt; margin-top: 2px; }
+  .ph-crm  { font-size: 9pt; margin-top: 2px; }
+  .ph-tel  { font-size: 9pt; margin-top: 1px; }
 
-  .print-patient { margin-bottom: 16px; font-size: 10.5pt; line-height: 1.9; }
-  .print-patient-table td { font-size: 10pt !important; }
-
-  .print-section { margin-bottom: 12px; }
-  .print-section h3 { font-size: 10.5pt; font-weight: bold; text-decoration: underline; text-transform: uppercase; margin-bottom: 5px; }
-  .print-section p { font-size: 10.5pt; line-height: 1.85; text-align: justify; white-space: pre-wrap; }
-
-  /* Page break between Direito and Esquerdo */
-  .print-page-break {
-    page-break-before: always;
-    break-before: page;
-    padding-top: 0;
-  }
-  .print-page-break .print-header { display: block; }
-
-  .print-signature {
-    margin-top: 20mm;
-    text-align: right;
-    font-size: 10pt;
+  /* ── PATIENT BOX: single rectangle, no internal lines ── */
+  .print-patient-box {
+    border: 1.5px solid #000;
+    border-radius: 4px;
+    padding: 7px 12px;
+    margin-bottom: 12px;
+    font-size: 9.5pt;
     font-family: 'Times New Roman', serif;
-    line-height: 1.7;
-    padding-right: 0;
-    margin-bottom: 6mm;
+    display: grid;
+    grid-template-columns: 3fr 1.2fr 0.8fr;
+    gap: 0;
   }
-  .ps-label { font-size: 9.5pt; }
-  .ps-name { font-weight: bold; }
-  .ps-date { font-size: 9pt; font-style: italic; }
-
-  .print-footer {
-    position: absolute;
-    bottom: 10mm;
-    left: 22mm;
-    right: 22mm;
-    border-top: 1px solid #000;
-    padding-top: 5px;
+  .ppb-row { display: contents; }
+  .pp-cell { padding: 2px 4px; }
+  .pp-label { font-size: 7.5pt; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+  .pp-value { font-weight: bold; font-size: 10pt; }
+  .ppb-bot-wrap {
+    grid-column: 1 / -1;
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    font-size: 8.5pt;
-    line-height: 1.5;
-    font-family: 'Times New Roman', serif;
+    gap: 0;
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: none;
   }
-  .pf-warn { font-size: 7.5pt; font-style: italic; color: #444; margin-top: 2px; }
+  .pp-sep { display: none; }
 
+  /* ── SECTION ── */
+  .print-section { flex: 1; }
+  .print-section h3 { font-size: 10pt; font-weight: bold; text-decoration: underline; text-transform: uppercase; margin-bottom: 5px; }
+  .print-section h4 { font-size: 10pt; font-weight: bold; margin-bottom: 4px; }
+  .print-section p  { font-size: 10.5pt; line-height: 1.85; text-align: justify; white-space: pre-wrap; }
+
+  /* ── IMAGES ── */
   .print-img-grid {
+    flex: 1;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 5mm;
-    margin-top: 8mm;
+    gap: 4mm;
   }
   .print-img-cell { width: 100%; aspect-ratio: 4/3; overflow: hidden; }
   .print-img-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* ── SIGNATURE ── */
+  .print-signature {
+    text-align: right;
+    margin-top: 10mm;
+    margin-bottom: 5mm;
+    font-family: 'Times New Roman', serif;
+  }
+  .ps-label { font-size: 9pt; }
+  .ps-name  { font-size: 10pt; font-weight: bold; }
+  .ps-date  { font-size: 8.5pt; font-style: italic; }
+
+  /* ── FOOTER: always at bottom via margin-top:auto ── */
+  .print-footer {
+    margin-top: auto;
+    border-top: 1px solid #000;
+    padding-top: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    font-size: 8pt;
+    line-height: 1.5;
+    font-family: 'Times New Roman', serif;
+  }
+  .pf-warn { font-size: 7pt; font-style: italic; color: #444; margin-top: 2px; }
 }
 </style>
 </head>
 <body>
-body>
 
 <div id="toast"></div>
 <div id="overlay"><div class="spinner"></div><p id="overlay-msg">Aguarde...</p></div>
@@ -805,7 +819,7 @@ async function doLogin() {
 
 let doctorsList = [];
 async function loadDoctorsForSec() {
-  const { data } = await supa.from('medicos').select('id,nome,crm').in('papel',['medico','admin']).order('nome');
+  const { data } = await supa.from('medicos').select('id,nome,crm').eq('papel','medico').order('nome');
   if (!data || !data.length) return;
   doctorsList = data;
   const opts = '<option value="">— Selecione o médico —</option>' +
@@ -897,6 +911,40 @@ async function saveSecEditImages() {
 }
 
 function onDropSecEdit(e){e.preventDefault();document.getElementById('sec-edit-img-grid').closest('.modal-box').querySelector('.drop-zone').classList.remove('over');Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('image/')).forEach(f=>{const r=new FileReader();r.onload=ev=>{secEditImages.push({id:Date.now()+Math.random(),src:ev.target.result,name:f.name});renderSecEditImages();};r.readAsDataURL(f);});}
+
+
+// ── Admin: change user password ──
+async function openChangePwd(userId, nome) {
+  document.getElementById('cpwd-title').textContent = '🔑 Alterar Senha — ' + nome;
+  document.getElementById('cpwd-uid').value = userId;
+  document.getElementById('cpwd-new').value = '';
+  document.getElementById('cpwd-confirm').value = '';
+  document.getElementById('cpwd-error').style.display = 'none';
+  openModal('modal-change-pwd');
+}
+
+async function saveChangePwd() {
+  const userId = document.getElementById('cpwd-uid').value;
+  const nova = document.getElementById('cpwd-new').value;
+  const confirma = document.getElementById('cpwd-confirm').value;
+  const err = document.getElementById('cpwd-error');
+  if (!nova || nova.length < 6) { showErr(err,'Senha deve ter ao menos 6 caracteres.'); return; }
+  if (nova !== confirma) { showErr(err,'As senhas não coincidem.'); return; }
+  loading(true,'Alterando senha...');
+  // Use admin API via supabase auth admin - requires service key
+  // Workaround: use update user if same session, or store reset flag
+  // Best approach: call edge function or use admin client
+  // For now use the update password for the current user flow via direct API call
+  const { error } = await supa.rpc('admin_update_user_password', { uid: userId, new_password: nova });
+  loading(false);
+  if (error) {
+    // Fallback message
+    showErr(err, 'Para alterar senha de outro usuário, use o painel do Supabase → Authentication → Users → Reset password. Erro: ' + error.message);
+    return;
+  }
+  toast('Senha alterada com sucesso!', 'ok');
+  closeModal('modal-change-pwd');
+}
 
 async function doLogout() {
   await supa.auth.signOut();
@@ -1132,17 +1180,15 @@ function buildPrint(data) {
   const FOOTER = `<div class="print-footer"><div class="pf-left">Méier - Rua Dias da Cruz, 155 Sala 611 Cep: 20720-010 - Ed. Mesbla &nbsp;&nbsp; ctdmi.ecografiavascular@gmail.com<div class="pf-warn">Atenção: Somente seu médico possui o conjunto de informações necessárias para qualquer conclusão diagnóstica ou indicação terapêutica sobre os resultados.</div></div><div style="text-align:right;white-space:nowrap">Tel: 3822-1519<br>Tel: 99614-1313</div></div>`;
 
   const solicitante = data.solicitante || (data.secoes?.solicitante) || '';
-  const PAT = `<table class="print-patient-table" style="width:100%;border:1.5px solid #000;border-collapse:collapse;margin-bottom:16px;font-size:10pt;font-family:'Times New Roman',serif">
-    <tr style="border-bottom:1px solid #000">
-      <td style="padding:5px 8px;border-right:1px solid #000;width:60%"><span style="font-size:8.5pt;color:#555">PACIENTE</span><br><strong style="font-size:10.5pt;text-transform:uppercase">${(data.paciente_nome||'').toUpperCase()}</strong></td>
-      <td style="padding:5px 8px;border-right:1px solid #000;width:20%"><span style="font-size:8.5pt;color:#555">DT. NASC.</span><br><strong style="text-transform:uppercase">${data.paciente_nasc?fmtDate(data.paciente_nasc):'___/___/___'}</strong></td>
-      <td style="padding:5px 8px;width:20%"><span style="font-size:8.5pt;color:#555">IDADE</span><br><strong style="text-transform:uppercase">${(data.paciente_idade||'').toUpperCase()}</strong></td>
-    </tr>
-    <tr>
-      <td style="padding:5px 8px;border-right:1px solid #000"><span style="font-size:8.5pt;color:#555">CONVÊNIO</span><br><strong style="text-transform:uppercase">${(data.convenio||'').toUpperCase()}</strong></td>
-      <td colspan="2" style="padding:5px 8px"><span style="font-size:8.5pt;color:#555">MÉDICO SOLICITANTE</span><br><strong style="text-transform:uppercase">${solicitante.toUpperCase()}</strong></td>
-    </tr>
-  </table>`;
+  const PAT = `<div class="print-patient-box">
+    <div class="pp-cell"><div class="pp-label">PACIENTE</div><div class="pp-value">${(data.paciente_nome||'').toUpperCase()}</div></div>
+    <div class="pp-cell"><div class="pp-label">DT. NASC.</div><div class="pp-value">${data.paciente_nasc?fmtDate(data.paciente_nasc):'—'}</div></div>
+    <div class="pp-cell"><div class="pp-label">IDADE</div><div class="pp-value">${(data.paciente_idade||'').toUpperCase()}</div></div>
+    <div class="ppb-bot-wrap">
+      <div class="pp-cell" style="flex:1"><div class="pp-label">CONVÊNIO</div><div class="pp-value">${(data.convenio||'').toUpperCase()}</div></div>
+      ${solicitante?`<div class="pp-cell" style="flex:2"><div class="pp-label">MÉDICO SOLICITANTE</div><div class="pp-value">${solicitante.toUpperCase()}</div></div>`:''}
+    </div>
+  </div>`;
 
   const s = data.secoes||{};
 
@@ -1218,7 +1264,11 @@ async function loadDoctors() {
   c.innerHTML=data.map(d=>{
     const roleLabel = d.papel==='admin'?'Administrador':d.papel==='secretaria'?'Secretaria':'Médico';
     const roleColor = d.papel==='admin'?'#7c3aed':d.papel==='secretaria'?'#0369a1':'#1a6b3a';
-    return `<div class="doc-row"><div><div class="doc-name">${d.nome} <span style="font-size:10px;background:${roleColor};color:#fff;padding:2px 8px;border-radius:10px;font-weight:700;vertical-align:middle">${roleLabel}</span></div><div class="doc-meta">${d.crm?'CRM: '+d.crm+' | ':''}${d.email}</div></div><button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deleteDoctor('${d.id}')">🗑️</button></div>`;
+    return `<div class="doc-row"><div><div class="doc-name">${d.nome} <span style="font-size:10px;background:${roleColor};color:#fff;padding:2px 8px;border-radius:10px;font-weight:700;vertical-align:middle">${roleLabel}</span></div><div class="doc-meta">${d.crm?'CRM: '+d.crm+' | ':''}${d.email}</div></div>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="openChangePwd('${d.user_id}','${d.nome}')">🔑 Senha</button>
+      <button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deleteDoctor('${d.id}')">🗑️</button>
+    </div></div>`;
   }).join('');
 }
 
@@ -1633,6 +1683,25 @@ async function openPendente(id) {
     <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
       <button class="btn btn-outline" onclick="closeModal('modal-sec-images')">Cancelar</button>
       <button class="btn btn-green" onclick="saveSecEditImages()">💾 Salvar Imagens</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CHANGE PASSWORD -->
+<div id="modal-change-pwd" class="modal" style="display:none">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-hdr">
+      <h3 id="cpwd-title">🔑 Alterar Senha</h3>
+      <button class="modal-close" onclick="closeModal('modal-change-pwd')">✕</button>
+    </div>
+    <input type="hidden" id="cpwd-uid">
+    <div class="field"><label>Nova Senha</label><input type="password" id="cpwd-new" placeholder="Mínimo 6 caracteres"></div>
+    <div class="field"><label>Confirmar Senha</label><input type="password" id="cpwd-confirm" placeholder="Repita a nova senha"></div>
+    <div id="cpwd-error" class="modal-error" style="display:none"></div>
+    <div class="tip" style="font-size:11px;margin-top:8px">💡 Se houver erro de permissão, acesse o painel do Supabase → Authentication → Users para redefinir a senha manualmente.</div>
+    <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeModal('modal-change-pwd')">Cancelar</button>
+      <button class="btn btn-green" onclick="saveChangePwd()">💾 Salvar</button>
     </div>
   </div>
 </div>
