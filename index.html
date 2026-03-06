@@ -342,7 +342,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
   body { background: #fff !important; }
   #print-container { display: block !important; background: #fff !important; }
   .print-page { background: #fff !important; }
-  @page { size: A4 portrait; margin: 14mm 22mm 22mm 22mm; }
+  @page { size: A4 portrait; margin: 14mm 22mm 30mm 22mm; }
 
   .print-page {
     width: 100%;
@@ -416,25 +416,29 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
   /* ── SIGNATURE ── */
   .print-signature {
     text-align: right;
-    margin-top: 14pt;
-    margin-bottom: 5mm;
+    margin-top: 18pt;
+    margin-bottom: 16pt;
     font-family: 'Times New Roman', serif;
   }
   .ps-label { font-size: 9pt; }
   .ps-name  { font-size: 10pt; font-weight: bold; }
   .ps-date  { font-size: 8.5pt; font-style: italic; }
 
-  /* ── FOOTER ── */
+  /* ── FOOTER: fixed at bottom of every page ── */
   .print-footer {
-    margin-top: 8pt;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
     border-top: 1px solid #000;
-    padding-top: 4px;
+    padding: 4px 22mm 0 22mm;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     font-size: 8pt;
     line-height: 1.5;
     font-family: 'Times New Roman', serif;
+    background: #fff;
   }
   .pf-warn { font-size: 7pt; font-style: italic; color: #444; margin-top: 2px; }
 }
@@ -801,7 +805,7 @@ function toggleLoginType() {
     if(emailInput) { emailInput.placeholder='seu@email.com'; emailInput.removeAttribute('inputmode'); }
     if(passField) passField.style.display='';
   }
-  document.querySelector('.login-toggle').innerHTML = isPatientLogin
+  document.querySelector('.lc-toggle').innerHTML = isPatientLogin
     ? 'É médico/secretaria? <a onclick="toggleLoginType()">Clique aqui</a>'
     : 'É paciente? <a onclick="toggleLoginType()">Clique aqui</a>';
 }
@@ -1312,11 +1316,11 @@ async function loadDoctors() {
 }
 
 async function loadPatients() {
-  const { data } = await supa.from('pacientes').select('*').order('nome');
+  const { data } = await supa.from('pacientes').select('id,nome,email,cpf,email_recuperacao,telefone,laudo_ids').order('nome');
   const c=document.getElementById('patients-list');
   if (!data?.length) { c.innerHTML='<p style="color:var(--text-muted);font-size:13px">Nenhum paciente cadastrado.</p>'; return; }
   c.innerHTML=data.map(p=>{
-    const wa = p.telefone ? `<a href="https://wa.me/55${p.telefone}?text=Ol%C3%A1%20${encodeURIComponent(p.nome)}%2C%20seus%20laudos%20est%C3%A3o%20dispon%C3%ADveis%20em%3A%20https%3A%2F%2Fctdmi.github.io%2Flaudos%2F%20(acesse%20com%20seu%20CPF)" target="_blank" class="btn btn-outline" style="padding:7px 12px;font-size:12px;text-decoration:none;color:inherit">📲 WhatsApp</a>` : '';
+    const wa = p.telefone ? `<a href="https://wa.me/55${p.telefone}?text=Ol%C3%A1%20${encodeURIComponent(p.nome)}%2C%20seus%20laudos%20est%C3%A3o%20dispon%C3%ADveis%20em%3A%20https%3A%2F%2Fctdmi.github.io%2Flaudos%2F%20(acesse%20com%20seu%20CPF)" target="_blank" class="btn btn-outline" style="padding:7px 12px;font-size:12px;text-decoration:none;color:#25D366;border-color:#25D366">📲 WhatsApp</a>` : '';
     return `<div class="doc-row"><div><div class="doc-name">${p.nome}</div><div class="doc-meta">CPF: ${p.cpf||'—'} | ${p.telefone?'📱 '+p.telefone+' | ':''} ${p.email_recuperacao||'—'}</div></div><div style="display:flex;gap:6px">${wa}<button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deletePatient('${p.id}')">🗑️</button></div></div>`;
   }).join('');
 }
@@ -1436,7 +1440,7 @@ async function loadAdminSecPatients() {
   if (!c) return;
   if (!data?.length) { c.innerHTML='<div style="color:var(--text-muted);font-size:13px">Nenhum paciente cadastrado.</div>'; return; }
   c.innerHTML = data.map(p => {
-    const wa = p.telefone ? `<a href="https://wa.me/55${p.telefone}?text=Ol%C3%A1%20${encodeURIComponent(p.nome)}%2C%20seus%20laudos%20est%C3%A3o%20dispon%C3%ADveis%20em%3A%20https%3A%2F%2Fctdmi.github.io%2Flaudos%2F%20(acesse%20com%20seu%20CPF)" target="_blank" class="btn btn-outline" style="padding:7px 12px;font-size:12px;text-decoration:none;color:inherit">📲 WhatsApp</a>` : '';
+    const wa = p.telefone ? `<a href="https://wa.me/55${p.telefone}?text=Ol%C3%A1%20${encodeURIComponent(p.nome)}%2C%20seus%20laudos%20est%C3%A3o%20dispon%C3%ADveis%20em%3A%20https%3A%2F%2Fctdmi.github.io%2Flaudos%2F%20(acesse%20com%20seu%20CPF)" target="_blank" class="btn btn-outline" style="padding:7px 12px;font-size:12px;text-decoration:none;color:#25D366;border-color:#25D366">📲 WhatsApp</a>` : '';
     return `<div class="doc-row"><div><div class="doc-name">${p.nome}</div><div class="doc-meta">CPF: ${p.cpf||'—'} | ${p.telefone?'📱 '+p.telefone+' | ':''}${p.email_recuperacao||'—'}</div></div><div style="display:flex;gap:6px">${wa}<button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deletePatient('${p.id}')">🗑️</button></div></div>`;
   }).join('');
 }
