@@ -63,9 +63,9 @@ body { background: var(--off-white); color: var(--text); font-family: 'Lato', sa
 }
 .ls-icon { font-size: 52px; margin-bottom: 20px; }
 .ls-title { font-family: 'Merriweather', serif; font-size: 22px; font-weight: 700; margin-bottom: 10px; line-height: 1.3; color: #ffffff; }
-.ls-sub { font-size: 13px; color: rgba(255,255,255,0.82); line-height: 1.7; margin-bottom: 28px; }
+.ls-sub { font-size: 13px; color: #ccf5dd !important; line-height: 1.7; margin-bottom: 28px; }
 .ls-divider { width: 40px; height: 2px; background: rgba(255,255,255,0.3); margin: 0 auto 20px; }
-.ls-info { font-size: 12px; color: rgba(255,255,255,0.65); line-height: 1.8; }
+.ls-info { font-size: 12px; color: #a8e6bf !important; line-height: 1.8; }
 .login-form { flex: 1; background: var(--white); display: flex; flex-direction: column; justify-content: center; padding: 48px 44px; }
 .lf-title { font-family: 'Merriweather', serif; font-size: 22px; color: var(--green); margin-bottom: 6px; font-weight: 700; }
 .lf-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 32px; }
@@ -233,7 +233,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
   .print-page {
     width: 210mm;
     min-height: 297mm;
-    padding: 14mm 22mm 38mm 22mm;
+    padding: 14mm 22mm 20mm 22mm;
     position: relative;
     page-break-after: always;
     break-after: page;
@@ -267,13 +267,13 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
   .print-page-break .print-header { display: block; }
 
   .print-signature {
-    position: absolute;
-    bottom: 44mm;
-    right: 22mm;
+    margin-top: 20mm;
     text-align: right;
     font-size: 10pt;
     font-family: 'Times New Roman', serif;
     line-height: 1.7;
+    padding-right: 0;
+    margin-bottom: 6mm;
   }
   .ps-label { font-size: 9.5pt; }
   .ps-name { font-weight: bold; }
@@ -855,59 +855,57 @@ function printLaudo() {
 
 function buildPrint(data) {
   const HEADER = `<div class="print-header"><div class="ph-main">C.T.D.M.I. - Angiologia e Cirurgia Vascular</div><div class="ph-sub">Cirurgia Vascular-Angiologia-Ecografia Vascular com Doppler</div><div class="ph-crm">CRM: 11. 1260-0</div></div>`;
-  const FOOTER = `<div class="print-footer"><div class="pf-left">Méier - Rua Dias da Cruz, 155 Sala 611 Cep: 20720-010 - Ed. Mesbla &nbsp;&nbsp; ctdmi.ecografiavascular@gmail.com<div class="pf-warn">Atenção: Somente seu médico possui o conjunto de informações necessárias para qualquer conclusão diagnóstica ou indicação terapêutica sobre os resultados.</div></div><div style="text-align:right;white-space:nowrap">Tel: 3822-1519<br>Tel: 99614-1313</div></div>`;
+  
   const dateEx = data.data_exame ? fmtDate(data.data_exame) : todayBR();
   const SIGN = `<div class="print-signature"><div class="ps-label">Laudado por:</div><div class="ps-name">${data.medico_nome} CRM: ${data.medico_crm}</div><div class="ps-date">Este laudo foi assinado eletronicamente em ${dateEx}.</div></div>`;
+  
+  const FOOTER = `<div class="print-footer"><div class="pf-left">Méier - Rua Dias da Cruz, 155 Sala 611 Cep: 20720-010 - Ed. Mesbla &nbsp;&nbsp; ctdmi.ecografiavascular@gmail.com<div class="pf-warn">Atenção: Somente seu médico possui o conjunto de informações necessárias para qualquer conclusão diagnóstica ou indicação terapêutica sobre os resultados.</div></div><div style="text-align:right;white-space:nowrap">Tel: 3822-1519<br>Tel: 99614-1313</div></div>`;
+
+  const PAT = `<div class="print-patient"><strong>Paciente:</strong> ${data.paciente_nome||'______'}<br><strong>Data Nascimento:</strong> ${data.paciente_nasc?fmtDate(data.paciente_nasc):'___/___/______'}<br><strong>Idade:</strong> ${data.paciente_idade||'___'}<br><strong>Convênio:</strong> ${data.convenio||'______'}</div>`;
 
   const s = data.secoes||{};
-  let sectionsHtml = '';
 
-  // Patient data
-  const patHtml = `<div class="print-patient"><strong>Paciente:</strong> ${data.paciente_nome}<br><strong>Data Nascimento:</strong> ${data.paciente_nasc?fmtDate(data.paciente_nasc):'___/___/______'}<br><strong>Idade:</strong> ${data.paciente_idade||'___'}<br><strong>Convênio:</strong> ${data.convenio||'______'}</div>`;
-
-  // Venoso — split into two pages: Direito and Esquerdo
-  let venosoHtml = '';
-  if (s.venoso_d?.ativo) {
-    venosoHtml += `<div class="print-section"><h3>SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES</h3><h3 style="font-size:10pt;margin-bottom:4px">MEMBRO INFERIOR DIREITO</h3><p>${s.venoso_d.texto||''}</p></div>`;
-  }
-
-  // Other sections
-  const otherSections = [
-    { key:'arterial',   title:'ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES' },
-    { key:'carotidas',  title:'ECOCOLOR DOPPLER DAS CARÓTIDAS E VERTEBRAIS' },
-    { key:'aorta',      title:'ECOCOLOR DOPPLER DE AORTA E ARTÉRIAS ILÍACAS' },
-    { key:'cava',       title:'ECOCOLOR DOPPLER DA VEIA CAVA E ILÍACAS' },
-    { key:'superiores', title:'ECOCOLOR DOPPLER DOS MEMBROS SUPERIORES' },
+  // Build pages in order: Venoso D, Venoso E, Arterial, Carótidas, then others
+  // Each active section = its own page, all with header + patient + section + sign + footer
+  const sections = [
+    { key: 'venoso_d',   title: 'SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES', subtitle: 'MEMBRO INFERIOR DIREITO' },
+    { key: 'venoso_e',   title: 'SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES', subtitle: 'MEMBRO INFERIOR ESQUERDO' },
+    { key: 'arterial',   title: 'ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES', subtitle: null },
+    { key: 'carotidas',  title: 'ECOCOLOR DOPPLER DAS CARÓTIDAS E VERTEBRAIS', subtitle: null },
+    { key: 'aorta',      title: 'ECOCOLOR DOPPLER DE AORTA E ARTÉRIAS ILÍACAS', subtitle: null },
+    { key: 'cava',       title: 'ECOCOLOR DOPPLER DA VEIA CAVA E ILÍACAS', subtitle: null },
+    { key: 'superiores', title: 'ECOCOLOR DOPPLER DOS MEMBROS SUPERIORES', subtitle: null },
   ];
-  otherSections.forEach(b => {
-    if (s[b.key]?.ativo) sectionsHtml += `<div class="print-section"><h3>${b.title}</h3><p>${s[b.key].texto||''}</p></div>`;
+
+  let pagesHtml = '';
+
+  sections.forEach(sec => {
+    if (!s[sec.key]?.ativo) return;
+    const secHtml = `<div class="print-section">
+      <h3>${sec.title}</h3>
+      ${sec.subtitle ? `<h3 style="font-size:10.5pt;margin-bottom:5px">${sec.subtitle}</h3>` : ''}
+      <p>${s[sec.key].texto||''}</p>
+    </div>`;
+    pagesHtml += `<div class="print-page">${HEADER}${PAT}${secHtml}${SIGN}${FOOTER}</div>`;
   });
 
-  // Page 1: patient + venoso direito + other sections
-  let pagesHtml = `<div class="print-page">${HEADER}${patHtml}${venosoHtml}${sectionsHtml}${SIGN}${FOOTER}</div>`;
-
-  // Page 2: venoso esquerdo (if active) — separate page with header/footer
-  if (s.venoso_e?.ativo) {
-    pagesHtml += `<div class="print-page">${HEADER}<div class="print-section"><h3>SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES</h3><h3 style="font-size:10pt;margin-bottom:4px">MEMBRO INFERIOR ESQUERDO</h3><p>${s.venoso_e.texto||''}</p></div>${FOOTER}</div>`;
-  }
-
-  // Image pages
+  // Image pages — no patient data, just header + images + footer
   const imgs = data.imagens||[];
   if (imgs.length) {
-    const pages=Math.ceil(imgs.length/6);
-    for (let p=0;p<pages;p++) {
-      const slice=[...imgs.slice(p*6,p*6+6)];
+    const pages = Math.ceil(imgs.length/6);
+    for (let p=0; p<pages; p++) {
+      const slice = [...imgs.slice(p*6, p*6+6)];
       while(slice.length<6) slice.push(null);
-      let grid='<div class="print-img-grid">';
-      slice.forEach(img => { grid+=img?`<div class="print-img-cell"><img src="${img.src}"></div>`:`<div class="print-img-cell"></div>`; });
-      grid+='</div>';
-      pagesHtml+=`<div class="print-page">${HEADER}${grid}${FOOTER}</div>`;
+      let grid = '<div class="print-img-grid">';
+      slice.forEach(img => { grid += img ? `<div class="print-img-cell"><img src="${img.src}"></div>` : `<div class="print-img-cell"></div>`; });
+      grid += '</div>';
+      pagesHtml += `<div class="print-page">${HEADER}${grid}${FOOTER}</div>`;
     }
   }
 
-  const pc=document.getElementById('print-container');
-  pc.innerHTML=pagesHtml; pc.style.display='block';
-  setTimeout(()=>{ window.print(); setTimeout(()=>{ pc.style.display='none'; pc.innerHTML=''; },1000); },200);
+  const pc = document.getElementById('print-container');
+  pc.innerHTML = pagesHtml; pc.style.display = 'block';
+  setTimeout(() => { window.print(); setTimeout(() => { pc.style.display='none'; pc.innerHTML=''; }, 1000); }, 200);
 }
 
 // ── PATIENT LAUDOS ──
