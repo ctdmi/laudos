@@ -340,7 +340,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   body > *:not(#print-container) { display: none !important; }
   #print-container { display: block !important; }
-  @page { size: A4 portrait; margin: 14mm 22mm 14mm 22mm; }
+  @page { size: A4 portrait; margin: 12mm 20mm 12mm 20mm; }
 
   .print-page {
     width: 100%;
@@ -350,7 +350,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
     break-after: page;
     display: flex;
     flex-direction: column;
-    min-height: calc(297mm - 28mm);
+    height: calc(297mm - 24mm);
   }
   .print-page:last-child { page-break-after: avoid; break-after: avoid; }
 
@@ -841,8 +841,21 @@ async function afterLogin() {
       loadDoctorsForSec();
       return;
     }
+    if (doc.papel === 'admin') {
+      // Admin gets secretary screen + full edit powers
+      document.getElementById('sec-badge').textContent = '⚙️ ' + doc.nome;
+      document.getElementById('sec-screen-title').textContent = 'Administrador';
+      // Show admin extras tab
+      const adminTab = document.getElementById('sec-admin-tab');
+      if (adminTab) adminTab.style.display = 'flex';
+      showScreen('screen-sec');
+      loadSecQueue();
+      loadDoctorsForSec();
+      loadDoctors();
+      loadPatients();
+      return;
+    }
     document.getElementById('doctor-badge').textContent = '👨‍⚕️ ' + doc.nome;
-    if (doc.papel === 'admin') { document.getElementById('tab-admin-btn').style.display = 'flex'; loadDoctors(); loadPatients(); }
     showScreen('screen-app');
     loadPending();
     loadSaved();
@@ -914,7 +927,7 @@ function onDropSecEdit(e){e.preventDefault();document.getElementById('sec-edit-i
 
 
 // ── Admin: change user password ──
-async function openChangePwd(userId, nome) {
+function openChangePwd(userId, nome) {
   document.getElementById('cpwd-title').textContent = '🔑 Alterar Senha — ' + nome;
   document.getElementById('cpwd-uid').value = userId;
   document.getElementById('cpwd-new').value = '';
@@ -925,22 +938,30 @@ async function openChangePwd(userId, nome) {
 
 async function saveChangePwd() {
   const userId = document.getElementById('cpwd-uid').value;
-  const nova = document.getElementById('cpwd-new').value;
+  const email  = document.getElementById('cpwd-email').value;
+  const nova   = document.getElementById('cpwd-new').value;
   const confirma = document.getElementById('cpwd-confirm').value;
   const err = document.getElementById('cpwd-error');
   if (!nova || nova.length < 6) { showErr(err,'Senha deve ter ao menos 6 caracteres.'); return; }
   if (nova !== confirma) { showErr(err,'As senhas não coincidem.'); return; }
   loading(true,'Alterando senha...');
-  // Use admin API via supabase auth admin - requires service key
-  // Workaround: use update user if same session, or store reset flag
-  // Best approach: call edge function or use admin client
-  // For now use the update password for the current user flow via direct API call
-  const { error } = await supa.rpc('admin_update_user_password', { uid: userId, new_password: nova });
+  // Call Supabase Auth Admin API with service key
+  const SUPA_URL = 'https://ncrsgnlyskasdjmjqhpx.supabase.co';
+  const SUPA_SERVICE = document.getElementById('cpwd-service-key').value.trim();
+  if (!SUPA_SERVICE) { loading(false); showErr(err,'Informe a Service Key do Supabase.'); return; }
+  const res = await fetch(`${SUPA_URL}/auth/v1/admin/users/${userId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPA_SERVICE,
+      'Authorization': 'Bearer ' + SUPA_SERVICE
+    },
+    body: JSON.stringify({ password: nova })
+  });
   loading(false);
-  if (error) {
-    // Fallback message
-    showErr(err, 'Para alterar senha de outro usuário, use o painel do Supabase → Authentication → Users → Reset password. Erro: ' + error.message);
-    return;
+  if (!res.ok) {
+    const e = await res.json();
+    showErr(err, 'Erro: ' + (e.message||res.status)); return;
   }
   toast('Senha alterada com sucesso!', 'ok');
   closeModal('modal-change-pwd');
@@ -957,8 +978,14 @@ function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.cl
 function loading(show, msg='Aguarde...') { document.getElementById('overlay-msg').textContent=msg; document.getElementById('overlay').classList.toggle('show',show); }
 function toast(msg, type='inf') { const t=document.getElementById('toast'); t.textContent=(type==='ok'?'✅ ':type==='err'?'❌ ':'ℹ️ ')+msg; t.className='show '+type; setTimeout(()=>t.classList.remove('show'),4000); }
 function showErr(el,msg) { el.textContent=msg; el.style.display='block'; }
-function openModal(id) { document.getElementById(id).classList.add('show'); }
-function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function openModal(id) { 
+  const m = document.getElementById(id); 
+  if (m) { m.style.display='flex'; m.classList.add('show'); } 
+}
+function closeModal(id) { 
+  const m = document.getElementById(id); 
+  if (m) { m.style.display='none'; m.classList.remove('show'); } 
+}
 function get(id) { return document.getElementById(id)?.value?.trim()||''; }
 
 function calcIdade() {
@@ -1367,7 +1394,7 @@ async function confirmLinkLaudo() {
 let secImages = [];
 
 function showSecTab(name, el) {
-  ['novo-sec','fila-sec','concluidos-sec'].forEach(t => { const e=document.getElementById('tab-'+t); if(e) e.style.display='none'; });
+  ['novo-sec','fila-sec','concluidos-sec','admin-sec'].forEach(t => { const e=document.getElementById('tab-'+t); if(e) e.style.display='none'; });
   document.querySelectorAll('#screen-sec .tab').forEach(t=>t.classList.remove('active'));
   const tab = document.getElementById('tab-'+name);
   if (tab) tab.style.display='block';
@@ -1375,6 +1402,24 @@ function showSecTab(name, el) {
   if (name==='fila-sec') loadSecQueue();
   if (name==='concluidos-sec') loadSecConcluidos();
   if (name==='novo-sec') loadDoctorsForSec();
+  if (name==='admin-sec') { loadAdminSecDoctors(); loadAdminSecPatients(); }
+}
+
+async function loadAdminSecDoctors() {
+  const { data } = await supa.from('medicos').select('id,nome,crm,email,papel,user_id').order('nome');
+  const c = document.getElementById('admin-sec-doctors');
+  if (!c || !data) return;
+  const roleLabel = p => p==='admin'?'Administrador':p==='secretaria'?'Secretaria':'Médico';
+  const roleColor = p => p==='admin'?'#7c3aed':p==='secretaria'?'#0369a1':'#1a6b3a';
+  c.innerHTML = data.map(d => `<div class="doc-row"><div><div class="doc-name">${d.nome} <span style="font-size:10px;background:${roleColor(d.papel)};color:#fff;padding:2px 8px;border-radius:10px;font-weight:700">${roleLabel(d.papel)}</span></div><div class="doc-meta">${d.crm?'CRM: '+d.crm+' | ':''}${d.email}</div></div><div style="display:flex;gap:6px"><button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="openChangePwd('${d.user_id}','${d.nome}')">🔑</button><button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deleteDoctor('${d.id}')">🗑️</button></div></div>`).join('');
+}
+
+async function loadAdminSecPatients() {
+  const { data } = await supa.from('pacientes').select('id,nome,cpf,email_recuperacao').order('nome');
+  const c = document.getElementById('admin-sec-patients');
+  if (!c) return;
+  if (!data?.length) { c.innerHTML='<div style="color:var(--text-muted);font-size:13px">Nenhum paciente cadastrado.</div>'; return; }
+  c.innerHTML = data.map(p => `<div class="doc-row"><div><div class="doc-name">${p.nome}</div><div class="doc-meta">CPF: ${p.cpf||'—'} | ${p.email_recuperacao||'—'}</div></div><button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deletePatient('${p.id}')">🗑️</button></div>`).join('');
 }
 
 function calcIdadeSec() {
@@ -1510,14 +1555,30 @@ async function loadSecConcluidos() {
 function renderSecConcluidos(list) {
   const c = document.getElementById('sec-concluidos-list');
   if (!list.length) { c.innerHTML='<div class="empty"><div class="ei">✅</div><p>Nenhum laudo concluído.</p></div>'; return; }
+  const isAdmin = currentDoctor?.papel === 'admin';
   c.innerHTML = '<div class="saved-list">' + list.map(r=>`
     <div class="saved-row">
       <div><div class="saved-name">${r.paciente_nome}</div><div class="saved-meta">📅 ${r.data_exame?fmtDate(r.data_exame):'—'} &nbsp;|&nbsp; 👨‍⚕️ ${r.medico_nome||'—'}</div></div>
       <div class="saved-actions">
+        ${isAdmin ? `<button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="secOpenEditor('${r.id}')">✏️ Editar</button>` : ''}
         <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="secAddImages('${r.id}','${r.paciente_nome}')">🖼️ Imagens</button>
         <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="printById('${r.id}')">🖨️ Imprimir</button>
       </div>
     </div>`).join('') + '</div>';
+}
+
+async function secOpenEditor(id) {
+  loading(true,'Carregando...');
+  const { data } = await supa.from('laudos').select('*').eq('id',id).single();
+  loading(false);
+  if (!data) return;
+  // Switch to doctor app screen for full editing
+  document.getElementById('doctor-badge').textContent = '⚙️ ' + currentDoctor.nome;
+  document.getElementById('tab-admin-btn').style.display = 'flex';
+  showScreen('screen-app');
+  // Fill the form
+  loadLaudo(id);
+  showTab('novo', document.querySelectorAll('#screen-app .tab')[0]);
 }
 function searchSecConcluidos() {
   const q = document.getElementById('search-sec').value.toLowerCase();
@@ -1599,7 +1660,7 @@ async function openPendente(id) {
   <header class="app-header">
     <div class="hdr-left">
       <div class="hdr-logo">📋</div>
-      <div><div class="hdr-title">C.T.D.M.I.</div><div class="hdr-sub">Secretaria</div></div>
+      <div><div class="hdr-title">C.T.D.M.I.</div><div class="hdr-sub" id="sec-screen-title">Secretaria</div></div>
     </div>
     <div class="hdr-right">
       <div class="doctor-badge" id="sec-badge">📋 Secretaria</div>
@@ -1610,6 +1671,7 @@ async function openPendente(id) {
     <div class="tab active" onclick="showSecTab('novo-sec',this)">➕ Novo Paciente</div>
     <div class="tab" onclick="showSecTab('fila-sec',this)">📋 Fila do Dia <span class="tab-badge" id="sec-queue-count" style="background:#d97706">0</span></div>
     <div class="tab" onclick="showSecTab('concluidos-sec',this)">✅ Concluídos</div>
+    <div class="tab" id="sec-admin-tab" onclick="showSecTab('admin-sec',this)" style="display:none">⚙️ Administração</div>
   </nav>
 
   <!-- NOVO PACIENTE (Secretaria) -->
@@ -1651,6 +1713,21 @@ async function openPendente(id) {
     </div>
   </div>
 
+  <!-- ADMIN TAB (admin only) -->
+  <div id="tab-admin-sec" class="app-main" style="display:none">
+    <div class="card">
+      <div class="card-hdr"><div class="card-ico">👥</div><div class="card-title">Médicos e Secretaria</div></div>
+      <div id="admin-sec-doctors"></div>
+      <button class="btn btn-green" style="margin-top:12px" onclick="openModal('modal-doctor')">+ Cadastrar Médico / Secretaria</button>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-ico">👤</div><div class="card-title">Pacientes com Acesso (máx. 5)</div></div>
+      <div class="tip">Pacientes conseguem fazer login e visualizar seus laudos. Máximo 5 acessos simultâneos.</div>
+      <div id="admin-sec-patients" style="margin-top:12px"></div>
+      <button class="btn btn-green" style="margin-top:12px" onclick="openModal('modal-patient')">+ Cadastrar Paciente</button>
+    </div>
+  </div>
+
   <!-- CONCLUÍDOS (leitura) -->
   <div id="tab-concluidos-sec" class="app-main" style="display:none">
     <div class="card">
@@ -1689,16 +1766,18 @@ async function openPendente(id) {
 
 <!-- MODAL CHANGE PASSWORD -->
 <div id="modal-change-pwd" class="modal" style="display:none">
-  <div class="modal-box" style="max-width:420px">
+  <div class="modal-box" style="max-width:440px">
     <div class="modal-hdr">
       <h3 id="cpwd-title">🔑 Alterar Senha</h3>
       <button class="modal-close" onclick="closeModal('modal-change-pwd')">✕</button>
     </div>
     <input type="hidden" id="cpwd-uid">
+    <input type="hidden" id="cpwd-email">
+    <div class="tip" style="font-size:11px;margin-bottom:12px">🔐 Informe a <strong>Service Role Key</strong> do seu projeto Supabase.<br>Encontre em: <em>Project Settings → API → service_role</em></div>
+    <div class="field"><label>Service Role Key</label><input type="password" id="cpwd-service-key" placeholder="eyJhbGci..."></div>
     <div class="field"><label>Nova Senha</label><input type="password" id="cpwd-new" placeholder="Mínimo 6 caracteres"></div>
     <div class="field"><label>Confirmar Senha</label><input type="password" id="cpwd-confirm" placeholder="Repita a nova senha"></div>
     <div id="cpwd-error" class="modal-error" style="display:none"></div>
-    <div class="tip" style="font-size:11px;margin-top:8px">💡 Se houver erro de permissão, acesse o painel do Supabase → Authentication → Users para redefinir a senha manualmente.</div>
     <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
       <button class="btn btn-outline" onclick="closeModal('modal-change-pwd')">Cancelar</button>
       <button class="btn btn-green" onclick="saveChangePwd()">💾 Salvar</button>
