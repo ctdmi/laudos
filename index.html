@@ -5,311 +5,301 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>C.T.D.M.I. — Sistema de Laudos</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
 :root {
-  --teal: #0f766e; --teal-l: #14b8a6; --teal-dim: rgba(20,184,166,0.1);
-  --bg: #0b1120; --surface: rgba(255,255,255,0.04); --border: rgba(255,255,255,0.09);
-  --text: #e2ddd8; --muted: #64748b;
+  --green: #1a6b3a;
+  --green-mid: #2d8a50;
+  --green-light: #4caf72;
+  --green-pale: #e8f5ee;
+  --green-dim: rgba(26,107,58,0.08);
+  --white: #ffffff;
+  --off-white: #f7f9f8;
+  --border: #d4e3da;
+  --border-dark: #b0c9bc;
+  --text: #1a2e23;
+  --text-mid: #3d5a47;
+  --text-muted: #7a9986;
+  --red: #c0392b;
+  --amber: #d4850a;
+  --shadow-sm: 0 1px 4px rgba(26,107,58,0.08);
+  --shadow: 0 4px 16px rgba(26,107,58,0.1);
+  --shadow-lg: 0 8px 32px rgba(26,107,58,0.15);
+  --radius: 10px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; min-height: 100vh; }
+body { background: var(--off-white); color: var(--text); font-family: 'Lato', sans-serif; font-size: 14px; min-height: 100vh; }
 
 /* ── TOAST ── */
-#toast {
-  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
-  background: #1e293b; border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 10px; padding: 12px 18px; font-size: 13px;
-  display: none; align-items: center; gap: 10px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5); max-width: 300px;
-}
+#toast { position: fixed; bottom: 24px; right: 24px; z-index: 9999; background: var(--white); border: 1px solid var(--border-dark); border-radius: var(--radius); padding: 13px 18px; font-size: 13px; display: none; align-items: center; gap: 10px; box-shadow: var(--shadow-lg); max-width: 320px; color: var(--text); }
 #toast.show { display: flex; }
-#toast.ok { border-left: 3px solid #22c55e; }
-#toast.err { border-left: 3px solid #ef4444; }
-#toast.inf { border-left: 3px solid var(--teal-l); }
+#toast.ok { border-left: 4px solid #27ae60; }
+#toast.err { border-left: 4px solid var(--red); }
+#toast.inf { border-left: 4px solid var(--green-mid); }
 
 /* ── OVERLAY ── */
-#overlay {
-  position: fixed; inset: 0; background: rgba(11,17,32,0.88);
-  display: none; align-items: center; justify-content: center;
-  z-index: 9998; flex-direction: column; gap: 14px;
-}
+#overlay { position: fixed; inset: 0; background: rgba(247,249,248,0.85); display: none; align-items: center; justify-content: center; z-index: 9998; flex-direction: column; gap: 14px; }
 #overlay.show { display: flex; }
-.spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--teal-l); border-radius: 50%; animation: spin 0.8s linear infinite; }
+.spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--green-mid); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-#overlay p { color: #94a3b8; font-size: 13px; }
+#overlay p { color: var(--text-muted); font-size: 13px; }
 
 /* ── SCREENS ── */
 .screen { display: none !important; }
 .screen.active { display: block !important; }
-#screen-login.active { display: flex !important; min-height: 100vh; align-items: center; justify-content: center; background: radial-gradient(ellipse at 50% 0%, rgba(15,118,110,0.15) 0%, transparent 60%), var(--bg); }
+#screen-login.active { display: flex !important; min-height: 100vh; align-items: center; justify-content: center; }
 
-/* ══════════════════════════════════
-   LOGIN SCREEN
-══════════════════════════════════ */
+/* ══════════ LOGIN ══════════ */
 #screen-login {
-  min-height: 100vh; display: flex; align-items: center; justify-content: center;
-  background: radial-gradient(ellipse at 50% 0%, rgba(15,118,110,0.15) 0%, transparent 60%), var(--bg);
+  background: linear-gradient(135deg, #f0f7f3 0%, #e8f5ee 50%, #ddf0e6 100%);
 }
-.login-box {
-  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 18px; padding: 44px 40px; width: 100%; max-width: 420px;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+.login-wrap { display: flex; width: 100%; max-width: 960px; min-height: 560px; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(26,107,58,0.18); margin: 24px; }
+.login-side {
+  flex: 1; background: linear-gradient(160deg, var(--green) 0%, #0e4726 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 48px 40px; color: #fff; text-align: center;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
-.login-logo { text-align: center; margin-bottom: 32px; }
-.login-logo .clinic-name { font-size: 20px; font-weight: 700; color: #ccfbf1; letter-spacing: -0.3px; }
-.login-logo .clinic-sub { font-size: 12px; color: #2dd4bf; margin-top: 4px; }
-.login-logo .login-icon { font-size: 40px; margin-bottom: 12px; display: block; }
-.login-title { font-size: 18px; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; }
-.login-sub { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+.ls-icon { font-size: 52px; margin-bottom: 20px; }
+.ls-title { font-family: 'Merriweather', serif; font-size: 22px; font-weight: 700; margin-bottom: 10px; line-height: 1.3; }
+.ls-sub { font-size: 13px; opacity: 0.7; line-height: 1.7; margin-bottom: 28px; }
+.ls-divider { width: 40px; height: 2px; background: rgba(255,255,255,0.3); margin: 0 auto 20px; }
+.ls-info { font-size: 12px; opacity: 0.55; line-height: 1.8; }
+.login-form { flex: 1; background: var(--white); display: flex; flex-direction: column; justify-content: center; padding: 48px 44px; }
+.lf-title { font-family: 'Merriweather', serif; font-size: 22px; color: var(--green); margin-bottom: 6px; font-weight: 700; }
+.lf-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 32px; }
 .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 16px; }
-.field label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.7px; font-weight: 500; }
-.field input {
-  background: rgba(0,0,0,0.4); border: 1px solid var(--border);
-  border-radius: 8px; color: var(--text); font-family: 'Inter', sans-serif;
-  font-size: 14px; padding: 11px 14px; outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s; width: 100%;
-}
-.field input:focus { border-color: var(--teal-l); box-shadow: 0 0 0 3px rgba(20,184,166,0.12); }
-.btn-login {
-  width: 100%; padding: 12px; border: none; border-radius: 9px;
-  background: linear-gradient(135deg, var(--teal), #0891b2);
-  color: #fff; font-family: 'Inter', sans-serif; font-size: 14px;
-  font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 8px;
-  box-shadow: 0 4px 16px rgba(15,118,110,0.4);
-}
-.btn-login:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(15,118,110,0.5); }
-#login-error { color: #fca5a5; font-size: 12px; margin-top: 10px; display: none; text-align: center; }
+.field label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700; }
+.field input { background: var(--off-white); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Lato', sans-serif; font-size: 14px; padding: 11px 14px; outline: none; transition: all 0.2s; width: 100%; }
+.field input:focus { border-color: var(--green-mid); background: var(--white); box-shadow: 0 0 0 3px rgba(45,138,80,0.1); }
+.field select { background: var(--off-white); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Lato', sans-serif; font-size: 14px; padding: 11px 14px; outline: none; cursor: pointer; }
+.field select:focus { border-color: var(--green-mid); }
+.field textarea { background: var(--off-white); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Lato', sans-serif; font-size: 13px; padding: 11px 14px; outline: none; resize: vertical; min-height: 150px; line-height: 1.8; transition: all 0.2s; width: 100%; }
+.field textarea:focus { border-color: var(--green-mid); background: var(--white); box-shadow: 0 0 0 3px rgba(45,138,80,0.1); }
+.btn-login { width: 100%; padding: 13px; border: none; border-radius: 9px; background: linear-gradient(135deg, var(--green), var(--green-mid)); color: #fff; font-family: 'Lato', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; letter-spacing: 0.5px; box-shadow: 0 4px 14px rgba(26,107,58,0.3); margin-top: 6px; }
+.btn-login:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(26,107,58,0.4); }
+#login-error { color: var(--red); font-size: 12px; margin-top: 10px; display: none; text-align: center; padding: 8px; background: #fdf2f2; border-radius: 6px; border: 1px solid #f5c6c6; }
+.login-toggle { margin-top: 18px; text-align: center; font-size: 12px; color: var(--text-muted); }
+.login-toggle a { color: var(--green); cursor: pointer; font-weight: 700; text-decoration: none; }
+.login-toggle a:hover { text-decoration: underline; }
 
-/* ══════════════════════════════════
-   ADMIN SCREEN
-══════════════════════════════════ */
+/* ══════════ APP ══════════ */
 .app-header {
-  background: linear-gradient(90deg, #071810, #0a1828);
-  border-bottom: 1px solid rgba(20,184,166,0.2);
-  padding: 0 28px; height: 58px;
+  background: var(--white);
+  border-bottom: 2px solid var(--green-pale);
+  padding: 0 32px; height: 62px;
   display: flex; align-items: center; justify-content: space-between;
   position: sticky; top: 0; z-index: 100;
+  box-shadow: var(--shadow-sm);
 }
-.hdr-left { display: flex; align-items: center; gap: 12px; }
-.hdr-icon { width: 36px; height: 36px; border-radius: 9px; background: linear-gradient(135deg, var(--teal), #0891b2); display: flex; align-items: center; justify-content: center; font-size: 18px; }
-.hdr-title { font-size: 15px; font-weight: 600; color: #ccfbf1; }
-.hdr-sub { font-size: 10px; color: #2dd4bf; letter-spacing: 1.5px; text-transform: uppercase; }
-.hdr-right { display: flex; align-items: center; gap: 12px; }
-.doctor-badge {
-  background: rgba(20,184,166,0.1); border: 1px solid rgba(20,184,166,0.2);
-  border-radius: 8px; padding: 6px 12px; font-size: 12px; color: #5eead4;
-}
-.btn-sm {
-  padding: 7px 14px; border: 1px solid var(--border); border-radius: 7px;
-  background: rgba(255,255,255,0.05); color: #94a3b8;
-  font-family: 'Inter', sans-serif; font-size: 12px; cursor: pointer;
-  transition: all 0.2s;
-}
-.btn-sm:hover { background: rgba(255,255,255,0.1); color: #e2e8f0; }
+.hdr-left { display: flex; align-items: center; gap: 14px; }
+.hdr-logo { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, var(--green), var(--green-mid)); display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 2px 8px rgba(26,107,58,0.25); }
+.hdr-title { font-family: 'Merriweather', serif; font-size: 16px; color: var(--green); font-weight: 700; }
+.hdr-sub { font-size: 10px; color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; margin-top: 1px; }
+.hdr-right { display: flex; align-items: center; gap: 10px; }
+.doctor-badge { background: var(--green-pale); border: 1px solid var(--border); border-radius: 8px; padding: 6px 13px; font-size: 12px; color: var(--green); font-weight: 700; }
+.patient-badge { background: #e8f0fe; border: 1px solid #c5d5f8; border-radius: 8px; padding: 6px 13px; font-size: 12px; color: #1a4b8c; font-weight: 700; }
 
 /* TABS */
-nav { background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border); display: flex; padding: 0 28px; overflow-x: auto; }
-.tab { padding: 13px 18px; cursor: pointer; border-bottom: 2px solid transparent; font-size: 13px; font-weight: 500; color: var(--muted); transition: all 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 7px; user-select: none; }
-.tab:hover { color: #94a3b8; }
-.tab.active { color: var(--teal-l); border-bottom-color: var(--teal-l); }
-.tab-badge { background: var(--teal); color: #fff; border-radius: 10px; padding: 1px 7px; font-size: 10px; }
+nav { background: var(--white); border-bottom: 1px solid var(--border); display: flex; padding: 0 32px; overflow-x: auto; }
+.tab { padding: 14px 20px; cursor: pointer; border-bottom: 3px solid transparent; font-size: 13px; font-weight: 700; color: var(--text-muted); transition: all 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 7px; user-select: none; letter-spacing: 0.3px; }
+.tab:hover { color: var(--green-mid); }
+.tab.active { color: var(--green); border-bottom-color: var(--green); }
+.tab-badge { background: var(--green); color: #fff; border-radius: 10px; padding: 1px 8px; font-size: 10px; }
 
 /* MAIN */
-.app-main { max-width: 980px; margin: 0 auto; padding: 32px 28px 100px; }
+.app-main { max-width: 1000px; margin: 0 auto; padding: 28px 28px 100px; }
 
 /* CARD */
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px 28px; margin-bottom: 20px; }
+.card { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 24px 28px; margin-bottom: 18px; box-shadow: var(--shadow-sm); }
 .card-hdr { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
-.card-ico { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; background: var(--teal-dim); border: 1px solid rgba(20,184,166,0.2); flex-shrink: 0; }
-.card-title { font-size: 14px; font-weight: 600; color: #cbd5e1; }
+.card-ico { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; background: var(--green-pale); border: 1px solid var(--border); flex-shrink: 0; }
+.card-title { font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: 0.3px; }
 
 /* GRID */
 .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
 .s2 { grid-column: 1 / -1; }
-.field textarea { resize: vertical; min-height: 145px; line-height: 1.8; font-size: 13px; }
-.field select option { background: #1e293b; }
 
 /* LAUDO BLOCKS */
-.lb { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; overflow: hidden; transition: border-color 0.3s; }
-.lb.on { border-color: rgba(20,184,166,0.35); }
-.lb-hdr { display: flex; align-items: center; justify-content: space-between; padding: 13px 18px; cursor: pointer; user-select: none; background: rgba(0,0,0,0.2); gap: 12px; }
-.lb-title { font-size: 12.5px; font-weight: 600; color: #475569; transition: color 0.2s; }
-.lb.on .lb-title { color: #7dd3fc; }
-.lb-body { padding: 14px 18px; display: none; }
+.lb { background: var(--white); border: 1.5px solid var(--border); border-radius: 12px; margin-bottom: 12px; overflow: hidden; transition: all 0.3s; }
+.lb.on { border-color: var(--green-mid); box-shadow: 0 2px 10px rgba(26,107,58,0.08); }
+.lb-hdr { display: flex; align-items: center; justify-content: space-between; padding: 13px 18px; cursor: pointer; user-select: none; background: var(--off-white); gap: 12px; border-bottom: 1px solid transparent; transition: all 0.2s; }
+.lb.on .lb-hdr { background: var(--green-pale); border-bottom-color: var(--border); }
+.lb-title { font-size: 12px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; transition: color 0.2s; }
+.lb.on .lb-title { color: var(--green); }
+.lb-body { padding: 16px 18px; display: none; }
 .lb.on .lb-body { display: block; }
-.lb-body textarea { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; color: #cbd5e1; font-family: 'Inter', sans-serif; font-size: 13px; line-height: 1.8; padding: 12px 14px; outline: none; resize: vertical; min-height: 160px; transition: border-color 0.2s; }
-.lb-body textarea:focus { border-color: rgba(20,184,166,0.4); }
+.lb-body textarea { width: 100%; background: var(--off-white); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Lato', sans-serif; font-size: 13px; line-height: 1.8; padding: 12px 14px; outline: none; resize: vertical; min-height: 170px; transition: all 0.2s; }
+.lb-body textarea:focus { border-color: var(--green-mid); background: var(--white); }
 
 /* TOGGLE */
-.tog { position: relative; width: 42px; height: 22px; flex-shrink: 0; }
+.tog { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
 .tog input { display: none; }
-.tog-track { position: absolute; inset: 0; background: #1e293b; border-radius: 11px; transition: background 0.3s; cursor: pointer; }
-.tog input:checked + .tog-track { background: var(--teal); }
-.tog-knob { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: left 0.3s; pointer-events: none; }
+.tog-track { position: absolute; inset: 0; background: var(--border-dark); border-radius: 12px; transition: background 0.3s; cursor: pointer; }
+.tog input:checked + .tog-track { background: var(--green-mid); }
+.tog-knob { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: left 0.3s; pointer-events: none; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
 .tog input:checked ~ .tog-knob { left: 23px; }
 
 /* IMAGES */
-.drop-zone { border: 2px dashed rgba(99,102,241,0.35); border-radius: 14px; padding: 38px 24px; text-align: center; cursor: pointer; transition: all 0.3s; margin-bottom: 22px; background: rgba(79,70,229,0.03); }
-.drop-zone:hover, .drop-zone.over { border-color: rgba(129,140,248,0.6); background: rgba(99,102,241,0.08); }
-.dz-icon { font-size: 38px; margin-bottom: 10px; }
-.dz-main { font-size: 15px; color: #a5b4fc; margin-bottom: 4px; }
-.dz-sub { font-size: 12px; color: var(--muted); }
-.page-lbl { font-size: 11px; color: #6366f1; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; padding-bottom: 7px; border-bottom: 1px solid rgba(99,102,241,0.15); }
-.img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 22px; }
-.img-item { position: relative; border-radius: 10px; overflow: hidden; aspect-ratio: 4/3; background: #111; border: 1px solid rgba(99,102,241,0.25); }
+.drop-zone { border: 2px dashed var(--border-dark); border-radius: 12px; padding: 36px 24px; text-align: center; cursor: pointer; transition: all 0.3s; margin-bottom: 20px; background: var(--off-white); }
+.drop-zone:hover, .drop-zone.over { border-color: var(--green-mid); background: var(--green-pale); }
+.dz-icon { font-size: 36px; margin-bottom: 10px; }
+.dz-main { font-size: 15px; color: var(--green-mid); font-weight: 700; margin-bottom: 4px; }
+.dz-sub { font-size: 12px; color: var(--text-muted); }
+.page-lbl { font-size: 11px; color: var(--green); letter-spacing: 2px; text-transform: uppercase; font-weight: 700; margin-bottom: 10px; padding-bottom: 7px; border-bottom: 1px solid var(--border); }
+.img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+.img-item { position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 4/3; background: var(--off-white); border: 1px solid var(--border); }
 .img-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .img-over { position: absolute; inset: 0; background: rgba(0,0,0,0); display: flex; align-items: center; justify-content: center; gap: 5px; transition: background 0.2s; }
-.img-item:hover .img-over { background: rgba(0,0,0,0.65); }
-.img-over button { padding: 5px 9px; border: none; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 600; opacity: 0; transform: translateY(5px); transition: all 0.2s; }
+.img-item:hover .img-over { background: rgba(0,0,0,0.6); }
+.img-over button { padding: 5px 9px; border: none; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 700; opacity: 0; transform: translateY(5px); transition: all 0.2s; }
 .img-item:hover .img-over button { opacity: 1; transform: translateY(0); }
 .ib-del { background: #dc2626; color: #fff; }
-.ib-lr { background: #374151; color: #d1d5db; }
-.img-num { position: absolute; top: 6px; left: 7px; background: rgba(0,0,0,0.65); color: #94a3b8; font-size: 10px; padding: 2px 6px; border-radius: 8px; }
-
-/* SAVED LIST */
-.saved-list { display: flex; flex-direction: column; gap: 10px; }
-.saved-row { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; transition: border-color 0.2s; }
-.saved-row:hover { border-color: rgba(20,184,166,0.3); }
-.saved-info .saved-name { font-size: 14px; font-weight: 600; color: #e2e8f0; margin-bottom: 3px; }
-.saved-info .saved-meta { font-size: 12px; color: var(--muted); }
-.saved-actions { display: flex; gap: 8px; flex-shrink: 0; }
-
-/* ADMIN DOCTORS */
-.doc-list { display: flex; flex-direction: column; gap: 10px; }
-.doc-row { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.doc-info .doc-name { font-size: 14px; font-weight: 600; color: #e2e8f0; }
-.doc-info .doc-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.ib-lr { background: rgba(255,255,255,0.9); color: #333; }
+.img-num { position: absolute; top: 6px; left: 7px; background: rgba(0,0,0,0.6); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 6px; font-weight: 700; }
 
 /* BUTTONS */
-.btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 20px; border: none; border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 20px; border: none; border-radius: 8px; font-family: 'Lato', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.btn-teal { background: linear-gradient(135deg, var(--teal), #0891b2); color: #fff; box-shadow: 0 3px 12px rgba(15,118,110,0.3); }
-.btn-teal:hover:not(:disabled) { transform: translateY(-1px); }
-.btn-ghost { background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: #94a3b8; }
-.btn-ghost:hover { background: rgba(255,255,255,0.1); color: #e2e8f0; }
-.btn-red { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.25); color: #fca5a5; }
-.btn-red:hover { background: rgba(239,68,68,0.2); }
-.btn-big { width: 100%; justify-content: center; padding: 14px; font-size: 15px; background: linear-gradient(135deg, var(--teal), #0284c7); color: #fff; border-radius: 10px; box-shadow: 0 4px 20px rgba(15,118,110,0.35); }
-.btn-big:hover:not(:disabled) { transform: translateY(-2px); }
-.btn-print { width: 100%; justify-content: center; padding: 14px; font-size: 15px; background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #fff; border-radius: 10px; box-shadow: 0 4px 20px rgba(109,40,217,0.35); }
-.btn-print:hover { transform: translateY(-2px); }
-.abar { display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
+.btn-green { background: linear-gradient(135deg, var(--green), var(--green-mid)); color: #fff; box-shadow: 0 3px 10px rgba(26,107,58,0.25); }
+.btn-green:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(26,107,58,0.35); }
+.btn-outline { background: var(--white); border: 1.5px solid var(--border-dark); color: var(--text-mid); }
+.btn-outline:hover { border-color: var(--green-mid); color: var(--green); background: var(--green-pale); }
+.btn-red { background: #fdf2f2; border: 1.5px solid #f5c6c6; color: var(--red); }
+.btn-red:hover { background: #fce4e4; }
+.btn-print { background: linear-gradient(135deg, #2c5282, #3b82f6); color: #fff; box-shadow: 0 3px 10px rgba(59,130,246,0.25); }
+.btn-print:hover { transform: translateY(-1px); }
+.btn-big { width: 100%; justify-content: center; padding: 14px; font-size: 15px; border-radius: 10px; }
+.abar { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
 
-/* TIP */
-.tip { background: rgba(20,184,166,0.07); border: 1px solid rgba(20,184,166,0.2); border-radius: 10px; padding: 13px 17px; font-size: 13px; color: #5eead4; margin-bottom: 20px; line-height: 1.7; }
-.tip strong { color: #99f6e4; }
+/* SAVED LIST */
+.saved-list { display: flex; flex-direction: column; gap: 8px; }
+.saved-row { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; transition: all 0.2s; }
+.saved-row:hover { border-color: var(--green-mid); box-shadow: var(--shadow-sm); }
+.saved-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.saved-meta { font-size: 12px; color: var(--text-muted); }
+.saved-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
-/* REVIEW */
-.rev-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-.rev-item { background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 8px; padding: 11px 15px; }
-.rev-lbl { font-size: 10px; color: #556; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 3px; }
-.rev-val { font-size: 13.5px; color: #cbd5e1; }
-
-/* EMPTY STATE */
-.empty { text-align: center; padding: 60px 20px; color: var(--muted); }
-.empty .ei { font-size: 48px; margin-bottom: 16px; }
-.empty p { font-size: 14px; }
+/* ADMIN */
+.doc-row { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.doc-name { font-size: 14px; font-weight: 700; color: var(--text); }
+.doc-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
 /* MODAL */
-.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 500; display: none; align-items: center; justify-content: center; }
+.modal-bg { position: fixed; inset: 0; background: rgba(26,107,58,0.15); backdrop-filter: blur(3px); z-index: 500; display: none; align-items: center; justify-content: center; }
 .modal-bg.show { display: flex; }
-.modal { background: #0f1a2e; border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 100%; max-width: 480px; box-shadow: 0 24px 64px rgba(0,0,0,0.6); }
-.modal h3 { font-size: 17px; color: #e2e8f0; margin-bottom: 20px; }
+.modal { background: var(--white); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 100%; max-width: 480px; box-shadow: var(--shadow-lg); }
+.modal h3 { font-family: 'Merriweather', serif; font-size: 17px; color: var(--green); margin-bottom: 20px; }
 .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
 
+/* TIP */
+.tip { background: var(--green-pale); border: 1px solid var(--border); border-radius: 10px; padding: 13px 17px; font-size: 13px; color: var(--green); margin-bottom: 18px; line-height: 1.7; border-left: 4px solid var(--green-mid); }
+
+/* PATIENT VIEW */
+.patient-laudo { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 28px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
+.pl-header { text-align: center; border-bottom: 2px solid var(--green); padding-bottom: 14px; margin-bottom: 18px; }
+.pl-clinic { font-family: 'Merriweather', serif; font-size: 18px; font-weight: 700; color: var(--green); }
+.pl-sub { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+.pl-patient { background: var(--green-pale); border-radius: 8px; padding: 14px 16px; margin-bottom: 18px; }
+.pl-section { margin-bottom: 16px; }
+.pl-section h4 { font-size: 12px; font-weight: 700; color: var(--green); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
+.pl-section p { font-size: 13px; line-height: 1.8; color: var(--text); white-space: pre-wrap; }
+
+/* EMPTY */
+.empty { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+.empty .ei { font-size: 48px; margin-bottom: 14px; }
+
 /* RESPONSIVE */
-@media(max-width:640px) {
+@media(max-width:700px) {
+  .login-side { display: none; }
   .g2,.g3 { grid-template-columns: 1fr; }
-  .img-grid { grid-template-columns: repeat(2, 1fr); }
-  .rev-grid { grid-template-columns: 1fr; }
+  .img-grid { grid-template-columns: repeat(2,1fr); }
   .app-header { padding: 0 16px; }
-  .app-main { padding: 20px 16px 80px; }
+  .app-main { padding: 16px 16px 80px; }
 }
 
 /* ══════════════════════════════════
-   PRINT STYLES
+   PRINT
 ══════════════════════════════════ */
 @media print {
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-
-  body { background: #fff !important; color: #000 !important; margin: 0; padding: 0; font-family: 'Times New Roman', Times, serif; }
-
-  /* Hide everything except print content */
   body > *:not(#print-container) { display: none !important; }
   #print-container { display: block !important; }
 
-  @page {
-    size: A4;
-    margin: 0;
-  }
+  @page { size: A4; margin: 0; }
 
   .print-page {
     width: 210mm;
     min-height: 297mm;
-    padding: 15mm 20mm 35mm 20mm;
+    padding: 14mm 22mm 38mm 22mm;
     position: relative;
     page-break-after: always;
     break-after: page;
     box-sizing: border-box;
+    font-family: 'Times New Roman', Times, serif;
   }
   .print-page:last-child { page-break-after: avoid; break-after: avoid; }
 
   .print-header {
     text-align: center;
-    border-bottom: 1.5px solid #000;
+    border-bottom: 2px solid #000;
     padding-bottom: 8px;
-    margin-bottom: 18px;
+    margin-bottom: 16px;
   }
-  .print-header .ph-main { font-size: 16pt; font-weight: bold; font-family: 'Times New Roman', serif; }
-  .print-header .ph-sub { font-size: 10pt; margin-top: 2px; }
-  .print-header .ph-crm { font-size: 10pt; margin-top: 2px; }
+  .ph-main { font-size: 15pt; font-weight: bold; font-family: 'Times New Roman', serif; }
+  .ph-sub { font-size: 10pt; margin-top: 2px; }
+  .ph-crm { font-size: 10pt; margin-top: 1px; }
 
-  .print-patient { margin-bottom: 18px; font-size: 10.5pt; line-height: 1.8; }
-  .print-patient div { display: block; }
+  .print-patient { margin-bottom: 16px; font-size: 10.5pt; line-height: 1.9; }
 
-  .print-section { margin-bottom: 14px; }
-  .print-section h3 { font-size: 10.5pt; font-weight: bold; text-decoration: underline; text-transform: uppercase; margin-bottom: 6px; font-family: 'Times New Roman', serif; }
-  .print-section p { font-size: 10.5pt; line-height: 1.8; text-align: justify; white-space: pre-wrap; font-family: 'Times New Roman', serif; }
+  .print-section { margin-bottom: 12px; }
+  .print-section h3 { font-size: 10.5pt; font-weight: bold; text-decoration: underline; text-transform: uppercase; margin-bottom: 5px; }
+  .print-section p { font-size: 10.5pt; line-height: 1.85; text-align: justify; white-space: pre-wrap; }
+
+  /* Page break between Direito and Esquerdo */
+  .print-page-break {
+    page-break-before: always;
+    break-before: page;
+    padding-top: 0;
+  }
+  .print-page-break .print-header { display: block; }
 
   .print-signature {
     position: absolute;
-    bottom: 42mm;
-    right: 20mm;
+    bottom: 44mm;
+    right: 22mm;
     text-align: right;
     font-size: 10pt;
     font-family: 'Times New Roman', serif;
     line-height: 1.7;
   }
-  .print-signature .ps-label { font-size: 9.5pt; }
-  .print-signature .ps-name { font-weight: bold; font-size: 10pt; }
-  .print-signature .ps-date { font-size: 9pt; font-style: italic; }
+  .ps-label { font-size: 9.5pt; }
+  .ps-name { font-weight: bold; }
+  .ps-date { font-size: 9pt; font-style: italic; }
 
   .print-footer {
     position: absolute;
-    bottom: 12mm;
-    left: 20mm;
-    right: 20mm;
+    bottom: 10mm;
+    left: 22mm;
+    right: 22mm;
     border-top: 1px solid #000;
     padding-top: 5px;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     font-size: 8.5pt;
+    line-height: 1.5;
     font-family: 'Times New Roman', serif;
   }
-  .print-footer .pf-left { text-align: left; line-height: 1.6; }
-  .print-footer .pf-right { text-align: right; line-height: 1.6; }
-  .print-footer .pf-warn { font-size: 7.5pt; font-style: italic; color: #444; margin-top: 3px; }
+  .pf-warn { font-size: 7.5pt; font-style: italic; color: #444; margin-top: 2px; }
 
-  /* IMAGE PAGE */
   .print-img-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 6mm;
-    margin-top: 10mm;
+    gap: 5mm;
+    margin-top: 8mm;
   }
   .print-img-cell { width: 100%; aspect-ratio: 4/3; overflow: hidden; }
   .print-img-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -318,92 +308,94 @@ nav { background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border); displ
 </head>
 <body>
 
-<!-- TOAST -->
 <div id="toast"></div>
-
-<!-- LOADING -->
 <div id="overlay"><div class="spinner"></div><p id="overlay-msg">Aguarde...</p></div>
-
-<!-- PRINT CONTAINER (hidden until print) -->
 <div id="print-container" style="display:none"></div>
 
-<!-- ══════════════════════════════════
-     LOGIN SCREEN
-══════════════════════════════════ -->
+<!-- ══════════ LOGIN ══════════ -->
 <div id="screen-login" class="screen active">
-  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 0%,rgba(15,118,110,0.15) 0%,transparent 60%),var(--bg)">
-    <div class="login-box">
-      <div class="login-logo">
-        <span class="login-icon">🩺</span>
-        <div class="clinic-name">C.T.D.M.I.</div>
-        <div class="clinic-sub">Angiologia e Cirurgia Vascular</div>
-      </div>
-      <div class="login-title">Acesso ao Sistema</div>
-      <div class="login-sub" style="margin-bottom:24px">Entre com seu email e senha</div>
+  <div class="login-wrap">
+    <div class="login-side">
+      <div class="ls-icon">🩺</div>
+      <div class="ls-title">C.T.D.M.I.<br>Angiologia e Cirurgia Vascular</div>
+      <div class="ls-divider"></div>
+      <div class="ls-sub">Cirurgia Vascular · Angiologia<br>Ecografia Vascular com Doppler</div>
+      <div class="ls-info">CRM: 11. 1260-0<br><br>Méier - Rua Dias da Cruz, 155<br>Sala 611 · Ed. Mesbla · CEP 20720-010</div>
+    </div>
+    <div class="login-form">
+      <div class="lf-title">Bem-vindo</div>
+      <div class="lf-sub" id="login-subtitle">Acesse o sistema com suas credenciais</div>
       <div class="field"><label>Email</label><input type="email" id="login-email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
       <div class="field"><label>Senha</label><input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
-      <div id="login-error" style="color:#fca5a5;font-size:12px;margin-top:8px;display:none;text-align:center"></div>
+      <div id="login-error"></div>
       <button class="btn-login" onclick="doLogin()">Entrar</button>
+      <div class="login-toggle">É paciente? <a onclick="toggleLoginType()">Clique aqui</a></div>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════
-     APP SCREEN
-══════════════════════════════════ -->
+<!-- ══════════ APP (MÉDICO) ══════════ -->
 <div id="screen-app" class="screen">
-
   <header class="app-header">
     <div class="hdr-left">
-      <div class="hdr-icon">🩺</div>
-      <div>
-        <div class="hdr-title">C.T.D.M.I.</div>
-        <div class="hdr-sub">Sistema de Laudos</div>
-      </div>
+      <div class="hdr-logo">🩺</div>
+      <div><div class="hdr-title">C.T.D.M.I.</div><div class="hdr-sub">Sistema de Laudos</div></div>
     </div>
     <div class="hdr-right">
       <div class="doctor-badge" id="doctor-badge">👨‍⚕️ Médico</div>
-      <button class="btn-sm" onclick="doLogout()">Sair</button>
+      <button class="btn btn-outline" style="padding:7px 14px;font-size:12px" onclick="doLogout()">Sair</button>
     </div>
   </header>
-
   <nav>
     <div class="tab active" onclick="showTab('novo',this)">✏️ Novo Laudo</div>
     <div class="tab" onclick="showTab('salvos',this)">📁 Laudos Salvos <span class="tab-badge" id="saved-count">0</span></div>
     <div class="tab" id="tab-admin-btn" onclick="showTab('admin',this)" style="display:none">⚙️ Administração</div>
   </nav>
 
-  <!-- ── TAB: NOVO LAUDO ── -->
+  <!-- TAB NOVO -->
   <div id="tab-novo" class="app-main">
-
-    <!-- PACIENTE -->
     <div class="card">
       <div class="card-hdr"><div class="card-ico">👤</div><div class="card-title">Dados do Paciente</div></div>
       <div class="g2">
-        <div class="field s2"><label>Nome completo *</label><input type="text" id="p-nome" placeholder="Nome do paciente"></div>
+        <div class="field s2"><label>Nome completo *</label><input type="text" id="p-nome" placeholder="Nome completo do paciente"></div>
         <div class="field"><label>Data de Nascimento</label><input type="date" id="p-nasc" oninput="calcIdade()"></div>
-        <div class="field"><label>Idade</label><input type="text" id="p-idade" placeholder="Calculada automaticamente" readonly style="background:rgba(0,0,0,0.2);color:#64748b"></div>
-        <div class="field"><label>Convênio</label><input type="text" id="p-convenio" placeholder="Ex: Unimed, Bradesco, Particular..."></div>
+        <div class="field"><label>Idade</label><input type="text" id="p-idade" readonly style="background:#f0f0f0;color:#888"></div>
+        <div class="field"><label>Convênio</label><input type="text" id="p-convenio" placeholder="Ex: Unimed, Particular..."></div>
         <div class="field"><label>Data do Exame</label><input type="date" id="p-data"></div>
       </div>
     </div>
 
-    <!-- LAUDO SECTIONS -->
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">📋</div><div class="card-title">Seções do Laudo — clique para ativar/desativar</div></div>
+      <div class="card-hdr"><div class="card-ico">📋</div><div class="card-title">Seções do Laudo</div></div>
 
       <div class="lb on" id="lb-venoso">
         <div class="lb-hdr" onclick="toggleLb('venoso')">
-          <span class="lb-title">📘 SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES</span>
+          <span class="lb-title">SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-venoso" checked onchange="toggleLb('venoso')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
-        <div class="lb-body"><textarea id="txt-venoso">PERVIEDADE:
+        <div class="lb-body">
+          <div style="margin-bottom:10px;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">🦵 Membro Inferior Direito</div>
+          <textarea id="txt-venoso-d" style="margin-bottom:16px">PERVIEDADE:
 
 Veias do sistema superficial e profundo encontram-se pérvias, calibres normais, compressíveis, sem trombos visíveis ao mapeamento a cores, com fluxos fásicos com a respiração, sendo suas paredes lisas sem irregularidades parietais.
 
 COMPETÊNCIA:
 
-MEMBRO INFERIOR DIREITO
+Veia Femoral Comum, Femoral Superficial, Poplítea, Tibiais Anteriores, Tibiais Posteriores, Fibulares, Gastrocnêmias e Soleares não demonstram refluxos ao Doppler espectral, com manobras provocativas.
+
+Veia Safena Magna apresenta calibre normal, sem tortuosidades e ou refluxos significativos, detectáveis ao Doppler espectral, com manobras provocativas.
+
+Veia Safena Parva apresenta calibre normal, sem tortuosidades e ou refluxos significativos, detectáveis ao Doppler espectral, com manobras provocativas.
+
+Não foram visualizadas veias perfurantes incompetentes.
+
+Há varicosidades conforme ectoscopia. Telangiectasias e varizes reticulares subcutâneas, visualizadas veias extra-faciais insuficientes na face anterior e lateral e posterior da coxa e perna.</textarea>
+          <div style="margin-bottom:10px;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">🦵 Membro Inferior Esquerdo</div>
+          <textarea id="txt-venoso-e">PERVIEDADE:
+
+Veias do sistema superficial e profundo encontram-se pérvias, calibres normais, compressíveis, sem trombos visíveis ao mapeamento a cores, com fluxos fásicos com a respiração, sendo suas paredes lisas sem irregularidades parietais.
+
+COMPETÊNCIA:
 
 Veia Femoral Comum, Femoral Superficial, Poplítea, Tibiais Anteriores, Tibiais Posteriores, Fibulares, Gastrocnêmias e Soleares não demonstram refluxos ao Doppler espectral, com manobras provocativas.
 
@@ -413,24 +405,13 @@ Veia Safena Parva apresenta calibre normal, sem tortuosidades e ou refluxos sign
 
 Não foram visualizadas veias perfurantes incompetentes.
 
-Há varicosidades conforme ectoscopia. Telangiectasias e varizes reticulares subcutâneas, visualizadas veias extra-faciais insuficientes na face anterior e lateral e posterior da coxa e perna.
-
-MEMBRO INFERIOR ESQUERDO
-
-Veia Femoral Comum, Femoral Superficial, Poplítea, Tibiais Anteriores, Tibiais Posteriores, Fibulares, Gastrocnêmias e Soleares não demonstram refluxos ao Doppler espectral, com manobras provocativas.
-
-Veia Safena Magna apresenta calibre normal, sem tortuosidades e ou refluxos significativos, detectáveis ao Doppler espectral, com manobras provocativas.
-
-Veia Safena Parva apresenta calibre normal, sem tortuosidades e ou refluxos significativos, detectáveis ao Doppler espectral, com manobras provocativas.
-
-Não foram visualizadas veias perfurantes incompetentes.
-
-Há varicosidades conforme ectoscopia. Telangiectasias e varizes reticulares subcutâneas, visualizadas veias extra-faciais insuficientes na face anterior e lateral e posterior da coxa e perna.</textarea></div>
+Há varicosidades conforme ectoscopia. Telangiectasias e varizes reticulares subcutâneas, visualizadas veias extra-faciais insuficientes na face anterior e lateral e posterior da coxa e perna.</textarea>
+        </div>
       </div>
 
       <div class="lb on" id="lb-arterial">
         <div class="lb-hdr" onclick="toggleLb('arterial')">
-          <span class="lb-title">🔴 ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES</span>
+          <span class="lb-title">ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-arterial" checked onchange="toggleLb('arterial')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
         <div class="lb-body"><textarea id="txt-arterial">O exame com Doppler espectral e colorido revela:
@@ -458,7 +439,7 @@ Não foi evidenciado redução no deságue arterial dos membros inferiores.</tex
 
       <div class="lb on" id="lb-carotidas">
         <div class="lb-hdr" onclick="toggleLb('carotidas')">
-          <span class="lb-title">🧠 ECOCOLOR DOPPLER DAS CARÓTIDAS E VERTEBRAIS</span>
+          <span class="lb-title">ECOCOLOR DOPPLER DAS CARÓTIDAS E VERTEBRAIS</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-carotidas" checked onchange="toggleLb('carotidas')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
         <div class="lb-body"><textarea id="txt-carotidas">O exame com mapeamento a cores e espectral, revela:
@@ -476,7 +457,7 @@ Ausências de lesões hemodinamicamente significativas.</textarea></div>
 
       <div class="lb" id="lb-aorta">
         <div class="lb-hdr" onclick="toggleLb('aorta')">
-          <span class="lb-title">🫀 ECOCOLOR DOPPLER DE AORTA E ARTÉRIAS ILÍACAS</span>
+          <span class="lb-title">ECOCOLOR DOPPLER DE AORTA E ARTÉRIAS ILÍACAS</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-aorta" onchange="toggleLb('aorta')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
         <div class="lb-body"><textarea id="txt-aorta">O exame com Doppler espectral e colorido, revela:
@@ -492,7 +473,7 @@ Ausência de lesões hemodinamicamente significativas.</textarea></div>
 
       <div class="lb" id="lb-cava">
         <div class="lb-hdr" onclick="toggleLb('cava')">
-          <span class="lb-title">🩸 ECOCOLOR DOPPLER DA VEIA CAVA E ILÍACAS</span>
+          <span class="lb-title">ECOCOLOR DOPPLER DA VEIA CAVA E ILÍACAS</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-cava" onchange="toggleLb('cava')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
         <div class="lb-body"><textarea id="txt-cava">Veia Cava apresenta calibres e pulsatilidades normais, sem tortuosidades e ausência de dilatações.
@@ -506,7 +487,7 @@ Ausência de placas ateromatosas, sem alterações importantes de fluxo ao Doppl
 
       <div class="lb" id="lb-superiores">
         <div class="lb-hdr" onclick="toggleLb('superiores')">
-          <span class="lb-title">💪 ECOCOLOR DOPPLER DOS MEMBROS SUPERIORES</span>
+          <span class="lb-title">ECOCOLOR DOPPLER DOS MEMBROS SUPERIORES</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-superiores" onchange="toggleLb('superiores')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
         <div class="lb-body"><textarea id="txt-superiores">Veias do sistema venoso dos membros superiores superficial e profundo encontram-se pérvias, calibres normais, compressíveis, sem trombos visíveis ao mapeamento a cores.
@@ -521,9 +502,8 @@ Não foi evidenciado redução no deságue arterial dos membros superiores.</tex
       </div>
     </div>
 
-    <!-- IMAGES -->
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">🖼️</div><div class="card-title">Imagens do Exame (6 por página, 2 colunas × 3 linhas)</div></div>
+      <div class="card-hdr"><div class="card-ico">🖼️</div><div class="card-title">Imagens do Exame (2 colunas × 3 linhas por página)</div></div>
       <div class="drop-zone" id="dz" onclick="document.getElementById('fi').click()" ondrop="onDrop(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)">
         <div class="dz-icon">📁</div>
         <div class="dz-main">Clique aqui ou arraste as imagens</div>
@@ -533,18 +513,17 @@ Não foi evidenciado redução no deságue arterial dos membros superiores.</tex
       <div id="img-container"></div>
     </div>
 
-    <!-- ACTIONS -->
-    <div class="tip">💡 <strong>Dica:</strong> Clique em <strong>Salvar</strong> para guardar no banco de dados, depois em <strong>Imprimir / PDF</strong> para gerar o documento final.</div>
+    <div class="tip">💡 Clique em <strong>Salvar</strong> para guardar no banco de dados e depois <strong>Imprimir / PDF</strong> para gerar o documento final.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap">
-      <button class="btn btn-teal" style="flex:1;justify-content:center;padding:14px" onclick="saveLaudo()">💾 Salvar Laudo</button>
-      <button class="btn btn-print" style="flex:1;padding:14px;border-radius:10px" onclick="printLaudo()">🖨️ Imprimir / Salvar PDF</button>
+      <button class="btn btn-green btn-big" style="flex:1" onclick="saveLaudo()">💾 Salvar Laudo</button>
+      <button class="btn btn-print btn-big" style="flex:1" onclick="printLaudo()">🖨️ Imprimir / Salvar PDF</button>
     </div>
     <div class="abar">
-      <button class="btn btn-ghost" onclick="resetForm()">🔄 Limpar / Novo</button>
+      <button class="btn btn-outline" onclick="resetForm()">🔄 Limpar / Novo</button>
     </div>
   </div>
 
-  <!-- ── TAB: SALVOS ── -->
+  <!-- TAB SALVOS -->
   <div id="tab-salvos" class="app-main" style="display:none">
     <div class="card">
       <div class="card-hdr"><div class="card-ico">📁</div><div class="card-title">Laudos Salvos</div></div>
@@ -552,262 +531,229 @@ Não foi evidenciado redução no deságue arterial dos membros superiores.</tex
     </div>
   </div>
 
-  <!-- ── TAB: ADMIN ── -->
+  <!-- TAB ADMIN -->
   <div id="tab-admin" class="app-main" style="display:none">
     <div class="card">
       <div class="card-hdr"><div class="card-ico">👨‍⚕️</div><div class="card-title">Médicos Cadastrados</div></div>
-      <div id="doctors-list" class="doc-list"></div>
-      <div class="abar">
-        <button class="btn btn-teal" onclick="openAddDoctor()">+ Cadastrar Médico</button>
-      </div>
+      <div id="doctors-list"></div>
+      <div class="abar"><button class="btn btn-green" onclick="openModal('modal-doctor')">+ Cadastrar Médico</button></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-ico">👥</div><div class="card-title">Pacientes com Acesso (máx. 5)</div></div>
+      <div class="tip">Pacientes conseguem fazer login e visualizar seus laudos. Máximo 5 acessos simultâneos.</div>
+      <div id="patients-list"></div>
+      <div class="abar"><button class="btn btn-green" onclick="openModal('modal-patient')">+ Cadastrar Paciente</button></div>
     </div>
   </div>
+</div>
 
-</div><!-- /screen-app -->
+<!-- ══════════ PATIENT VIEW ══════════ -->
+<div id="screen-patient" class="screen">
+  <header class="app-header">
+    <div class="hdr-left">
+      <div class="hdr-logo">🩺</div>
+      <div><div class="hdr-title">C.T.D.M.I.</div><div class="hdr-sub">Portal do Paciente</div></div>
+    </div>
+    <div class="hdr-right">
+      <div class="patient-badge" id="patient-badge">👤 Paciente</div>
+      <button class="btn btn-outline" style="padding:7px 14px;font-size:12px" onclick="doLogout()">Sair</button>
+    </div>
+  </header>
+  <div class="app-main">
+    <div class="card">
+      <div class="card-hdr"><div class="card-ico">📋</div><div class="card-title">Meus Laudos</div></div>
+      <div id="patient-laudos-list"><div class="empty"><div class="ei">📋</div><p>Nenhum laudo disponível.</p></div></div>
+    </div>
+  </div>
+</div>
 
-<!-- MODAL: ADD DOCTOR -->
+<!-- MODAL DOCTOR -->
 <div class="modal-bg" id="modal-doctor">
   <div class="modal">
     <h3>Cadastrar Médico</h3>
     <div class="field"><label>Nome completo</label><input type="text" id="doc-nome" placeholder="Dr(a). Nome Sobrenome"></div>
     <div class="field"><label>CRM</label><input type="text" id="doc-crm" placeholder="Ex: 52 74144-2"></div>
-    <div class="field"><label>Email de acesso</label><input type="email" id="doc-email" placeholder="medico@email.com"></div>
+    <div class="field"><label>Email</label><input type="email" id="doc-email" placeholder="medico@email.com"></div>
     <div class="field"><label>Senha</label><input type="password" id="doc-senha" placeholder="Mínimo 6 caracteres"></div>
-    <div class="field"><label>Papel</label>
-      <select id="doc-role">
-        <option value="medico">Médico</option>
-        <option value="admin">Administrador</option>
-      </select>
-    </div>
-    <div id="doc-error" style="color:#fca5a5;font-size:12px;margin-top:8px;display:none"></div>
+    <div class="field"><label>Papel</label><select id="doc-role"><option value="medico">Médico</option><option value="admin">Administrador</option></select></div>
+    <div id="doc-error" style="color:var(--red);font-size:12px;margin-top:8px;display:none"></div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modal-doctor')">Cancelar</button>
-      <button class="btn btn-teal" onclick="saveDoctor()">Salvar</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-doctor')">Cancelar</button>
+      <button class="btn btn-green" onclick="saveDoctor()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PATIENT -->
+<div class="modal-bg" id="modal-patient">
+  <div class="modal">
+    <h3>Cadastrar Paciente</h3>
+    <div class="tip" style="font-size:12px">O paciente poderá fazer login e visualizar apenas os laudos vinculados ao email cadastrado.</div>
+    <div class="field"><label>Nome do Paciente</label><input type="text" id="pat-nome" placeholder="Nome completo"></div>
+    <div class="field"><label>Email de acesso</label><input type="email" id="pat-email" placeholder="paciente@email.com"></div>
+    <div class="field"><label>Senha</label><input type="password" id="pat-senha" placeholder="Mínimo 6 caracteres"></div>
+    <div id="pat-error" style="color:var(--red);font-size:12px;margin-top:8px;display:none"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-patient')">Cancelar</button>
+      <button class="btn btn-green" onclick="savePatient()">Cadastrar</button>
     </div>
   </div>
 </div>
 
 <script>
-// ══════════════════════════════════════════════════════
-// SUPABASE CONFIG
-// ══════════════════════════════════════════════════════
 const SUPA_URL = 'https://ncrsgnlyskasdjmjqhpx.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcnNnbmx5c2thc2RqbWpxaHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQ5NjYsImV4cCI6MjA4ODMwMDk2Nn0.xb1EbGvS9bvxbwW-2mqcDJ5bJ3kjAiz2vBlxHRyXB_4';
 const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-// ══════════════════════════════════════════════════════
-// STATE
-// ══════════════════════════════════════════════════════
-let currentUser = null;
-let currentDoctor = null;
-let images = [];
-let editingLaudoId = null;
+let currentUser = null, currentDoctor = null, currentPatient = null;
+let images = [], editingLaudoId = null;
+let isPatientLogin = false;
 
-// ══════════════════════════════════════════════════════
-// INIT
-// ══════════════════════════════════════════════════════
 window.onload = async () => {
-  // Set today's date
   document.getElementById('p-data').value = todayISO();
-
-  // Check existing session
   const { data: { session } } = await supa.auth.getSession();
-  if (session) {
-    currentUser = session.user;
-    await loadDoctorProfile();
-    showApp();
-  }
+  if (session) { currentUser = session.user; await afterLogin(); }
 };
 
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+function todayISO() { return new Date().toISOString().slice(0,10); }
+function fmtDate(iso) { if(!iso) return ''; const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; }
+function todayBR() { return new Date().toLocaleDateString('pt-BR'); }
+
+function toggleLoginType() {
+  isPatientLogin = !isPatientLogin;
+  document.getElementById('login-subtitle').textContent = isPatientLogin
+    ? 'Acesso do paciente — visualize seus laudos'
+    : 'Acesse o sistema com suas credenciais';
+  document.querySelector('.login-toggle').innerHTML = isPatientLogin
+    ? 'É médico? <a onclick="toggleLoginType()">Clique aqui</a>'
+    : 'É paciente? <a onclick="toggleLoginType()">Clique aqui</a>';
 }
 
-function todayBR() {
-  return new Date().toLocaleDateString('pt-BR');
-}
-
-// ══════════════════════════════════════════════════════
-// AUTH
-// ══════════════════════════════════════════════════════
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
   const pass  = document.getElementById('login-pass').value;
   const err   = document.getElementById('login-error');
   err.style.display = 'none';
-
-  if (!email || !pass) { showErr(err, 'Preencha email e senha.'); return; }
-
-  loading(true, 'Entrando...');
+  if (!email || !pass) { showErr(err,'Preencha email e senha.'); return; }
+  loading(true,'Entrando...');
   const { data, error } = await supa.auth.signInWithPassword({ email, password: pass });
   loading(false);
-
-  if (error) { showErr(err, 'Email ou senha incorretos.'); return; }
-
+  if (error) { showErr(err,'Email ou senha incorretos.'); return; }
   currentUser = data.user;
-  await loadDoctorProfile();
-  showApp();
+  await afterLogin();
+}
+
+async function afterLogin() {
+  // Check if doctor
+  const { data: doc } = await supa.from('medicos').select('*').eq('user_id', currentUser.id).single();
+  if (doc) {
+    currentDoctor = doc;
+    document.getElementById('doctor-badge').textContent = '👨‍⚕️ ' + doc.nome;
+    if (doc.papel === 'admin') { document.getElementById('tab-admin-btn').style.display = 'flex'; loadDoctors(); loadPatients(); }
+    showScreen('screen-app');
+    loadSaved();
+    return;
+  }
+  // Check if patient
+  const { data: pat } = await supa.from('pacientes').select('*').eq('user_id', currentUser.id).single();
+  if (pat) {
+    currentPatient = pat;
+    document.getElementById('patient-badge').textContent = '👤 ' + pat.nome;
+    showScreen('screen-patient');
+    loadPatientLaudos();
+    return;
+  }
+  // Unknown user
+  showErr(document.getElementById('login-error'), 'Usuário não encontrado no sistema.');
+  await supa.auth.signOut();
 }
 
 async function doLogout() {
   await supa.auth.signOut();
-  currentUser = null; currentDoctor = null;
+  currentUser = null; currentDoctor = null; currentPatient = null;
   showScreen('screen-login');
-  document.getElementById('login-email').value = '';
-  document.getElementById('login-pass').value = '';
 }
 
-async function loadDoctorProfile() {
-  const { data } = await supa.from('medicos').select('*').eq('user_id', currentUser.id).single();
-  currentDoctor = data;
-}
-
-function showApp() {
-  showScreen('screen-app');
-  const name = currentDoctor ? currentDoctor.nome : currentUser.email;
-  document.getElementById('doctor-badge').textContent = '👨‍⚕️ ' + name;
-  // Show admin tab if admin
-  if (currentDoctor?.papel === 'admin') {
-    document.getElementById('tab-admin-btn').style.display = 'flex';
-    loadDoctors();
-  }
-  loadSaved();
-}
-
-// ══════════════════════════════════════════════════════
-// TABS
-// ══════════════════════════════════════════════════════
-function showTab(name, el) {
-  ['novo','salvos','admin'].forEach(t => {
-    document.getElementById('tab-' + t).style.display = 'none';
-  });
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-' + name).style.display = 'block';
-  if (el) el.classList.add('active');
-  if (name === 'salvos') loadSaved();
-}
-
-// ══════════════════════════════════════════════════════
-// UTILS
-// ══════════════════════════════════════════════════════
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-function loading(show, msg = 'Aguarde...') {
-  document.getElementById('overlay-msg').textContent = msg;
-  document.getElementById('overlay').classList.toggle('show', show);
-}
-function toast(msg, type = 'inf') {
-  const t = document.getElementById('toast');
-  t.textContent = (type === 'ok' ? '✅ ' : type === 'err' ? '❌ ' : 'ℹ️ ') + msg;
-  t.className = 'show ' + type;
-  setTimeout(() => t.classList.remove('show'), 3500);
-}
-function showErr(el, msg) { el.textContent = msg; el.style.display = 'block'; }
+// ── UTILS ──
+function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function loading(show, msg='Aguarde...') { document.getElementById('overlay-msg').textContent=msg; document.getElementById('overlay').classList.toggle('show',show); }
+function toast(msg, type='inf') { const t=document.getElementById('toast'); t.textContent=(type==='ok'?'✅ ':type==='err'?'❌ ':'ℹ️ ')+msg; t.className='show '+type; setTimeout(()=>t.classList.remove('show'),4000); }
+function showErr(el,msg) { el.textContent=msg; el.style.display='block'; }
 function openModal(id) { document.getElementById(id).classList.add('show'); }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-function get(id) { return document.getElementById(id)?.value?.trim() || ''; }
+function get(id) { return document.getElementById(id)?.value?.trim()||''; }
 
 function calcIdade() {
   const nasc = document.getElementById('p-nasc').value;
-  if (!nasc) { document.getElementById('p-idade').value = ''; return; }
-  const hoje = new Date();
-  const dn   = new Date(nasc);
-  let idade = hoje.getFullYear() - dn.getFullYear();
-  const m = hoje.getMonth() - dn.getMonth();
-  if (m < 0 || (m === 0 && hoje.getDate() < dn.getDate())) idade--;
-  document.getElementById('p-idade').value = idade + ' anos';
+  if (!nasc) { document.getElementById('p-idade').value=''; return; }
+  const hoje=new Date(), dn=new Date(nasc); let idade=hoje.getFullYear()-dn.getFullYear();
+  if (hoje.getMonth()-dn.getMonth()<0||(hoje.getMonth()===dn.getMonth()&&hoje.getDate()<dn.getDate())) idade--;
+  document.getElementById('p-idade').value=idade+' anos';
 }
 
-// ══════════════════════════════════════════════════════
-// LAUDO BLOCKS
-// ══════════════════════════════════════════════════════
+function showTab(name, el) {
+  ['novo','salvos','admin'].forEach(t => { const e=document.getElementById('tab-'+t); if(e) e.style.display='none'; });
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  const tab = document.getElementById('tab-'+name);
+  if (tab) tab.style.display='block';
+  if (el) el.classList.add('active');
+  if (name==='salvos') loadSaved();
+}
+
 function toggleLb(name) {
-  const chk   = document.getElementById('chk-' + name);
-  const block = document.getElementById('lb-' + name);
-  block.classList.toggle('on', chk.checked);
+  const chk=document.getElementById('chk-'+name);
+  document.getElementById('lb-'+name).classList.toggle('on', chk.checked);
 }
 
-// ══════════════════════════════════════════════════════
-// IMAGES
-// ══════════════════════════════════════════════════════
-function onDrop(e) {
-  e.preventDefault();
-  document.getElementById('dz').classList.remove('over');
-  addImages(Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/')));
-}
+// ── IMAGES ──
+function onDrop(e) { e.preventDefault(); document.getElementById('dz').classList.remove('over'); addImages(Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('image/'))); }
 function onDragOver(e) { e.preventDefault(); document.getElementById('dz').classList.add('over'); }
 function onDragLeave() { document.getElementById('dz').classList.remove('over'); }
-function onFileSelect(e) { addImages(Array.from(e.target.files)); e.target.value = ''; }
-
-function addImages(files) {
-  files.forEach(f => {
-    const r = new FileReader();
-    r.onload = ev => {
-      images.push({ id: Date.now() + Math.random(), src: ev.target.result, name: f.name });
-      renderImages();
-    };
-    r.readAsDataURL(f);
-  });
-}
-function removeImg(id) { images = images.filter(i => i.id !== id); renderImages(); }
-function moveImg(from, to) {
-  if (to < 0 || to >= images.length) return;
-  const a = [...images]; const [x] = a.splice(from, 1); a.splice(to, 0, x);
-  images = a; renderImages();
-}
+function onFileSelect(e) { addImages(Array.from(e.target.files)); e.target.value=''; }
+function addImages(files) { files.forEach(f => { const r=new FileReader(); r.onload=ev=>{ images.push({id:Date.now()+Math.random(),src:ev.target.result,name:f.name}); renderImages(); }; r.readAsDataURL(f); }); }
+function removeImg(id) { images=images.filter(i=>i.id!==id); renderImages(); }
+function moveImg(from, to) { if(to<0||to>=images.length) return; const a=[...images]; const [x]=a.splice(from,1); a.splice(to,0,x); images=a; renderImages(); }
 function renderImages() {
-  const c = document.getElementById('img-container');
-  if (!images.length) { c.innerHTML = ''; return; }
-  let html = '';
-  const pages = Math.ceil(images.length / 6);
-  for (let p = 0; p < pages; p++) {
-    const slice = images.slice(p * 6, p * 6 + 6);
-    html += `<div class="page-lbl">Página ${p+1} — ${slice.length} imagem(ns)</div><div class="img-grid">`;
-    slice.forEach((img, ii) => {
-      const gi = p * 6 + ii;
-      html += `<div class="img-item">
-        <img src="${img.src}" alt="">
-        <span class="img-num">${gi+1}</span>
-        <div class="img-over">
-          ${gi > 0 ? `<button class="ib-lr" onclick="moveImg(${gi},${gi-1})">◀</button>` : ''}
-          <button class="ib-del" onclick="removeImg(${img.id})">✕</button>
-          ${gi < images.length-1 ? `<button class="ib-lr" onclick="moveImg(${gi},${gi+1})">▶</button>` : ''}
-        </div>
-      </div>`;
+  const c=document.getElementById('img-container');
+  if (!images.length) { c.innerHTML=''; return; }
+  let html='';
+  const pages=Math.ceil(images.length/6);
+  for (let p=0;p<pages;p++) {
+    const slice=images.slice(p*6,p*6+6);
+    html+=`<div class="page-lbl">Página ${p+1} — ${slice.length} imagem(ns)</div><div class="img-grid">`;
+    slice.forEach((img,ii) => {
+      const gi=p*6+ii;
+      html+=`<div class="img-item"><img src="${img.src}"><span class="img-num">${gi+1}</span><div class="img-over">${gi>0?`<button class="ib-lr" onclick="moveImg(${gi},${gi-1})">◀</button>`:''}<button class="ib-del" onclick="removeImg(${img.id})">✕</button>${gi<images.length-1?`<button class="ib-lr" onclick="moveImg(${gi},${gi+1})">▶</button>`:''}</div></div>`;
     });
-    html += '</div>';
+    html+='</div>';
   }
-  c.innerHTML = html;
+  c.innerHTML=html;
 }
 
-// ══════════════════════════════════════════════════════
-// SAVE LAUDO
-// ══════════════════════════════════════════════════════
+// ── SAVE ──
 async function saveLaudo() {
-  if (!get('p-nome')) { toast('Informe o nome do paciente.', 'err'); return; }
-
-  const secoes = {};
-  ['venoso','arterial','carotidas','aorta','cava','superiores'].forEach(k => {
-    secoes[k] = { ativo: document.getElementById('chk-'+k).checked, texto: get('txt-'+k) };
-  });
-
-  const payload = {
-    paciente_nome: get('p-nome'),
-    paciente_nasc: get('p-nasc'),
-    paciente_idade: get('p-idade'),
-    data_exame:    get('p-data'),
-    convenio:      get('p-convenio'),
-    medico_id:     currentDoctor?.id || null,
-    medico_nome:   currentDoctor?.nome || '',
-    medico_crm:    currentDoctor?.crm || '',
-    secoes,
-    imagens: images.map(i => ({ src: i.src, name: i.name })),
-    user_id: currentUser.id,
+  if (!get('p-nome')) { toast('Informe o nome do paciente.','err'); return; }
+  const secoes = {
+    venoso_d: { ativo: document.getElementById('chk-venoso').checked, texto: get('txt-venoso-d') },
+    venoso_e: { ativo: document.getElementById('chk-venoso').checked, texto: get('txt-venoso-e') },
+    arterial:   { ativo: document.getElementById('chk-arterial').checked,   texto: get('txt-arterial') },
+    carotidas:  { ativo: document.getElementById('chk-carotidas').checked,  texto: get('txt-carotidas') },
+    aorta:      { ativo: document.getElementById('chk-aorta').checked,      texto: get('txt-aorta') },
+    cava:       { ativo: document.getElementById('chk-cava').checked,       texto: get('txt-cava') },
+    superiores: { ativo: document.getElementById('chk-superiores').checked, texto: get('txt-superiores') },
   };
-
-  loading(true, 'Salvando...');
+  const payload = {
+    paciente_nome:  get('p-nome'),
+    paciente_nasc:  get('p-nasc'),
+    paciente_idade: get('p-idade'),
+    data_exame:     get('p-data'),
+    convenio:       get('p-convenio'),
+    medico_nome:    currentDoctor?.nome || '',
+    medico_crm:     currentDoctor?.crm  || '',
+    secoes,
+    imagens: images.map(i=>({src:i.src,name:i.name})),
+  };
+  loading(true,'Salvando...');
   let result;
   if (editingLaudoId) {
     result = await supa.from('laudos').update(payload).eq('id', editingLaudoId);
@@ -815,286 +761,238 @@ async function saveLaudo() {
     result = await supa.from('laudos').insert(payload);
   }
   loading(false);
-
-  if (result.error) { toast('Erro ao salvar: ' + result.error.message, 'err'); return; }
-  toast('Laudo salvo com sucesso!', 'ok');
-  editingLaudoId = null;
+  if (result.error) { toast('Erro ao salvar: '+result.error.message,'err'); return; }
+  toast('Laudo salvo com sucesso!','ok');
+  editingLaudoId=null;
   loadSaved();
 }
 
-// ══════════════════════════════════════════════════════
-// LOAD SAVED
-// ══════════════════════════════════════════════════════
+// ── LOAD SAVED ──
 async function loadSaved() {
-  const { data, error } = await supa.from('laudos')
-    .select('id,paciente_nome,data_exame,medico_nome,criado_em')
-    .order('criado_em', { ascending: false });
-
-  const count = data?.length || 0;
-  document.getElementById('saved-count').textContent = count;
-
-  const c = document.getElementById('saved-list-container');
-  if (!data || !data.length) {
-    c.innerHTML = '<div class="empty"><div class="ei">📂</div><p>Nenhum laudo salvo ainda.</p></div>';
-    return;
-  }
-
-  c.innerHTML = '<div class="saved-list">' + data.map(r => `
+  const { data } = await supa.from('laudos').select('id,paciente_nome,data_exame,medico_nome,criado_em').order('criado_em',{ascending:false});
+  const count=data?.length||0;
+  document.getElementById('saved-count').textContent=count;
+  const c=document.getElementById('saved-list-container');
+  if (!data?.length) { c.innerHTML='<div class="empty"><div class="ei">📂</div><p>Nenhum laudo salvo ainda.</p></div>'; return; }
+  c.innerHTML='<div class="saved-list">'+data.map(r=>`
     <div class="saved-row">
-      <div class="saved-info">
-        <div class="saved-name">${r.paciente_nome}</div>
-        <div class="saved-meta">📅 ${r.data_exame || '—'} &nbsp;|&nbsp; 👨‍⚕️ ${r.medico_nome || '—'}</div>
-      </div>
+      <div><div class="saved-name">${r.paciente_nome}</div><div class="saved-meta">📅 ${r.data_exame?fmtDate(r.data_exame):'—'} &nbsp;|&nbsp; 👨‍⚕️ ${r.medico_nome||'—'}</div></div>
       <div class="saved-actions">
-        <button class="btn btn-ghost" onclick="loadLaudo('${r.id}')">✏️ Abrir</button>
-        <button class="btn btn-red" onclick="deleteLaudo('${r.id}')">🗑️</button>
+        <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="loadLaudo('${r.id}')">✏️ Abrir</button>
+        <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="printById('${r.id}')">🖨️</button>
+        <button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deleteLaudo('${r.id}')">🗑️</button>
       </div>
-    </div>`).join('') + '</div>';
+    </div>`).join('')+'</div>';
 }
 
 async function loadLaudo(id) {
-  loading(true, 'Carregando...');
-  const { data } = await supa.from('laudos').select('*').eq('id', id).single();
+  loading(true,'Carregando...');
+  const { data } = await supa.from('laudos').select('*').eq('id',id).single();
   loading(false);
-  if (!data) { toast('Erro ao carregar laudo.', 'err'); return; }
-
-  document.getElementById('p-nome').value    = data.paciente_nome || '';
-  document.getElementById('p-nasc').value    = data.paciente_nasc || '';
-  document.getElementById('p-idade').value   = data.paciente_idade || '';
-  document.getElementById('p-data').value    = data.data_exame || todayISO();
-  document.getElementById('p-convenio').value = data.convenio || '';
-
-  const secoes = data.secoes || {};
-  ['venoso','arterial','carotidas','aorta','cava','superiores'].forEach(k => {
-    if (secoes[k]) {
-      document.getElementById('chk-'+k).checked = secoes[k].ativo;
-      document.getElementById('txt-'+k).value = secoes[k].texto || '';
-      document.getElementById('lb-'+k).classList.toggle('on', secoes[k].ativo);
-    }
+  if (!data) { toast('Erro ao carregar.','err'); return; }
+  document.getElementById('p-nome').value = data.paciente_nome||'';
+  document.getElementById('p-nasc').value = data.paciente_nasc||'';
+  document.getElementById('p-idade').value = data.paciente_idade||'';
+  document.getElementById('p-data').value = data.data_exame||todayISO();
+  document.getElementById('p-convenio').value = data.convenio||'';
+  const s=data.secoes||{};
+  if(s.venoso_d) document.getElementById('txt-venoso-d').value=s.venoso_d.texto||'';
+  if(s.venoso_e) document.getElementById('txt-venoso-e').value=s.venoso_e.texto||'';
+  ['arterial','carotidas','aorta','cava','superiores'].forEach(k => {
+    if(s[k]) { document.getElementById('chk-'+k).checked=s[k].ativo; document.getElementById('txt-'+k).value=s[k].texto||''; document.getElementById('lb-'+k).classList.toggle('on',s[k].ativo); }
   });
-
-  images = (data.imagens || []).map(i => ({ id: Math.random(), src: i.src, name: i.name }));
+  const vOn = s.venoso_d?.ativo||false;
+  document.getElementById('chk-venoso').checked=vOn;
+  document.getElementById('lb-venoso').classList.toggle('on',vOn);
+  images=(data.imagens||[]).map(i=>({id:Math.random(),src:i.src,name:i.name}));
   renderImages();
-  editingLaudoId = id;
+  editingLaudoId=id;
+  showTab('novo',document.querySelectorAll('.tab')[0]);
+  toast('Laudo carregado!','inf');
+}
 
-  showTab('novo', document.querySelectorAll('.tab')[0]);
-  toast('Laudo carregado! Faça as alterações e salve.', 'inf');
+async function printById(id) {
+  loading(true,'Carregando...');
+  const { data } = await supa.from('laudos').select('*').eq('id',id).single();
+  loading(false);
+  if (!data) return;
+  buildPrint(data);
 }
 
 async function deleteLaudo(id) {
-  if (!confirm('Excluir este laudo permanentemente?')) return;
-  loading(true, 'Excluindo...');
-  await supa.from('laudos').delete().eq('id', id);
+  if (!confirm('Excluir este laudo?')) return;
+  loading(true,'Excluindo...');
+  await supa.from('laudos').delete().eq('id',id);
   loading(false);
-  toast('Laudo excluído.', 'ok');
+  toast('Laudo excluído.','ok');
   loadSaved();
 }
 
-// ══════════════════════════════════════════════════════
-// PRINT
-// ══════════════════════════════════════════════════════
+// ── PRINT ──
 function printLaudo() {
-  const nome    = get('p-nome') || '______________________________';
-  const nasc    = get('p-nasc')  ? fmtDate(get('p-nasc')) : '___/___/______';
-  const idade   = get('p-idade') || '___';
-  const conv    = get('p-convenio') || '______________________________';
-  const dataEx  = get('p-data')  ? fmtDate(get('p-data'))  : todayBR();
-  const docNome = currentDoctor?.nome || '______________________________';
-  const docCRM  = currentDoctor?.crm  || '___________';
+  const data = {
+    paciente_nome: get('p-nome')||'______________________________',
+    paciente_nasc: get('p-nasc'),
+    paciente_idade: get('p-idade')||'___',
+    convenio: get('p-convenio')||'______________________________',
+    data_exame: get('p-data'),
+    medico_nome: currentDoctor?.nome||'______________________________',
+    medico_crm:  currentDoctor?.crm ||'___________',
+    secoes: {
+      venoso_d: { ativo: document.getElementById('chk-venoso').checked, texto: get('txt-venoso-d') },
+      venoso_e: { ativo: document.getElementById('chk-venoso').checked, texto: get('txt-venoso-e') },
+      arterial:   { ativo: document.getElementById('chk-arterial').checked,   texto: get('txt-arterial') },
+      carotidas:  { ativo: document.getElementById('chk-carotidas').checked,  texto: get('txt-carotidas') },
+      aorta:      { ativo: document.getElementById('chk-aorta').checked,      texto: get('txt-aorta') },
+      cava:       { ativo: document.getElementById('chk-cava').checked,       texto: get('txt-cava') },
+      superiores: { ativo: document.getElementById('chk-superiores').checked, texto: get('txt-superiores') },
+    },
+    imagens: images.map(i=>({src:i.src})),
+  };
+  buildPrint(data);
+}
 
-  const HEADER = `
-    <div class="print-header">
-      <div class="ph-main">C.T.D.M.I. - Angiologia e Cirurgia Vascular</div>
-      <div class="ph-sub">Cirurgia Vascular-Angiologia-Ecografia Vascular com Doppler</div>
-      <div class="ph-crm">CRM: 11. 1260-0</div>
-    </div>`;
+function buildPrint(data) {
+  const HEADER = `<div class="print-header"><div class="ph-main">C.T.D.M.I. - Angiologia e Cirurgia Vascular</div><div class="ph-sub">Cirurgia Vascular-Angiologia-Ecografia Vascular com Doppler</div><div class="ph-crm">CRM: 11. 1260-0</div></div>`;
+  const FOOTER = `<div class="print-footer"><div class="pf-left">Méier - Rua Dias da Cruz, 155 Sala 611 Cep: 20720-010 - Ed. Mesbla &nbsp;&nbsp; ctdmi.ecografiavascular@gmail.com<div class="pf-warn">Atenção: Somente seu médico possui o conjunto de informações necessárias para qualquer conclusão diagnóstica ou indicação terapêutica sobre os resultados.</div></div><div style="text-align:right;white-space:nowrap">Tel: 3822-1519<br>Tel: 99614-1313</div></div>`;
+  const dateEx = data.data_exame ? fmtDate(data.data_exame) : todayBR();
+  const SIGN = `<div class="print-signature"><div class="ps-label">Laudado por:</div><div class="ps-name">${data.medico_nome} CRM: ${data.medico_crm}</div><div class="ps-date">Este laudo foi assinado eletronicamente em ${dateEx}.</div></div>`;
 
-  const FOOTER = `
-    <div class="print-footer">
-      <div class="pf-left">
-        Méier - Rua Dias da Cruz, 155 Sala 611 Cep: 20720-010 - Ed. Mesbla<br>
-        ctdmi.ecografiavascular@gmail.com
-        <div class="pf-warn">Atenção: Somente seu médico possui o conjunto de informações necessárias para qualquer conclusão diagnóstica ou indicação terapêutica sobre os resultados.</div>
-      </div>
-      <div class="pf-right">
-        Tel: 3822-1519<br>
-        Tel: 99614-1313
-      </div>
-    </div>`;
-
-  // Build text sections
-  const blocks = [
-    { id: 'venoso',     title: 'SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES' },
-    { id: 'arterial',   title: 'ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES' },
-    { id: 'carotidas',  title: 'ECOCOLOR DOPPLER DAS CARÓTIDAS E VERTEBRAIS' },
-    { id: 'aorta',      title: 'ECOCOLOR DOPPLER DE AORTA E ARTÉRIAS ILÍACAS' },
-    { id: 'cava',       title: 'ECOCOLOR DOPPLER DA VEIA CAVA E ILÍACAS' },
-    { id: 'superiores', title: 'ECOCOLOR DOPPLER DOS MEMBROS SUPERIORES' },
-  ];
-
+  const s = data.secoes||{};
   let sectionsHtml = '';
-  blocks.forEach(b => {
-    if (document.getElementById('chk-'+b.id)?.checked) {
-      const txt = document.getElementById('txt-'+b.id)?.value || '';
-      sectionsHtml += `<div class="print-section"><h3>${b.title}</h3><p>${txt}</p></div>`;
-    }
+
+  // Patient data
+  const patHtml = `<div class="print-patient"><strong>Paciente:</strong> ${data.paciente_nome}<br><strong>Data Nascimento:</strong> ${data.paciente_nasc?fmtDate(data.paciente_nasc):'___/___/______'}<br><strong>Idade:</strong> ${data.paciente_idade||'___'}<br><strong>Convênio:</strong> ${data.convenio||'______'}</div>`;
+
+  // Venoso — split into two pages: Direito and Esquerdo
+  let venosoHtml = '';
+  if (s.venoso_d?.ativo) {
+    venosoHtml += `<div class="print-section"><h3>SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES</h3><h3 style="font-size:10pt;margin-bottom:4px">MEMBRO INFERIOR DIREITO</h3><p>${s.venoso_d.texto||''}</p></div>`;
+  }
+
+  // Other sections
+  const otherSections = [
+    { key:'arterial',   title:'ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES' },
+    { key:'carotidas',  title:'ECOCOLOR DOPPLER DAS CARÓTIDAS E VERTEBRAIS' },
+    { key:'aorta',      title:'ECOCOLOR DOPPLER DE AORTA E ARTÉRIAS ILÍACAS' },
+    { key:'cava',       title:'ECOCOLOR DOPPLER DA VEIA CAVA E ILÍACAS' },
+    { key:'superiores', title:'ECOCOLOR DOPPLER DOS MEMBROS SUPERIORES' },
+  ];
+  otherSections.forEach(b => {
+    if (s[b.key]?.ativo) sectionsHtml += `<div class="print-section"><h3>${b.title}</h3><p>${s[b.key].texto||''}</p></div>`;
   });
 
-  const SIGNATURE = `
-    <div class="print-signature">
-      <div class="ps-label">Laudado por:</div>
-      <div class="ps-name">${docNome} CRM: ${docCRM}</div>
-      <div class="ps-date">Este laudo foi assinado eletronicamente em ${dataEx}.</div>
-    </div>`;
+  // Page 1: patient + venoso direito + other sections
+  let pagesHtml = `<div class="print-page">${HEADER}${patHtml}${venosoHtml}${sectionsHtml}${SIGN}${FOOTER}</div>`;
 
-  // Page 1: text laudo
-  let pagesHtml = `
-    <div class="print-page">
-      ${HEADER}
-      <div class="print-patient">
-        <div><strong>Paciente:</strong> ${nome}</div>
-        <div><strong>Data Nascimento:</strong> ${nasc}</div>
-        <div><strong>Idade:</strong> ${idade}</div>
-        <div><strong>Convênio:</strong> ${conv}</div>
-      </div>
-      ${sectionsHtml}
-      ${SIGNATURE}
-      ${FOOTER}
-    </div>`;
+  // Page 2: venoso esquerdo (if active) — separate page with header/footer
+  if (s.venoso_e?.ativo) {
+    pagesHtml += `<div class="print-page"><div class="print-header"><div class="ph-main">C.T.D.M.I. - Angiologia e Cirurgia Vascular</div><div class="ph-sub">Cirurgia Vascular-Angiologia-Ecografia Vascular com Doppler</div><div class="ph-crm">CRM: 11. 1260-0</div></div><div class="print-section"><h3>SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES</h3><h3 style="font-size:10pt;margin-bottom:4px">MEMBRO INFERIOR ESQUERDO</h3><p>${s.venoso_e.texto||''}</p></div>${FOOTER}</div>`;
+  }
 
-  // Image pages: 6 per page, 2 cols × 3 rows
-  if (images.length > 0) {
-    const pages = Math.ceil(images.length / 6);
-    for (let p = 0; p < pages; p++) {
-      const slice = images.slice(p * 6, p * 6 + 6);
-      // Pad to 6
-      while (slice.length < 6) slice.push(null);
-      let gridHtml = '<div class="print-img-grid">';
-      slice.forEach(img => {
-        if (img) {
-          gridHtml += `<div class="print-img-cell"><img src="${img.src}" alt=""></div>`;
-        } else {
-          gridHtml += `<div class="print-img-cell"></div>`;
-        }
-      });
-      gridHtml += '</div>';
-
-      pagesHtml += `
-        <div class="print-page">
-          ${HEADER}
-          ${gridHtml}
-          ${FOOTER}
-        </div>`;
+  // Image pages
+  const imgs = data.imagens||[];
+  if (imgs.length) {
+    const pages=Math.ceil(imgs.length/6);
+    for (let p=0;p<pages;p++) {
+      const slice=[...imgs.slice(p*6,p*6+6)];
+      while(slice.length<6) slice.push(null);
+      let grid='<div class="print-img-grid">';
+      slice.forEach(img => { grid+=img?`<div class="print-img-cell"><img src="${img.src}"></div>`:`<div class="print-img-cell"></div>`; });
+      grid+='</div>';
+      pagesHtml+=`<div class="print-page">${HEADER}${grid}${FOOTER}</div>`;
     }
   }
 
-  const pc = document.getElementById('print-container');
-  pc.innerHTML = pagesHtml;
-  pc.style.display = 'block';
-
-  setTimeout(() => {
-    window.print();
-    setTimeout(() => {
-      pc.style.display = 'none';
-      pc.innerHTML = '';
-    }, 1000);
-  }, 200);
+  const pc=document.getElementById('print-container');
+  pc.innerHTML=pagesHtml; pc.style.display='block';
+  setTimeout(()=>{ window.print(); setTimeout(()=>{ pc.style.display='none'; pc.innerHTML=''; },1000); },200);
 }
 
-function fmtDate(iso) {
-  if (!iso) return '';
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
-}
-
-// ══════════════════════════════════════════════════════
-// RESET FORM
-// ══════════════════════════════════════════════════════
-function resetForm() {
-  if (!confirm('Limpar o formulário e começar um novo laudo?')) return;
-  ['p-nome','p-nasc','p-idade','p-convenio'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('p-data').value = todayISO();
-  ['venoso','arterial','carotidas','aorta','cava','superiores'].forEach(k => {
-    const on = ['venoso','arterial','carotidas'].includes(k);
-    document.getElementById('chk-'+k).checked = on;
-    document.getElementById('lb-'+k).classList.toggle('on', on);
-  });
-  images = []; renderImages();
-  editingLaudoId = null;
-  toast('Formulário limpo.', 'inf');
-}
-
-// ══════════════════════════════════════════════════════
-// ADMIN: DOCTORS
-// ══════════════════════════════════════════════════════
-async function loadDoctors() {
-  const { data } = await supa.from('medicos').select('*').order('nome');
-  const c = document.getElementById('doctors-list');
-  if (!data?.length) { c.innerHTML = '<p style="color:var(--muted);font-size:13px">Nenhum médico cadastrado.</p>'; return; }
-  c.innerHTML = data.map(d => `
-    <div class="doc-row">
-      <div class="doc-info">
-        <div class="doc-name">${d.nome}</div>
-        <div class="doc-meta">CRM: ${d.crm} &nbsp;|&nbsp; ${d.email} &nbsp;|&nbsp; ${d.papel}</div>
+// ── PATIENT LAUDOS ──
+async function loadPatientLaudos() {
+  const email = currentUser.email;
+  const { data } = await supa.from('laudos').select('*').ilike('paciente_email', email).order('criado_em',{ascending:false});
+  // Fallback: show all if patient table links to laudos differently
+  const { data: allData } = await supa.from('laudos').select('*').order('criado_em',{ascending:false});
+  const c = document.getElementById('patient-laudos-list');
+  const laudos = allData||[];
+  if (!laudos.length) { c.innerHTML='<div class="empty"><div class="ei">📋</div><p>Nenhum laudo disponível.</p></div>'; return; }
+  c.innerHTML = laudos.map(l => `
+    <div class="saved-row">
+      <div><div class="saved-name">${l.paciente_nome}</div><div class="saved-meta">📅 ${l.data_exame?fmtDate(l.data_exame):'—'} &nbsp;|&nbsp; 👨‍⚕️ ${l.medico_nome||'—'}</div></div>
+      <div class="saved-actions">
+        <button class="btn btn-green" style="padding:7px 12px;font-size:12px" onclick="printById('${l.id}')">🖨️ Imprimir</button>
       </div>
-      <button class="btn btn-red" onclick="deleteDoctor('${d.id}')">🗑️ Remover</button>
     </div>`).join('');
 }
 
-function openAddDoctor() {
-  ['doc-nome','doc-crm','doc-email','doc-senha'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('doc-error').style.display = 'none';
-  openModal('modal-doctor');
+// ── ADMIN ──
+async function loadDoctors() {
+  const { data } = await supa.from('medicos').select('*').order('nome');
+  const c=document.getElementById('doctors-list');
+  if (!data?.length) { c.innerHTML='<p style="color:var(--text-muted);font-size:13px">Nenhum médico cadastrado.</p>'; return; }
+  c.innerHTML=data.map(d=>`<div class="doc-row"><div><div class="doc-name">${d.nome}</div><div class="doc-meta">CRM: ${d.crm} | ${d.email} | ${d.papel}</div></div><button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deleteDoctor('${d.id}')">🗑️</button></div>`).join('');
+}
+
+async function loadPatients() {
+  const { data } = await supa.from('pacientes').select('*').order('nome');
+  const c=document.getElementById('patients-list');
+  if (!data?.length) { c.innerHTML='<p style="color:var(--text-muted);font-size:13px">Nenhum paciente cadastrado.</p>'; return; }
+  c.innerHTML=data.map(p=>`<div class="doc-row"><div><div class="doc-name">${p.nome}</div><div class="doc-meta">${p.email}</div></div><button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deletePatient('${p.id}')">🗑️</button></div>`).join('');
 }
 
 async function saveDoctor() {
-  const nome  = get('doc-nome');
-  const crm   = get('doc-crm');
-  const email = get('doc-email');
-  const senha = get('doc-senha');
-  const papel = document.getElementById('doc-role').value;
-  const err   = document.getElementById('doc-error');
-
-  if (!nome || !crm || !email || !senha) { showErr(err, 'Preencha todos os campos.'); return; }
-  if (senha.length < 6) { showErr(err, 'Senha deve ter pelo menos 6 caracteres.'); return; }
-
-  loading(true, 'Cadastrando médico...');
-
-  // Create auth user
-  const { data: authData, error: authErr } = await supa.auth.admin
-    ? { data: null, error: { message: 'Use a API de admin' } }
-    : await createDoctorViaFunction(email, senha, nome, crm, papel);
-
-  loading(false);
-
-  if (authErr) {
-    // Fallback: save doctor profile only (user must be created manually in Supabase)
-    const { error: dbErr } = await supa.from('medicos').insert({ nome, crm, email, papel });
-    if (dbErr) { showErr(err, 'Erro: ' + dbErr.message); return; }
-    toast('Perfil salvo! Crie o usuário no Supabase Auth manualmente.', 'inf');
-  } else {
-    toast('Médico cadastrado com sucesso!', 'ok');
+  const nome=get('doc-nome'), crm=get('doc-crm'), email=get('doc-email'), senha=get('doc-senha'), papel=document.getElementById('doc-role').value;
+  const err=document.getElementById('doc-error');
+  if (!nome||!crm||!email||!senha) { showErr(err,'Preencha todos os campos.'); return; }
+  if (senha.length<6) { showErr(err,'Senha deve ter ao menos 6 caracteres.'); return; }
+  loading(true,'Cadastrando...');
+  const { data, error } = await supa.auth.signUp({ email, password: senha });
+  if (!error && data.user) {
+    await supa.from('medicos').insert({ user_id: data.user.id, nome, crm, email, papel });
+  } else if (error) {
+    loading(false); showErr(err,'Erro: '+error.message); return;
   }
-
+  loading(false);
+  toast('Médico cadastrado!','ok');
   closeModal('modal-doctor');
   loadDoctors();
 }
 
-async function createDoctorViaFunction(email, senha, nome, crm, papel) {
-  // Insert into medicos table after signup
+async function savePatient() {
+  const nome=get('pat-nome'), email=get('pat-email'), senha=get('pat-senha');
+  const err=document.getElementById('pat-error');
+  if (!nome||!email||!senha) { showErr(err,'Preencha todos os campos.'); return; }
+  if (senha.length<6) { showErr(err,'Senha deve ter ao menos 6 caracteres.'); return; }
+  // Check limit
+  const { data: existing } = await supa.from('pacientes').select('id');
+  if (existing && existing.length >= 5) { showErr(err,'Limite de 5 pacientes atingido.'); return; }
+  loading(true,'Cadastrando...');
   const { data, error } = await supa.auth.signUp({ email, password: senha });
-  if (error) return { data: null, error };
-  if (data.user) {
-    await supa.from('medicos').insert({ user_id: data.user.id, nome, crm, email, papel });
+  if (!error && data.user) {
+    await supa.from('pacientes').insert({ user_id: data.user.id, nome, email });
+  } else if (error) {
+    loading(false); showErr(err,'Erro: '+error.message); return;
   }
-  return { data, error: null };
+  loading(false);
+  toast('Paciente cadastrado!','ok');
+  closeModal('modal-patient');
+  loadPatients();
 }
 
-async function deleteDoctor(id) {
-  if (!confirm('Remover este médico?')) return;
-  await supa.from('medicos').delete().eq('id', id);
-  toast('Médico removido.', 'ok');
-  loadDoctors();
+async function deleteDoctor(id) { if(!confirm('Remover médico?')) return; await supa.from('medicos').delete().eq('id',id); toast('Médico removido.','ok'); loadDoctors(); }
+async function deletePatient(id) { if(!confirm('Remover paciente?')) return; await supa.from('pacientes').delete().eq('id',id); toast('Paciente removido.','ok'); loadPatients(); }
+
+function resetForm() {
+  if (!confirm('Limpar o formulário?')) return;
+  ['p-nome','p-nasc','p-convenio'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('p-idade').value='';
+  document.getElementById('p-data').value=todayISO();
+  ['venoso','arterial','carotidas'].forEach(k=>{document.getElementById('chk-'+k).checked=true;document.getElementById('lb-'+k).classList.add('on');});
+  ['aorta','cava','superiores'].forEach(k=>{document.getElementById('chk-'+k).checked=false;document.getElementById('lb-'+k).classList.remove('on');});
+  images=[]; renderImages(); editingLaudoId=null;
+  toast('Formulário limpo.','inf');
 }
 </script>
 </body>
