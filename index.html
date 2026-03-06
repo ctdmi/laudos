@@ -208,7 +208,8 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 .abar { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
 
 /* SAVED LIST */
-.saved-list { display: flex; flex-direction: column; gap: 8px; }
+.saved-list { display: flex; flex-direction: column; gap: 6px; }
+.saved-group-hdr { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; padding: 12px 4px 6px; border-bottom: 1px solid var(--border); margin-top: 8px; display: flex; align-items: center; gap: 8px; }
 .saved-row { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; transition: all 0.2s; }
 .saved-row:hover { border-color: var(--green-mid); box-shadow: var(--shadow-sm); }
 .saved-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
@@ -407,7 +408,8 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
   </header>
   <nav>
     <div class="tab active" onclick="showTab('novo',this)">✏️ Novo Laudo</div>
-    <div class="tab" onclick="showTab('salvos',this)">📁 Laudos Salvos <span class="tab-badge" id="saved-count">0</span></div>
+    <div class="tab" onclick="showTab('pendentes',this)">⏳ Pendentes <span class="tab-badge" id="pending-count" style="background:#d97706">0</span></div>
+    <div class="tab" onclick="showTab('salvos',this)">📁 Concluídos <span class="tab-badge" id="saved-count">0</span></div>
     <div class="tab" id="tab-admin-btn" onclick="showTab('admin',this)" style="display:none">⚙️ Administração</div>
   </nav>
 
@@ -583,10 +585,21 @@ Não foi evidenciado redução no deságue arterial dos membros superiores.</tex
     </div>
   </div>
 
+  <!-- TAB PENDENTES -->
+  <div id="tab-pendentes" class="app-main" style="display:none">
+    <div class="card">
+      <div class="card-hdr"><div class="card-ico">⏳</div><div class="card-title">Laudos Pendentes — Aguardando Laudo Médico</div></div>
+      <div id="pending-list-container"><div class="empty"><div class="ei">⏳</div><p>Nenhum laudo pendente.</p></div></div>
+    </div>
+  </div>
+
   <!-- TAB SALVOS -->
   <div id="tab-salvos" class="app-main" style="display:none">
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">📁</div><div class="card-title">Laudos Salvos</div></div>
+      <div class="card-hdr"><div class="card-ico">📁</div><div class="card-title">Laudos Concluídos</div></div>
+      <div style="margin-bottom:16px">
+        <input type="text" id="search-saved" placeholder="🔍 Buscar por nome do paciente..." oninput="searchSaved()" style="width:100%;background:var(--off-white);border:1.5px solid var(--border);border-radius:8px;padding:10px 16px;font-family:Lato,sans-serif;font-size:14px;outline:none;color:var(--text);box-sizing:border-box">
+      </div>
       <div id="saved-list-container"><div class="empty"><div class="ei">📂</div><p>Nenhum laudo salvo ainda.</p></div></div>
     </div>
   </div>
@@ -635,7 +648,7 @@ Não foi evidenciado redução no deságue arterial dos membros superiores.</tex
     <div class="field"><label>CRM</label><input type="text" id="doc-crm" placeholder="Ex: 52 74144-2"></div>
     <div class="field"><label>Email</label><input type="email" id="doc-email" placeholder="medico@email.com"></div>
     <div class="field"><label>Senha</label><input type="password" id="doc-senha" placeholder="Mínimo 6 caracteres"></div>
-    <div class="field"><label>Papel</label><select id="doc-role"><option value="medico">Médico</option><option value="admin">Administrador</option></select></div>
+    <div class="field"><label>Papel</label><select id="doc-role"><option value="medico">Médico</option><option value="secretaria">Secretaria</option><option value="admin">Administrador</option></select></div>
     <div id="doc-error" style="color:var(--red);font-size:12px;margin-top:8px;display:none"></div>
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeModal('modal-doctor')">Cancelar</button>
@@ -704,13 +717,21 @@ async function doLogin() {
 }
 
 async function afterLogin() {
-  // Check if doctor
+  // Check if doctor/secretary
   const { data: doc } = await supa.from('medicos').select('*').eq('user_id', currentUser.id).single();
   if (doc) {
     currentDoctor = doc;
+    if (doc.papel === 'secretaria') {
+      // Secretary screen
+      document.getElementById('sec-badge').textContent = '📋 ' + doc.nome;
+      showScreen('screen-sec');
+      loadSecQueue();
+      return;
+    }
     document.getElementById('doctor-badge').textContent = '👨‍⚕️ ' + doc.nome;
     if (doc.papel === 'admin') { document.getElementById('tab-admin-btn').style.display = 'flex'; loadDoctors(); loadPatients(); }
     showScreen('screen-app');
+    loadPending();
     loadSaved();
     return;
   }
@@ -752,12 +773,13 @@ function calcIdade() {
 }
 
 function showTab(name, el) {
-  ['novo','salvos','admin'].forEach(t => { const e=document.getElementById('tab-'+t); if(e) e.style.display='none'; });
+  ['novo','pendentes','salvos','admin'].forEach(t => { const e=document.getElementById('tab-'+t); if(e) e.style.display='none'; });
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   const tab = document.getElementById('tab-'+name);
   if (tab) tab.style.display='block';
   if (el) el.classList.add('active');
   if (name==='salvos') loadSaved();
+  if (name==='pendentes') loadPending();
 }
 
 function toggleLb(name) {
@@ -811,6 +833,8 @@ async function saveLaudo() {
     solicitante:    get('p-solicitante'),
     medico_nome:    currentDoctor?.nome || '',
     medico_crm:     currentDoctor?.crm  || '',
+    status:         'concluido',
+    criado_por:     currentDoctor?.papel || 'medico',
     secoes,
     imagens: images.map(i=>({src:i.src,name:i.name})),
   };
@@ -1096,6 +1120,209 @@ async function confirmLinkLaudo() {
   closeModal('modal-link');
 }
 
+
+// ══════════════════════════════
+// SECRETARY FUNCTIONS
+// ══════════════════════════════
+let secImages = [];
+
+function showSecTab(name, el) {
+  ['novo-sec','fila-sec','concluidos-sec'].forEach(t => { const e=document.getElementById('tab-'+t); if(e) e.style.display='none'; });
+  document.querySelectorAll('#screen-sec .tab').forEach(t=>t.classList.remove('active'));
+  const tab = document.getElementById('tab-'+name);
+  if (tab) tab.style.display='block';
+  if (el) el.classList.add('active');
+  if (name==='fila-sec') loadSecQueue();
+  if (name==='concluidos-sec') loadSecConcluidos();
+}
+
+function calcIdadeSec() {
+  const nasc = document.getElementById('sec-nasc').value;
+  if (!nasc) { document.getElementById('sec-idade').value=''; return; }
+  const hoje=new Date(), dn=new Date(nasc); let idade=hoje.getFullYear()-dn.getFullYear();
+  if (hoje.getMonth()-dn.getMonth()<0||(hoje.getMonth()===dn.getMonth()&&hoje.getDate()<dn.getDate())) idade--;
+  document.getElementById('sec-idade').value=idade+' anos';
+}
+
+function onDropSec(e) { e.preventDefault(); document.getElementById('dz-sec').classList.remove('over'); addImagesSec(Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('image/'))); }
+function onFileSelectSec(e) { addImagesSec(Array.from(e.target.files)); e.target.value=''; }
+function addImagesSec(files) { files.forEach(f => { const r=new FileReader(); r.onload=ev=>{ secImages.push({id:Date.now()+Math.random(),src:ev.target.result,name:f.name}); renderSecImages(); }; r.readAsDataURL(f); }); }
+function renderSecImages() {
+  const cont = document.getElementById('img-container-sec');
+  if (!secImages.length) { cont.innerHTML=''; return; }
+  let html = '<div class="img-grid" style="margin-top:12px">';
+  secImages.forEach((img,i) => {
+    html += `<div class="img-item"><img src="${img.src}"><span class="img-num">${i+1}</span><div class="img-over"><button class="ib-del" onclick="removeSecImg(${img.id})">✕</button></div></div>`;
+  });
+  html += '</div>';
+  cont.innerHTML = html;
+}
+function removeSecImg(id) { secImages=secImages.filter(i=>i.id!==id); renderSecImages(); }
+
+async function savePendente() {
+  const nome = document.getElementById('sec-nome')?.value?.trim();
+  if (!nome) { toast('Informe o nome do paciente.','err'); return; }
+  const payload = {
+    paciente_nome:  nome,
+    paciente_nasc:  document.getElementById('sec-nasc')?.value || '',
+    paciente_idade: document.getElementById('sec-idade')?.value || '',
+    data_exame:     document.getElementById('sec-data')?.value || todayISO(),
+    convenio:       document.getElementById('sec-convenio')?.value?.trim() || '',
+    solicitante:    document.getElementById('sec-solicitante')?.value?.trim() || '',
+    medico_nome:    '',
+    medico_crm:     '',
+    status:         'pendente',
+    criado_por:     'secretaria',
+    secoes:         {},
+    imagens:        secImages.map(i=>({src:i.src,name:i.name})),
+  };
+  loading(true,'Salvando na fila...');
+  const { error } = await supa.from('laudos').insert(payload);
+  loading(false);
+  if (error) { toast('Erro: '+error.message,'err'); return; }
+  toast('Paciente adicionado à fila do médico!','ok');
+  resetSecForm();
+  loadSecQueue();
+}
+
+function resetSecForm() {
+  ['sec-nome','sec-nasc','sec-convenio','sec-solicitante'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('sec-idade').value='';
+  document.getElementById('sec-data').value=todayISO();
+  secImages=[]; renderSecImages();
+}
+
+async function loadSecQueue() {
+  const { data } = await supa.from('laudos').select('id,paciente_nome,data_exame,convenio,criado_em')
+    .eq('status','pendente').order('criado_em',{ascending:true});
+  const count = data?.length||0;
+  document.getElementById('sec-queue-count').textContent=count;
+  const c = document.getElementById('sec-queue-list');
+  if (!count) { c.innerHTML='<div class="empty"><div class="ei">📋</div><p>Nenhum paciente na fila.</p></div>'; return; }
+  
+  // Group by date
+  const groups = {};
+  data.forEach(r => {
+    const key = r.data_exame || 'sem-data';
+    const label = r.data_exame ? fmtDate(r.data_exame) : 'Sem data';
+    if (!groups[key]) groups[key] = {label, items:[]};
+    groups[key].items.push(r);
+  });
+
+  let html = '<div class="saved-list">';
+  Object.keys(groups).sort().forEach(key => {
+    const g = groups[key];
+    html += `<div class="saved-group-hdr">📅 ${g.label} <span class="tab-badge" style="background:#d97706">${g.items.length}</span></div>`;
+    g.items.forEach(r => {
+      html += `<div class="saved-row">
+        <div><div class="saved-name">${r.paciente_nome}</div><div class="saved-meta">🏥 ${r.convenio||'—'}</div></div>
+        <div class="saved-actions">
+          <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="editSecPendente('${r.id}')">✏️ Editar</button>
+          <button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deleteSecPendente('${r.id}')">🗑️</button>
+        </div>
+      </div>`;
+    });
+  });
+  html += '</div>';
+  c.innerHTML = html;
+}
+
+async function editSecPendente(id) {
+  loading(true,'Carregando...');
+  const { data } = await supa.from('laudos').select('*').eq('id',id).single();
+  loading(false);
+  if (!data) return;
+  document.getElementById('sec-nome').value = data.paciente_nome||'';
+  document.getElementById('sec-nasc').value = data.paciente_nasc||'';
+  document.getElementById('sec-idade').value = data.paciente_idade||'';
+  document.getElementById('sec-data').value = data.data_exame||todayISO();
+  document.getElementById('sec-convenio').value = data.convenio||'';
+  document.getElementById('sec-solicitante').value = data.solicitante||'';
+  secImages=(data.imagens||[]).map(i=>({id:Math.random(),src:i.src,name:i.name||''}));
+  renderSecImages();
+  // Switch to form and set editing id
+  window._editingSecId = id;
+  showSecTab('novo-sec', document.querySelectorAll('#screen-sec .tab')[0]);
+  toast('Editando paciente. Salve novamente para atualizar.','inf');
+}
+
+async function deleteSecPendente(id) {
+  if (!confirm('Remover da fila?')) return;
+  await supa.from('laudos').delete().eq('id',id);
+  toast('Removido.','ok');
+  loadSecQueue();
+}
+
+let secConcluidosAll = [];
+async function loadSecConcluidos() {
+  const { data } = await supa.from('laudos').select('id,paciente_nome,data_exame,medico_nome,convenio')
+    .eq('status','concluido').order('data_exame',{ascending:false});
+  secConcluidosAll = data||[];
+  renderSecConcluidos(secConcluidosAll);
+}
+function renderSecConcluidos(list) {
+  const c = document.getElementById('sec-concluidos-list');
+  if (!list.length) { c.innerHTML='<div class="empty"><div class="ei">✅</div><p>Nenhum laudo concluído.</p></div>'; return; }
+  c.innerHTML = '<div class="saved-list">' + list.map(r=>`
+    <div class="saved-row">
+      <div><div class="saved-name">${r.paciente_nome}</div><div class="saved-meta">📅 ${r.data_exame?fmtDate(r.data_exame):'—'} &nbsp;|&nbsp; 👨‍⚕️ ${r.medico_nome||'—'}</div></div>
+      <div class="saved-actions">
+        <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="printById('${r.id}')">🖨️ Imprimir</button>
+      </div>
+    </div>`).join('') + '</div>';
+}
+function searchSecConcluidos() {
+  const q = document.getElementById('search-sec').value.toLowerCase();
+  renderSecConcluidos(secConcluidosAll.filter(r=>(r.paciente_nome||'').toLowerCase().includes(q)||(r.convenio||'').toLowerCase().includes(q)||(r.medico_nome||'').toLowerCase().includes(q)));
+}
+
+// ══════════════════════════════
+// PENDING (Doctor view)
+// ══════════════════════════════
+async function loadPending() {
+  const { data } = await supa.from('laudos').select('id,paciente_nome,data_exame,convenio,solicitante,imagens')
+    .eq('status','pendente').order('criado_em',{ascending:true});
+  const count = data?.length||0;
+  document.getElementById('pending-count').textContent = count;
+  const c = document.getElementById('pending-list-container');
+  if (!count) { c.innerHTML='<div class="empty"><div class="ei">⏳</div><p>Nenhum laudo pendente.</p></div>'; return; }
+
+  const groups = {};
+  data.forEach(r => {
+    const key = r.data_exame||'sem-data';
+    const label = r.data_exame ? fmtDate(r.data_exame) : 'Sem data';
+    if (!groups[key]) groups[key]={label,items:[]};
+    groups[key].items.push(r);
+  });
+
+  let html = '<div class="saved-list">';
+  Object.keys(groups).sort().forEach(key => {
+    const g = groups[key];
+    const isToday = key === todayISO();
+    html += `<div class="saved-group-hdr" style="${isToday?'color:var(--green);border-color:var(--green)':''}">📅 ${g.label}${isToday?' — HOJE':''} <span class="tab-badge" style="background:#d97706">${g.items.length}</span></div>`;
+    g.items.forEach(r => {
+      html += `<div class="saved-row" style="border-left:3px solid #d97706">
+        <div>
+          <div class="saved-name">${r.paciente_nome}</div>
+          <div class="saved-meta">🏥 ${r.convenio||'—'} ${r.solicitante?'&nbsp;|&nbsp; Dr(a). Solicitante: '+r.solicitante:''} ${(r.imagens||[]).length>0?'&nbsp;|&nbsp; 🖼️ '+r.imagens.length+' imagem(ns)':''}</div>
+        </div>
+        <div class="saved-actions">
+          <button class="btn btn-green" style="padding:7px 14px;font-size:12px" onclick="openPendente('${r.id}')">✍️ Laudar</button>
+        </div>
+      </div>`;
+    });
+  });
+  html += '</div>';
+  c.innerHTML = html;
+}
+
+async function openPendente(id) {
+  await loadLaudo(id);
+  // After loading, keep status as pendente until doctor saves
+  editingLaudoId = id;
+  showTab('novo', document.querySelectorAll('#screen-app .tab')[0]);
+}
+
 </script>
 
 <!-- MODAL LINK LAUDO -->
@@ -1110,6 +1337,75 @@ async function confirmLinkLaudo() {
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeModal('modal-link')">Cancelar</button>
       <button class="btn btn-green" onclick="confirmLinkLaudo()">Vincular</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════ SECRETARY SCREEN ══════════ -->
+<div id="screen-sec" class="screen">
+  <header class="app-header">
+    <div class="hdr-left">
+      <div class="hdr-logo">📋</div>
+      <div><div class="hdr-title">C.T.D.M.I.</div><div class="hdr-sub">Secretaria</div></div>
+    </div>
+    <div class="hdr-right">
+      <div class="doctor-badge" id="sec-badge">📋 Secretaria</div>
+      <button class="btn btn-outline" style="padding:7px 14px;font-size:12px" onclick="doLogout()">Sair</button>
+    </div>
+  </header>
+  <nav>
+    <div class="tab active" onclick="showSecTab('novo-sec',this)">➕ Novo Paciente</div>
+    <div class="tab" onclick="showSecTab('fila-sec',this)">📋 Fila do Dia <span class="tab-badge" id="sec-queue-count" style="background:#d97706">0</span></div>
+    <div class="tab" onclick="showSecTab('concluidos-sec',this)">✅ Concluídos</div>
+  </nav>
+
+  <!-- NOVO PACIENTE (Secretaria) -->
+  <div id="tab-novo-sec" class="app-main">
+    <div class="card">
+      <div class="card-hdr"><div class="card-ico">👤</div><div class="card-title">Cadastrar Paciente para Laudo</div></div>
+      <div class="g2">
+        <div class="field s2"><label>Nome completo *</label><input type="text" id="sec-nome" placeholder="NOME COMPLETO DO PACIENTE" oninput="this.value=this.value.toUpperCase()"></div>
+        <div class="field"><label>Data de Nascimento</label><input type="date" id="sec-nasc" oninput="calcIdadeSec()"></div>
+        <div class="field"><label>Idade</label><input type="text" id="sec-idade" readonly style="background:#f0f0f0;color:#888"></div>
+        <div class="field"><label>Convênio</label><input type="text" id="sec-convenio" placeholder="EX: UNIMED, PARTICULAR..." oninput="this.value=this.value.toUpperCase()"></div>
+        <div class="field"><label>Data do Exame</label><input type="date" id="sec-data"></div>
+        <div class="field s2"><label>Médico Solicitante <span style="font-weight:400;font-size:10px">(opcional)</span></label><input type="text" id="sec-solicitante" placeholder="NOME DO MÉDICO SOLICITANTE" oninput="this.value=this.value.toUpperCase()"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr"><div class="card-ico">🖼️</div><div class="card-title">Imagens do Exame (opcional)</div></div>
+      <div class="drop-zone" id="dz-sec" onclick="document.getElementById('fi-sec').click()" ondrop="onDropSec(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)">
+        <div class="dz-icon">📁</div>
+        <div class="dz-main">Clique aqui ou arraste as imagens</div>
+        <div class="dz-sub">JPG, PNG — pode selecionar vários de uma vez</div>
+      </div>
+      <input type="file" id="fi-sec" multiple accept="image/*" style="display:none" onchange="onFileSelectSec(event)">
+      <div id="img-container-sec"></div>
+    </div>
+
+    <div class="tip">💡 Após salvar, o laudo aparecerá na fila do médico como <strong>Pendente</strong>.</div>
+    <button class="btn btn-green btn-big" onclick="savePendente()">📋 Salvar na Fila do Médico</button>
+    <div class="abar"><button class="btn btn-outline" onclick="resetSecForm()">🔄 Limpar</button></div>
+  </div>
+
+  <!-- FILA DO DIA -->
+  <div id="tab-fila-sec" class="app-main" style="display:none">
+    <div class="card">
+      <div class="card-hdr"><div class="card-ico">⏳</div><div class="card-title">Fila do Dia — Aguardando Médico</div></div>
+      <div id="sec-queue-list"><div class="empty"><div class="ei">📋</div><p>Nenhum paciente na fila.</p></div></div>
+    </div>
+  </div>
+
+  <!-- CONCLUÍDOS (leitura) -->
+  <div id="tab-concluidos-sec" class="app-main" style="display:none">
+    <div class="card">
+      <div class="card-hdr"><div class="card-ico">✅</div><div class="card-title">Laudos Concluídos</div></div>
+      <div style="display:flex;gap:10px;margin-bottom:16px">
+        <input type="text" id="search-sec" placeholder="🔍 Buscar paciente..." oninput="searchSecConcluidos()" style="flex:1;background:var(--off-white);border:1.5px solid var(--border);border-radius:8px;padding:9px 14px;font-family:Lato,sans-serif;font-size:13px;outline:none;color:var(--text)">
+      </div>
+      <div id="sec-concluidos-list"><div class="empty"><div class="ei">✅</div><p>Nenhum laudo concluído ainda.</p></div></div>
     </div>
   </div>
 </div>
