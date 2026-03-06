@@ -932,13 +932,28 @@ function buildPrint(data) {
   }
 
   const pc = document.getElementById('print-container');
-  // Only used for direct print (not PDF)
-  Object.assign(pc.style, { display:'block', position:'fixed', top:'0', left:'0', width:'210mm', zIndex:'99999', background:'#fff' });
-  pc.innerHTML = pagesHtml;
-  setTimeout(() => {
-    window.print();
-    setTimeout(() => { pc.style.display='none'; pc.style.position=''; pc.style.zIndex=''; pc.innerHTML=''; }, 2000);
-  }, 300);
+  // Open in new window for printing - most reliable cross-browser
+  const printWin = window.open('', '_blank', 'width=900,height=700');
+  if (!printWin) { toast('Permita pop-ups para imprimir.', 'err'); return; }
+  
+  // Copy all styles from current document
+  const styles = Array.from(document.styleSheets).map(ss => {
+    try { return Array.from(ss.cssRules).map(r => r.cssText).join('\n'); } catch(e) { return ''; }
+  }).join('\n');
+
+  printWin.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>${styles}
+    body { margin:0; background:#fff; }
+    .print-page { display:block !important; width:210mm; min-height:297mm; }
+    @media print {
+      @page { size:A4; margin:0; }
+      body > * { display:block !important; }
+    }
+    </style>
+  </head><body>${pagesHtml}</body></html>`);
+  printWin.document.close();
+  setTimeout(() => { printWin.print(); printWin.close(); }, 800);
 }
 
 // ── PATIENT LAUDOS ──
@@ -1089,43 +1104,94 @@ async function downloadPDFById(id) {
 }
 
 async function generatePDF(data, filename) {
-  loading(true, 'Gerando PDF...');
+  loading(true, 'Gerando PDF... (pode demorar alguns segundos)');
   try {
     const { jsPDF } = window.jspdf;
-    const pc = document.getElementById('print-container');
+    
+    // First build all pages HTML
+    const s = data.secoes || {};
+    const dateEx = data.data_exame ? fmtDate(data.data_exame) : todayBR();
+    
+    const HEADER = `<div class="print-header"><div class="ph-main">C.T.D.M.I. - Angiologia e Cirurgia Vascular</div><div class="ph-sub">Cirurgia Vascular-Angiologia-Ecografia Vascular com Doppler</div><div class="ph-crm">CRM: 11. 1260-0</div></div>`;
+    const SIGN = `<div class="print-signature"><div class="ps-label">Laudado por:</div><div class="ps-name">${data.medico_nome} CRM: ${data.medico_crm}</div><div class="ps-date">Este laudo foi assinado eletronicamente em ${dateEx}.</div></div>`;
+    const FOOTER = `<div class="print-footer"><div class="pf-left">Méier - Rua Dias da Cruz, 155 Sala 611 Cep: 20720-010 - Ed. Mesbla &nbsp;&nbsp; ctdmi.ecografiavascular@gmail.com<div class="pf-warn">Atenção: Somente seu médico possui o conjunto de informações necessárias para qualquer conclusão diagnóstica ou indicação terapêutica sobre os resultados.</div></div><div style="text-align:right;white-space:nowrap">Tel: 3822-1519<br>Tel: 99614-1313</div></div>`;
+    const solicitante = data.solicitante || '';
+    const solRow = solicitante
+      ? `<tr><td style="padding:5px 8px;border-right:1px solid #000;border-top:1px solid #000"><span style="font-size:8.5pt;color:#555">CONVÊNIO</span><br><strong>${(data.convenio||'').toUpperCase()}</strong></td><td colspan="2" style="padding:5px 8px;border-top:1px solid #000"><span style="font-size:8.5pt;color:#555">MÉDICO SOLICITANTE</span><br><strong>${solicitante.toUpperCase()}</strong></td></tr>`
+      : `<tr><td colspan="3" style="padding:5px 8px;border-top:1px solid #000"><span style="font-size:8.5pt;color:#555">CONVÊNIO</span><br><strong>${(data.convenio||'').toUpperCase()}</strong></td></tr>`;
+    const PAT = `<table style="width:100%;border:1.5px solid #000;border-collapse:collapse;margin-bottom:14px;font-size:10pt;font-family:'Times New Roman',serif"><tr><td style="padding:5px 8px;border-right:1px solid #000;border-bottom:1px solid #000;width:60%"><span style="font-size:8.5pt;color:#555">PACIENTE</span><br><strong>${(data.paciente_nome||'').toUpperCase()}</strong></td><td style="padding:5px 8px;border-right:1px solid #000;border-bottom:1px solid #000;width:20%"><span style="font-size:8.5pt;color:#555">DT. NASC.</span><br><strong>${data.paciente_nasc?fmtDate(data.paciente_nasc):''}</strong></td><td style="padding:5px 8px;border-bottom:1px solid #000;width:20%"><span style="font-size:8.5pt;color:#555">IDADE</span><br><strong>${(data.paciente_idade||'').toUpperCase()}</strong></td></tr>${solRow}</table>`;
 
-    // Render pages into container
-    buildPrint(data);
+    const sections = [
+      { key:'venoso_d',   title:'SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES', sub:'MEMBRO INFERIOR DIREITO' },
+      { key:'venoso_e',   title:'SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES', sub:'MEMBRO INFERIOR ESQUERDO' },
+      { key:'arterial',   title:'ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES', sub:null },
+      { key:'carotidas',  title:'ECOCOLOR DOPPLER DAS CARÓTIDAS E VERTEBRAIS', sub:null },
+      { key:'aorta',      title:'ECOCOLOR DOPPLER DE AORTA E ARTÉRIAS ILÍACAS', sub:null },
+      { key:'cava',       title:'ECOCOLOR DOPPLER DA VEIA CAVA E ILÍACAS', sub:null },
+      { key:'superiores', title:'ECOCOLOR DOPPLER DOS MEMBROS SUPERIORES', sub:null },
+    ];
 
-    // Position on screen so html2canvas works
-    Object.assign(pc.style, {
-      display: 'block', position: 'fixed', top: '0', left: '0',
-      width: '794px', zIndex: '99999', background: '#fff', overflow: 'visible'
+    // Build array of page HTML strings
+    const pageHTMLs = [];
+    sections.forEach(sec => {
+      if (!s[sec.key]?.ativo) return;
+      pageHTMLs.push(`<div style="width:794px;min-height:1123px;padding:53px 83px 75px 83px;position:relative;background:#fff;font-family:'Times New Roman',serif;box-sizing:border-box">
+        ${HEADER}${PAT}
+        <div style="margin-bottom:12px">
+          <h3 style="font-size:10.5pt;font-weight:bold;text-decoration:underline;text-transform:uppercase;margin-bottom:5px">${sec.title}</h3>
+          ${sec.sub ? `<h3 style="font-size:10.5pt;font-weight:bold;margin-bottom:5px">${sec.sub}</h3>` : ''}
+          <p style="font-size:10.5pt;line-height:1.85;text-align:justify;white-space:pre-wrap">${s[sec.key].texto||''}</p>
+        </div>
+        ${SIGN}${FOOTER}
+      </div>`);
     });
 
-    await new Promise(r => setTimeout(r, 700));
+    // Image pages
+    const imgs = data.imagens || [];
+    if (imgs.length) {
+      const pages = Math.ceil(imgs.length / 6);
+      for (let p = 0; p < pages; p++) {
+        const slice = imgs.slice(p*6, p*6+6);
+        while(slice.length < 6) slice.push(null);
+        const grid = slice.map(img => img
+          ? `<div style="width:48%;aspect-ratio:4/3;overflow:hidden;display:inline-block;margin:1%"><img src="${img.src}" style="width:100%;height:100%;object-fit:cover"></div>`
+          : `<div style="width:48%;aspect-ratio:4/3;display:inline-block;margin:1%"></div>`
+        ).join('');
+        pageHTMLs.push(`<div style="width:794px;min-height:1123px;padding:53px 83px 75px 83px;background:#fff;font-family:'Times New Roman',serif;box-sizing:border-box">${HEADER}<div style="display:flex;flex-wrap:wrap;margin-top:20px">${grid}</div>${FOOTER}</div>`);
+      }
+    }
 
-    const pages = Array.from(pc.querySelectorAll('.print-page'));
-    if (!pages.length) throw new Error('Nenhuma página gerada.');
+    if (!pageHTMLs.length) { toast('Nenhuma seção ativa para gerar PDF.','err'); loading(false); return; }
 
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    
+    // Render each page in a temporary hidden div
+    const tempDiv = document.createElement('div');
+    tempDiv.style.cssText = 'position:fixed;top:0;left:0;z-index:99999;background:#fff;';
+    document.body.appendChild(tempDiv);
 
-    for (let i = 0; i < pages.length; i++) {
-      const canvas = await html2canvas(pages[i], {
+    for (let i = 0; i < pageHTMLs.length; i++) {
+      loading(true, `Gerando PDF... página ${i+1} de ${pageHTMLs.length}`);
+      tempDiv.innerHTML = pageHTMLs[i];
+      await new Promise(r => setTimeout(r, 300));
+      
+      const canvas = await html2canvas(tempDiv.firstChild, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
         logging: false,
-        windowWidth: 794,
+        width: 794,
       });
-      const img = canvas.toDataURL('image/jpeg', 0.95);
-      const w = 210;
-      const h = (canvas.height / canvas.width) * w;
+      
+      const img = canvas.toDataURL('image/jpeg', 0.92);
+      const mmH = (canvas.height / canvas.width) * 210;
       if (i > 0) pdf.addPage('a4', 'portrait');
-      pdf.addImage(img, 'JPEG', 0, 0, w, h);
+      pdf.addImage(img, 'JPEG', 0, 0, 210, mmH);
     }
-
+    
+    document.body.removeChild(tempDiv);
+    
     const safe = (filename || 'laudo').replace(/[^\w\s]/g, '').trim().slice(0, 40);
     pdf.save('laudo_' + safe + '_' + new Date().toLocaleDateString('pt-BR').replace(/\//g,'-') + '.pdf');
     toast('PDF baixado com sucesso!', 'ok');
@@ -1133,10 +1199,6 @@ async function generatePDF(data, filename) {
     console.error('PDF error:', e);
     toast('Erro ao gerar PDF: ' + e.message, 'err');
   } finally {
-    const pc = document.getElementById('print-container');
-    pc.style.display = 'none';
-    pc.style.position = '';
-    pc.innerHTML = '';
     loading(false);
   }
 }
