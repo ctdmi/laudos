@@ -94,7 +94,8 @@ body { background: var(--off-white); color: var(--text); font-family: 'Lato', sa
 .lc-brand-sub { font-size: 11px; font-weight: 700; color: #f0c040; letter-spacing: 2px; margin-top: 6px; text-transform: uppercase; }
 .lc-brand-detail { font-size: 10px; color: rgba(160,200,220,0.7); margin-top: 5px; letter-spacing: 0.5px; }
 .lc-crm { font-size: 11px; color: rgba(0,212,255,0.8); margin-top: 6px; letter-spacing: 1px; }
-.lc-form { padding: 28px 32px 32px; }
+.lc-form { padding: 24px 32px 28px; }
+.lc-toggle { text-align:center; margin-top:16px; padding-bottom:4px; font-size:12px; color:#5a8a9a; }
 .lc-form-title { font-size: 13px; color: #a0c8d8; text-align: center; margin-bottom: 20px; letter-spacing: 1px; text-transform: uppercase; }
 .lc-input {
   width: 100%; background: rgba(0,30,60,0.8) !important;
@@ -345,12 +346,17 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 
   .print-page {
     width: 100%;
+    min-height: calc(297mm - 24mm);
     box-sizing: border-box;
     font-family: 'Times New Roman', Times, serif;
     page-break-after: always;
     break-after: page;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
   }
   .print-page:last-child { page-break-after: avoid; break-after: avoid; }
+  .print-body { flex: 1; }
 
   /* ── HEADER ── */
   .print-header {
@@ -420,7 +426,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 
   /* ── FOOTER ── */
   .print-footer {
-    margin-top: 12pt;
+    margin-top: 8pt;
     border-top: 1px solid #000;
     padding-top: 4px;
     display: flex;
@@ -463,11 +469,17 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
         </div>
         <div class="lc-form">
           <div class="lc-form-title" id="login-subtitle">Acesso ao Sistema</div>
-          <div class="field" id="login-field-email"><label style="color:#a0c8d8;font-size:10px;letter-spacing:1.5px;font-weight:700;text-transform:uppercase" id="login-email-label">Email</label><input type="text" id="login-email" placeholder="seu@email.com" class="lc-input" onkeydown="if(event.key==='Enter')doLogin()"></div>
-          <div class="field" id="login-field-pass"><label style="color:#a0c8d8;font-size:10px;letter-spacing:1.5px;font-weight:700;text-transform:uppercase">Senha</label><input type="password" id="login-pass" placeholder="••••••••" class="lc-input" onkeydown="if(event.key==='Enter')doLogin()"></div>
+          <div class="field" id="login-field-email">
+            <label style="color:#a0c8d8;font-size:10px;letter-spacing:1.5px;font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px" id="login-email-label">Email</label>
+            <input type="text" id="login-email" placeholder="seu@email.com" class="lc-input" onkeydown="if(event.key==='Enter')doLogin()">
+          </div>
+          <div class="field" id="login-field-pass">
+            <label style="color:#a0c8d8;font-size:10px;letter-spacing:1.5px;font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px">Senha</label>
+            <input type="password" id="login-pass" placeholder="••••••••" class="lc-input" onkeydown="if(event.key==='Enter')doLogin()">
+          </div>
           <div id="login-error" style="color:#ff6b6b;font-size:12px;margin:8px 0;display:none;background:rgba(255,50,50,0.1);padding:8px 12px;border-radius:6px;border:1px solid rgba(255,100,100,0.3)"></div>
           <button class="lc-btn" onclick="doLogin()">ENTRAR</button>
-          <div style="text-align:center;margin-top:14px;font-size:12px;color:#5a8a9a">É paciente? <a onclick="toggleLoginType()" style="color:#00d4ff;cursor:pointer;font-weight:700">Clique aqui</a></div>
+          <div class="lc-toggle">É paciente? <a onclick="toggleLoginType()" style="color:#00d4ff;cursor:pointer;font-weight:700">Clique aqui</a></div>
         </div>
       </div>
     </div>
@@ -744,6 +756,7 @@ Não foi evidenciado redução no deságue arterial dos membros superiores.</tex
     <div class="tip" style="font-size:12px">O paciente acessa com <strong>CPF</strong> (sem pontos/traços) como usuário e senha. Email usado apenas para recuperar senha.</div>
     <div class="field"><label>Nome do Paciente</label><input type="text" id="pat-nome" placeholder="Nome completo"></div>
     <div class="field"><label>CPF (será o login e senha)</label><input type="text" id="pat-cpf" placeholder="00000000000" maxlength="11" oninput="this.value=this.value.replace(/\D/g,'')"></div>
+    <div class="field"><label>WhatsApp (com DDD, somente números)</label><input type="text" id="pat-tel" placeholder="21999998888" maxlength="11" oninput="this.value=this.value.replace(/\D/g,'')"></div>
     <div class="field"><label>Email (recuperação de senha)</label><input type="email" id="pat-email" placeholder="paciente@email.com"></div>
     <div id="pat-error" style="color:var(--red);font-size:12px;margin-top:8px;display:none"></div>
     <div class="modal-actions">
@@ -1239,7 +1252,7 @@ function buildPrint(data) {
       ${sec.subtitle ? `<h3 style="font-size:10.5pt;margin-bottom:5px">${sec.subtitle}</h3>` : ''}
       <p>${s[sec.key].texto||''}</p>
     </div>`;
-    pagesHtml += `<div class="print-page">${HEADER}${PAT}${secHtml}${SIGN}${FOOTER}</div>`;
+    pagesHtml += `<div class="print-page"><div class="print-body">${HEADER}${PAT}${secHtml}</div>${SIGN}${FOOTER}</div>`;
   });
 
   // Image pages — no patient data, just header + images + footer
@@ -1302,7 +1315,10 @@ async function loadPatients() {
   const { data } = await supa.from('pacientes').select('*').order('nome');
   const c=document.getElementById('patients-list');
   if (!data?.length) { c.innerHTML='<p style="color:var(--text-muted);font-size:13px">Nenhum paciente cadastrado.</p>'; return; }
-  c.innerHTML=data.map(p=>`<div class="doc-row"><div><div class="doc-name">${p.nome}</div><div class="doc-meta">CPF: ${p.cpf||'—'} | ${p.email_recuperacao||p.email||'—'}</div></div><button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deletePatient('${p.id}')">🗑️</button></div>`).join('');
+  c.innerHTML=data.map(p=>{
+    const wa = p.telefone ? `<a href="https://wa.me/55${p.telefone}?text=Ol%C3%A1%20${encodeURIComponent(p.nome)}%2C%20seus%20laudos%20est%C3%A3o%20dispon%C3%ADveis%20em%3A%20https%3A%2F%2Fctdmi.github.io%2Flaudos%2F%20(acesse%20com%20seu%20CPF)" target="_blank" class="btn btn-outline" style="padding:7px 12px;font-size:12px;text-decoration:none;color:inherit">📲 WhatsApp</a>` : '';
+    return `<div class="doc-row"><div><div class="doc-name">${p.nome}</div><div class="doc-meta">CPF: ${p.cpf||'—'} | ${p.telefone?'📱 '+p.telefone+' | ':''} ${p.email_recuperacao||'—'}</div></div><div style="display:flex;gap:6px">${wa}<button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deletePatient('${p.id}')">🗑️</button></div></div>`;
+  }).join('');
 }
 
 async function saveDoctor() {
@@ -1337,7 +1353,8 @@ async function savePatient() {
   const fakeEmail = cpf + '@ctdmi.pac';
   const { data, error } = await supa.auth.signUp({ email: fakeEmail, password: cpf, options: { data: { recovery_email: email } } });
   if (!error && data.user) {
-    await supa.from('pacientes').insert({ user_id: data.user.id, nome, email: fakeEmail, cpf, email_recuperacao: email });
+    const tel = document.getElementById('pat-tel')?.value?.trim() || '';
+    await supa.from('pacientes').insert({ user_id: data.user.id, nome, email: fakeEmail, cpf, email_recuperacao: email, telefone: tel });
   } else if (error) {
     loading(false); showErr(err,'Erro: '+error.message); return;
   }
@@ -1414,11 +1431,14 @@ async function loadAdminSecDoctors() {
 }
 
 async function loadAdminSecPatients() {
-  const { data } = await supa.from('pacientes').select('id,nome,cpf,email_recuperacao').order('nome');
+  const { data } = await supa.from('pacientes').select('id,nome,cpf,email_recuperacao,telefone').order('nome');
   const c = document.getElementById('admin-sec-patients');
   if (!c) return;
   if (!data?.length) { c.innerHTML='<div style="color:var(--text-muted);font-size:13px">Nenhum paciente cadastrado.</div>'; return; }
-  c.innerHTML = data.map(p => `<div class="doc-row"><div><div class="doc-name">${p.nome}</div><div class="doc-meta">CPF: ${p.cpf||'—'} | ${p.email_recuperacao||'—'}</div></div><button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deletePatient('${p.id}')">🗑️</button></div>`).join('');
+  c.innerHTML = data.map(p => {
+    const wa = p.telefone ? `<a href="https://wa.me/55${p.telefone}?text=Ol%C3%A1%20${encodeURIComponent(p.nome)}%2C%20seus%20laudos%20est%C3%A3o%20dispon%C3%ADveis%20em%3A%20https%3A%2F%2Fctdmi.github.io%2Flaudos%2F%20(acesse%20com%20seu%20CPF)" target="_blank" class="btn btn-outline" style="padding:7px 12px;font-size:12px;text-decoration:none;color:inherit">📲 WhatsApp</a>` : '';
+    return `<div class="doc-row"><div><div class="doc-name">${p.nome}</div><div class="doc-meta">CPF: ${p.cpf||'—'} | ${p.telefone?'📱 '+p.telefone+' | ':''}${p.email_recuperacao||'—'}</div></div><div style="display:flex;gap:6px">${wa}<button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deletePatient('${p.id}')">🗑️</button></div></div>`;
+  }).join('');
 }
 
 function calcIdadeSec() {
