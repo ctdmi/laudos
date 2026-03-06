@@ -932,11 +932,13 @@ function buildPrint(data) {
   }
 
   const pc = document.getElementById('print-container');
-  pc.innerHTML = pagesHtml; pc.style.display = 'block';
+  // Only used for direct print (not PDF)
+  Object.assign(pc.style, { display:'block', position:'fixed', top:'0', left:'0', width:'210mm', zIndex:'99999', background:'#fff' });
+  pc.innerHTML = pagesHtml;
   setTimeout(() => {
     window.print();
-    setTimeout(() => { pc.style.display='none'; pc.innerHTML=''; }, 2000);
-  }, 200);
+    setTimeout(() => { pc.style.display='none'; pc.style.position=''; pc.style.zIndex=''; pc.innerHTML=''; }, 2000);
+  }, 300);
 }
 
 // ── PATIENT LAUDOS ──
@@ -1049,6 +1051,94 @@ async function confirmLinkLaudo() {
   loading(false);
   toast('Laudo vinculado ao paciente!','ok');
   closeModal('modal-link');
+}
+
+
+// ── PDF DOWNLOAD ──
+function downloadPDF() {
+  const nome = document.getElementById('p-nome')?.value?.trim() || 'laudo';
+  const data = {
+    paciente_nome:  document.getElementById('p-nome')?.value?.trim() || '',
+    paciente_nasc:  document.getElementById('p-nasc')?.value || '',
+    paciente_idade: document.getElementById('p-idade')?.value || '',
+    convenio:       document.getElementById('p-convenio')?.value?.trim() || '',
+    solicitante:    document.getElementById('p-solicitante')?.value?.trim() || '',
+    data_exame:     document.getElementById('p-data')?.value || '',
+    medico_nome:    currentDoctor?.nome || '',
+    medico_crm:     currentDoctor?.crm  || '',
+    secoes: {
+      venoso_d:   { ativo: document.getElementById('chk-venoso').checked,    texto: document.getElementById('txt-venoso-d')?.value || '' },
+      venoso_e:   { ativo: document.getElementById('chk-venoso').checked,    texto: document.getElementById('txt-venoso-e')?.value || '' },
+      arterial:   { ativo: document.getElementById('chk-arterial').checked,  texto: document.getElementById('txt-arterial')?.value || '' },
+      carotidas:  { ativo: document.getElementById('chk-carotidas').checked, texto: document.getElementById('txt-carotidas')?.value || '' },
+      aorta:      { ativo: document.getElementById('chk-aorta').checked,     texto: document.getElementById('txt-aorta')?.value || '' },
+      cava:       { ativo: document.getElementById('chk-cava').checked,      texto: document.getElementById('txt-cava')?.value || '' },
+      superiores: { ativo: document.getElementById('chk-superiores').checked,texto: document.getElementById('txt-superiores')?.value || '' },
+    },
+    imagens: images.map(i => ({ src: i.src })),
+  };
+  generatePDF(data, nome);
+}
+
+async function downloadPDFById(id) {
+  loading(true, 'Carregando laudo...');
+  const { data } = await supa.from('laudos').select('*').eq('id', id).single();
+  loading(false);
+  if (!data) { toast('Erro ao carregar laudo.', 'err'); return; }
+  generatePDF(data, data.paciente_nome || 'laudo');
+}
+
+async function generatePDF(data, filename) {
+  loading(true, 'Gerando PDF...');
+  try {
+    const { jsPDF } = window.jspdf;
+    const pc = document.getElementById('print-container');
+
+    // Render pages into container
+    buildPrint(data);
+
+    // Position on screen so html2canvas works
+    Object.assign(pc.style, {
+      display: 'block', position: 'fixed', top: '0', left: '0',
+      width: '794px', zIndex: '99999', background: '#fff', overflow: 'visible'
+    });
+
+    await new Promise(r => setTimeout(r, 700));
+
+    const pages = Array.from(pc.querySelectorAll('.print-page'));
+    if (!pages.length) throw new Error('Nenhuma página gerada.');
+
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    for (let i = 0; i < pages.length; i++) {
+      const canvas = await html2canvas(pages[i], {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        windowWidth: 794,
+      });
+      const img = canvas.toDataURL('image/jpeg', 0.95);
+      const w = 210;
+      const h = (canvas.height / canvas.width) * w;
+      if (i > 0) pdf.addPage('a4', 'portrait');
+      pdf.addImage(img, 'JPEG', 0, 0, w, h);
+    }
+
+    const safe = (filename || 'laudo').replace(/[^\w\s]/g, '').trim().slice(0, 40);
+    pdf.save('laudo_' + safe + '_' + new Date().toLocaleDateString('pt-BR').replace(/\//g,'-') + '.pdf');
+    toast('PDF baixado com sucesso!', 'ok');
+  } catch(e) {
+    console.error('PDF error:', e);
+    toast('Erro ao gerar PDF: ' + e.message, 'err');
+  } finally {
+    const pc = document.getElementById('print-container');
+    pc.style.display = 'none';
+    pc.style.position = '';
+    pc.innerHTML = '';
+    loading(false);
+  }
 }
 
 </script>
