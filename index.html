@@ -607,9 +607,9 @@ Não foi evidenciado redução no deságue arterial dos membros superiores.</tex
   <!-- TAB ADMIN -->
   <div id="tab-admin" class="app-main" style="display:none">
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">👨‍⚕️</div><div class="card-title">Médicos Cadastrados</div></div>
+      <div class="card-hdr"><div class="card-ico">👨‍⚕️</div><div class="card-title">Médicos e Secretaria</div></div>
       <div id="doctors-list"></div>
-      <div class="abar"><button class="btn btn-green" onclick="openModal('modal-doctor')">+ Cadastrar Médico</button></div>
+      <div class="abar"><button class="btn btn-green" onclick="openModal('modal-doctor')">+ Cadastrar Médico / Secretaria</button></div>
     </div>
     <div class="card">
       <div class="card-hdr"><div class="card-ico">👥</div><div class="card-title">Pacientes com Acesso (máx. 5)</div></div>
@@ -643,7 +643,7 @@ Não foi evidenciado redução no deságue arterial dos membros superiores.</tex
 <!-- MODAL DOCTOR -->
 <div class="modal-bg" id="modal-doctor">
   <div class="modal">
-    <h3>Cadastrar Médico</h3>
+    <h3>Cadastrar Médico / Secretaria</h3>
     <div class="field"><label>Nome completo</label><input type="text" id="doc-nome" placeholder="Dr(a). Nome Sobrenome"></div>
     <div class="field"><label>CRM</label><input type="text" id="doc-crm" placeholder="Ex: 52 74144-2"></div>
     <div class="field"><label>Email</label><input type="email" id="doc-email" placeholder="medico@email.com"></div>
@@ -853,22 +853,56 @@ async function saveLaudo() {
 }
 
 // ── LOAD SAVED ──
+let savedAll = [];
+
 async function loadSaved() {
-  const { data } = await supa.from('laudos').select('id,paciente_nome,data_exame,medico_nome,criado_em').order('criado_em',{ascending:false});
-  const count=data?.length||0;
-  document.getElementById('saved-count').textContent=count;
-  const c=document.getElementById('saved-list-container');
-  if (!data?.length) { c.innerHTML='<div class="empty"><div class="ei">📂</div><p>Nenhum laudo salvo ainda.</p></div>'; return; }
-  c.innerHTML='<div class="saved-list">'+data.map(r=>`
-    <div class="saved-row">
-      <div><div class="saved-name">${r.paciente_nome}</div><div class="saved-meta">📅 ${r.data_exame?fmtDate(r.data_exame):'—'} &nbsp;|&nbsp; 👨‍⚕️ ${r.medico_nome||'—'}</div></div>
-      <div class="saved-actions">
-        <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="loadLaudo('${r.id}')">✏️ Abrir</button>
-        <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="printById('${r.id}')">🖨️</button>
-        <button class="btn btn-outline" style="padding:7px 12px;font-size:12px;color:var(--green)" onclick="linkLaudoToPatient('${r.id}','${r.paciente_nome}')">🔗</button>
-        <button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deleteLaudo('${r.id}')">🗑️</button>
-      </div>
-    </div>`).join('')+'</div>';
+  const { data } = await supa.from('laudos')
+    .select('id,paciente_nome,data_exame,medico_nome,convenio,status,criado_em')
+    .or('status.eq.concluido,status.is.null')
+    .order('data_exame',{ascending:false});
+  savedAll = data || [];
+  document.getElementById('saved-count').textContent = savedAll.length;
+  renderSaved(savedAll);
+}
+
+function renderSaved(list) {
+  const cont = document.getElementById('saved-list-container');
+  if (!list.length) { cont.innerHTML='<div class="empty"><div class="ei">📂</div><p>Nenhum laudo encontrado.</p></div>'; return; }
+  // Group by month
+  const groups = {};
+  list.forEach(r => {
+    const key = r.data_exame ? r.data_exame.slice(0,7) : 'sem-data';
+    const label = r.data_exame ? new Date(r.data_exame+'T12:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'}) : 'Sem data';
+    if (!groups[key]) groups[key] = { label, items: [] };
+    groups[key].items.push(r);
+  });
+  let html = '<div class="saved-list">';
+  Object.keys(groups).sort().reverse().forEach(key => {
+    const g = groups[key];
+    html += `<div class="saved-group-hdr">${g.label.toUpperCase()} <span class="tab-badge">${g.items.length}</span></div>`;
+    g.items.forEach(r => {
+      html += `<div class="saved-row">
+        <div>
+          <div class="saved-name">${r.paciente_nome}</div>
+          <div class="saved-meta">📅 ${r.data_exame?fmtDate(r.data_exame):'—'} &nbsp;|&nbsp; 👨‍⚕️ ${r.medico_nome||'—'} &nbsp;|&nbsp; 🏥 ${r.convenio||'—'}</div>
+        </div>
+        <div class="saved-actions">
+          <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="loadLaudo('${r.id}')">✏️ Abrir</button>
+          <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="printById('${r.id}')">🖨️</button>
+          <button class="btn btn-outline" style="padding:7px 12px;font-size:12px;color:var(--green)" onclick="linkLaudoToPatient('${r.id}','${r.paciente_nome}')">🔗</button>
+          <button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deleteLaudo('${r.id}')">🗑️</button>
+        </div>
+      </div>`;
+    });
+  });
+  html += '</div>';
+  cont.innerHTML = html;
+}
+
+function searchSaved() {
+  const q = document.getElementById('search-saved').value.toLowerCase().trim();
+  const list = q ? savedAll.filter(r => (r.paciente_nome||'').toLowerCase().includes(q)) : savedAll;
+  renderSaved(list);
 }
 
 async function loadLaudo(id) {
@@ -1032,7 +1066,11 @@ async function loadDoctors() {
   const { data } = await supa.from('medicos').select('*').order('nome');
   const c=document.getElementById('doctors-list');
   if (!data?.length) { c.innerHTML='<p style="color:var(--text-muted);font-size:13px">Nenhum médico cadastrado.</p>'; return; }
-  c.innerHTML=data.map(d=>`<div class="doc-row"><div><div class="doc-name">${d.nome}</div><div class="doc-meta">CRM: ${d.crm} | ${d.email} | ${d.papel}</div></div><button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deleteDoctor('${d.id}')">🗑️</button></div>`).join('');
+  c.innerHTML=data.map(d=>{
+    const roleLabel = d.papel==='admin'?'Administrador':d.papel==='secretaria'?'Secretaria':'Médico';
+    const roleColor = d.papel==='admin'?'#7c3aed':d.papel==='secretaria'?'#0369a1':'#1a6b3a';
+    return `<div class="doc-row"><div><div class="doc-name">${d.nome} <span style="font-size:10px;background:${roleColor};color:#fff;padding:2px 8px;border-radius:10px;font-weight:700;vertical-align:middle">${roleLabel}</span></div><div class="doc-meta">${d.crm?'CRM: '+d.crm+' | ':''}${d.email}</div></div><button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deleteDoctor('${d.id}')">🗑️</button></div>`;
+  }).join('');
 }
 
 async function loadPatients() {
