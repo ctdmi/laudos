@@ -340,7 +340,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   body > *:not(#print-container) { display: none !important; }
   #print-container { display: block !important; }
-  @page { size: A4 portrait; margin: 12mm 20mm 12mm 20mm; }
+  @page { size: A4 portrait; margin: 14mm 22mm 22mm 22mm; }
 
   .print-page {
     width: 100%;
@@ -348,9 +348,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
     font-family: 'Times New Roman', Times, serif;
     page-break-after: always;
     break-after: page;
-    display: flex;
-    flex-direction: column;
-    height: calc(297mm - 24mm);
+    padding-bottom: 10mm;
   }
   .print-page:last-child { page-break-after: avoid; break-after: avoid; }
 
@@ -411,7 +409,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
   /* ── SIGNATURE ── */
   .print-signature {
     text-align: right;
-    margin-top: 10mm;
+    margin-top: 14pt;
     margin-bottom: 5mm;
     font-family: 'Times New Roman', serif;
   }
@@ -419,9 +417,9 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
   .ps-name  { font-size: 10pt; font-weight: bold; }
   .ps-date  { font-size: 8.5pt; font-style: italic; }
 
-  /* ── FOOTER: always at bottom via margin-top:auto ── */
+  /* ── FOOTER ── */
   .print-footer {
-    margin-top: auto;
+    margin-top: 12pt;
     border-top: 1px solid #000;
     padding-top: 4px;
     display: flex;
