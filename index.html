@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>C.T.D.M.I. — Sistema de Laudos</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <style>
@@ -316,7 +318,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 
 <div id="toast"></div>
 <div id="overlay"><div class="spinner"></div><p id="overlay-msg">Aguarde...</p></div>
-<div id="print-container" style="display:none"></div>
+<div id="print-container" style="display:none;position:absolute;left:-9999px;top:0;width:794px;background:#fff"></div>
 
 <!-- ══════════ LOGIN ══════════ -->
 <div id="screen-login" class="screen active">
@@ -523,7 +525,8 @@ Não foi evidenciado redução no deságue arterial dos membros superiores.</tex
     <div class="tip">💡 Clique em <strong>Salvar</strong> para guardar no banco de dados e depois <strong>Imprimir / PDF</strong> para gerar o documento. Para <strong>baixar como PDF</strong>: na janela de impressão, selecione <em>"Salvar como PDF"</em> como destino.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap">
       <button class="btn btn-green btn-big" style="flex:1" onclick="saveLaudo()">💾 Salvar Laudo</button>
-      <button class="btn btn-print btn-big" style="flex:1" onclick="printLaudo()">🖨️ Imprimir / PDF</button>
+      <button class="btn btn-print btn-big" style="flex:1" onclick="downloadPDF()">⬇️ Baixar PDF</button>
+      <button class="btn btn-outline btn-big" style="flex:1;padding:14px" onclick="printLaudo()">🖨️ Imprimir</button>
     </div>
     <div class="abar">
       <button class="btn btn-outline" onclick="resetForm()">🔄 Limpar / Novo</button>
@@ -787,6 +790,7 @@ async function loadSaved() {
       <div><div class="saved-name">${r.paciente_nome}</div><div class="saved-meta">📅 ${r.data_exame?fmtDate(r.data_exame):'—'} &nbsp;|&nbsp; 👨‍⚕️ ${r.medico_nome||'—'}</div></div>
       <div class="saved-actions">
         <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="loadLaudo('${r.id}')">✏️ Abrir</button>
+        <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="downloadPDFById('${r.id}')">⬇️ PDF</button>
         <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="printById('${r.id}')">🖨️</button>
         <button class="btn btn-outline" style="padding:7px 12px;font-size:12px;color:var(--green)" onclick="linkLaudoToPatient('${r.id}','${r.paciente_nome}')">🔗</button>
         <button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deleteLaudo('${r.id}')">🗑️</button>
@@ -871,17 +875,20 @@ function buildPrint(data) {
   
   const FOOTER = `<div class="print-footer"><div class="pf-left">Méier - Rua Dias da Cruz, 155 Sala 611 Cep: 20720-010 - Ed. Mesbla &nbsp;&nbsp; ctdmi.ecografiavascular@gmail.com<div class="pf-warn">Atenção: Somente seu médico possui o conjunto de informações necessárias para qualquer conclusão diagnóstica ou indicação terapêutica sobre os resultados.</div></div><div style="text-align:right;white-space:nowrap">Tel: 3822-1519<br>Tel: 99614-1313</div></div>`;
 
-  const solicitante = data.solicitante || (data.secoes?.solicitante) || '';
-  const PAT = `<table class="print-patient-table" style="width:100%;border:1.5px solid #000;border-collapse:collapse;margin-bottom:16px;font-size:10pt;font-family:'Times New Roman',serif">
-    <tr style="border-bottom:1px solid #000">
-      <td style="padding:5px 8px;border-right:1px solid #000;width:60%"><span style="font-size:8.5pt;color:#555">PACIENTE</span><br><strong style="font-size:10.5pt;text-transform:uppercase">${(data.paciente_nome||'').toUpperCase()}</strong></td>
-      <td style="padding:5px 8px;border-right:1px solid #000;width:20%"><span style="font-size:8.5pt;color:#555">DT. NASC.</span><br><strong style="text-transform:uppercase">${data.paciente_nasc?fmtDate(data.paciente_nasc):'___/___/___'}</strong></td>
-      <td style="padding:5px 8px;width:20%"><span style="font-size:8.5pt;color:#555">IDADE</span><br><strong style="text-transform:uppercase">${(data.paciente_idade||'').toUpperCase()}</strong></td>
-    </tr>
+  const solicitante = data.solicitante || '';
+  const solicitanteRow = solicitante ? `<tr>
+      <td style="padding:5px 8px;border-right:1px solid #000;border-top:1px solid #000"><span style="font-size:8.5pt;color:#555">CONVÊNIO</span><br><strong style="text-transform:uppercase">${(data.convenio||'').toUpperCase()}</strong></td>
+      <td colspan="2" style="padding:5px 8px;border-top:1px solid #000"><span style="font-size:8.5pt;color:#555">MÉDICO SOLICITANTE</span><br><strong style="text-transform:uppercase">${solicitante.toUpperCase()}</strong></td>
+    </tr>` : `<tr>
+      <td colspan="3" style="padding:5px 8px;border-top:1px solid #000"><span style="font-size:8.5pt;color:#555">CONVÊNIO</span><br><strong style="text-transform:uppercase">${(data.convenio||'').toUpperCase()}</strong></td>
+    </tr>`;
+  const PAT = `<table class="print-patient-table" style="width:100%;border:1.5px solid #000;border-collapse:collapse;margin-bottom:14px;font-size:10pt;font-family:'Times New Roman',serif">
     <tr>
-      <td style="padding:5px 8px;border-right:1px solid #000"><span style="font-size:8.5pt;color:#555">CONVÊNIO</span><br><strong style="text-transform:uppercase">${(data.convenio||'').toUpperCase()}</strong></td>
-      <td colspan="2" style="padding:5px 8px"><span style="font-size:8.5pt;color:#555">MÉDICO SOLICITANTE</span><br><strong style="text-transform:uppercase">${solicitante.toUpperCase()}</strong></td>
+      <td style="padding:5px 8px;border-right:1px solid #000;border-bottom:1px solid #000;width:60%"><span style="font-size:8.5pt;color:#555">PACIENTE</span><br><strong style="font-size:10.5pt">${(data.paciente_nome||'').toUpperCase()}</strong></td>
+      <td style="padding:5px 8px;border-right:1px solid #000;border-bottom:1px solid #000;width:20%"><span style="font-size:8.5pt;color:#555">DT. NASC.</span><br><strong>${data.paciente_nasc?fmtDate(data.paciente_nasc):'___/___/___'}</strong></td>
+      <td style="padding:5px 8px;border-bottom:1px solid #000;width:20%"><span style="font-size:8.5pt;color:#555">IDADE</span><br><strong>${(data.paciente_idade||'').toUpperCase()}</strong></td>
     </tr>
+    ${solicitanteRow}
   </table>`;
 
   const s = data.secoes||{};
@@ -945,7 +952,8 @@ async function loadPatientLaudos() {
     <div class="saved-row">
       <div><div class="saved-name">${l.paciente_nome}</div><div class="saved-meta">📅 ${l.data_exame?fmtDate(l.data_exame):'—'} &nbsp;|&nbsp; 👨‍⚕️ ${l.medico_nome||'—'}</div></div>
       <div class="saved-actions">
-        <button class="btn btn-green" style="padding:7px 12px;font-size:12px" onclick="printById('${l.id}')">🖨️ Imprimir / PDF</button>
+        <button class="btn btn-green" style="padding:7px 12px;font-size:12px" onclick="downloadPDFById('${l.id}')">⬇️ Baixar PDF</button>
+        <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="printById('${l.id}')">🖨️ Imprimir</button>
       </div>
     </div>`).join('');
 }
