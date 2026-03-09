@@ -718,7 +718,8 @@ Ecocardiograma dentro dos limites da normalidade.</textarea></div>
 
     <div class="tip">💡 Clique em <strong>Salvar</strong> para guardar no banco de dados e depois <strong>Imprimir / PDF</strong> para gerar o documento. Para <strong>baixar como PDF</strong>: na janela de impressão, selecione <em>"Salvar como PDF"</em> como destino.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap">
-      <button class="btn btn-green btn-big" style="flex:1" onclick="saveLaudo()">💾 Salvar Laudo</button>
+      <button class="btn btn-green btn-big" id="btn-salvar-laudo" style="flex:1" onclick="saveLaudo()">💾 Salvar Laudo</button>
+      <button class="btn btn-outline btn-big" id="btn-retornar-pendente" style="display:none;flex:0 0 auto" onclick="retornarPendente()">↩️ Retornar aos Pendentes</button>
       <button class="btn btn-print btn-big" style="flex:1" onclick="printLaudo()">🖨️ Imprimir / PDF</button>
     </div>
     <div class="abar">
@@ -1167,16 +1168,37 @@ async function saveLaudo() {
   loading(true,'Salvando...');
   let result;
   if (editingLaudoId) {
-    result = await supa.from('laudos').update(payload).eq('id', editingLaudoId);
+    result = await supa.from('laudos').update(payload).eq('id', editingLaudoId).select();
   } else {
-    result = await supa.from('laudos').insert(payload);
+    result = await supa.from('laudos').insert(payload).select();
   }
   loading(false);
   if (result.error) { toast('Erro ao salvar: '+result.error.message,'err'); return; }
-  toast('Laudo salvo com sucesso!','ok');
-  editingLaudoId=null;
-  editingLaudoMedico=null;
+  
+  // After INSERT, capture the new id so re-saves use UPDATE not INSERT
+  if (!editingLaudoId && result.data?.[0]?.id) {
+    editingLaudoId = result.data?.[0]?.id;
+  }
+  
+  toast('Laudo salvo com sucesso! ✓','ok');
+  
+  // Update save button to show saved state
+  const saveBtn = document.getElementById('btn-salvar-laudo');
+  if (saveBtn) {
+    saveBtn.textContent = '✅ Laudo Salvo';
+    saveBtn.style.background = '#166534';
+    setTimeout(() => {
+      saveBtn.textContent = '💾 Salvar Laudo';
+      saveBtn.style.background = '';
+    }, 3000);
+  }
+  
+  // Update autosave indicator
+  const ind = document.getElementById('autosave-ind');
+  if (ind) { ind.textContent = '✅ Concluído e salvo'; ind.style.opacity='1'; setTimeout(()=>{ ind.style.opacity='0'; },5000); }
+
   loadSaved();
+  loadPending();
 }
 
 // Default texts for each section — used when creating new laudo or if DB has empty text
@@ -1302,6 +1324,24 @@ IMPRESSÃO:
 
 Ecocardiograma dentro dos limites da normalidade.`,
 };
+
+async function retornarPendente() {
+  if (!editingLaudoId) return;
+  if (!confirm('Retornar este laudo para a fila de Pendentes? O médico precisará reabrir e salvar novamente.')) return;
+  loading(true, 'Retornando...');
+  const { error } = await supa.from('laudos').update({ status: 'pendente' }).eq('id', editingLaudoId);
+  loading(false);
+  if (error) { toast('Erro: ' + error.message, 'err'); return; }
+  toast('Laudo retornado aos pendentes!', 'ok');
+  // Reset form state
+  editingLaudoId = null;
+  editingLaudoMedico = null;
+  const retBtn = document.getElementById('btn-retornar-pendente');
+  if (retBtn) retBtn.style.display = 'none';
+  loadPending();
+  loadSaved();
+  showTab('pendentes', document.querySelectorAll('#screen-app .tab')[1]);
+}
 
 // ── AUTOSAVE ──
 let autosaveTimer = null;
@@ -1432,6 +1472,11 @@ async function loadLaudo(id) {
     crm:  data.medico_responsavel_crm  || data.medico_crm  || currentDoctor?.crm  || ''
   };
   showTab('novo',document.querySelectorAll('.tab')[0]);
+  
+  // Show "Retornar aos Pendentes" button only for concluded laudos
+  const retBtn = document.getElementById('btn-retornar-pendente');
+  if (retBtn) retBtn.style.display = (data.status === 'concluido') ? 'flex' : 'none';
+  
   toast('Laudo carregado!','inf');
 }
 
@@ -1931,8 +1976,10 @@ async function loadPending() {
 
 async function openPendente(id) {
   await loadLaudo(id);
-  // After loading, keep status as pendente until doctor saves
   editingLaudoId = id;
+  // Hide retornar button for pending laudos
+  const retBtn = document.getElementById('btn-retornar-pendente');
+  if (retBtn) retBtn.style.display = 'none';
   showTab('novo', document.querySelectorAll('#screen-app .tab')[0]);
 }
 
