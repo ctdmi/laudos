@@ -1280,15 +1280,15 @@ async function loadLaudo(id) {
   document.getElementById('p-convenio').value = data.convenio||'';
   document.getElementById('p-solicitante').value = data.solicitante||'';
   const s=data.secoes||{};
-  if(s.venoso_d) document.getElementById('txt-venoso-d').value=s.venoso_d.texto||'';
-  if(s.venoso_e) document.getElementById('txt-venoso-e').value=s.venoso_e.texto||'';
+  if(s.venoso_d) document.getElementById('txt-venoso-d').value = s.venoso_d.texto || document.getElementById('txt-venoso-d').defaultValue;
+  if(s.venoso_e) document.getElementById('txt-venoso-e').value = s.venoso_e.texto || document.getElementById('txt-venoso-e').defaultValue;
   ['arterial','carotidas','aorta','cava','superiores','ecoca'].forEach(k => {
     const chk = document.getElementById('chk-'+k);
     const lbl = document.getElementById('lb-'+k);
     const txt = document.getElementById('txt-'+k);
     if (s[k] !== undefined) {
       if(chk) chk.checked=s[k].ativo;
-      if(txt) txt.value=s[k].texto||'';
+      if(txt) txt.value = s[k].texto || txt.defaultValue || '';
       if(lbl) lbl.classList.toggle('on',s[k].ativo);
     } else {
       // Not in secoes = not selected by secretary, disable
