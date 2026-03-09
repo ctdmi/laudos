@@ -666,6 +666,45 @@ Não foi evidenciado redução no deságue arterial dos membros superiores.</tex
       </div>
     </div>
 
+      <div class="lb" id="lb-ecoca">
+        <div class="lb-hdr" onclick="toggleLb('ecoca')">
+          <span class="lb-title">ECOCARDIOGRAMA COM DOPPLER</span>
+          <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-ecoca" onchange="toggleLb('ecoca')"><div class="tog-track"></div><div class="tog-knob"></div></label>
+        </div>
+        <div class="lb-body"><textarea oninput="scheduleAutosave()" id="txt-ecoca">ECOCARDIOGRAMA TRANSTORÁCICO COM DOPPLER
+
+Exame realizado em decúbito lateral esquerdo com transdutor de 2,5 MHz.
+
+DIMENSÕES DAS CÂMARAS:
+Átrio esquerdo: ___ mm (VR: até 40 mm)
+Ventrículo esquerdo diástole: ___ mm (VR: até 55 mm)
+Ventrículo esquerdo sístole: ___ mm
+Septo interventricular: ___ mm (VR: até 11 mm)
+Parede posterior: ___ mm (VR: até 11 mm)
+Ventrículo direito: ___ mm (VR: até 26 mm)
+Aorta: ___ mm (VR: até 37 mm)
+
+FUNÇÃO SISTÓLICA:
+Fração de ejeção (Teicholz): ___%
+Fração de encurtamento: ___%
+Função sistólica do ventrículo esquerdo preservada / reduzida.
+
+FUNÇÃO DIASTÓLICA:
+Padrão de enchimento mitral compatível com função diastólica normal / disfunção grau I.
+Relação E/A: ___
+
+VÁLVULAS:
+Valva mitral: morfologia e mobilidade normais. Sem insuficiência/estenose significativa.
+Valva aórtica: trivalvulada, com abertura normal. Sem insuficiência/estenose significativa.
+Valva tricúspide: morfologia normal. Refluxo tricúspide fisiológico.
+Valva pulmonar: morfologia normal.
+
+PERICÁRDIO: Sem derrame pericárdico.
+
+IMPRESSÃO:
+
+Ecocardiograma dentro dos limites da normalidade.</textarea></div>
+      </div>
     <div class="card">
       <div class="card-hdr"><div class="card-ico">🖼️</div><div class="card-title">Imagens do Exame (2 colunas × 3 linhas por página)</div></div>
       <div class="drop-zone" id="dz" onclick="document.getElementById('fi').click()" ondrop="onDrop(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)">
@@ -861,7 +900,6 @@ async function afterLogin() {
       showScreen('screen-sec');
       loadSecQueue();
       loadDoctorsForSec();
-      loadModelos();
       return;
     }
     if (doc.papel === 'admin') {
@@ -874,7 +912,6 @@ async function afterLogin() {
       showScreen('screen-sec');
       loadSecQueue();
       loadDoctorsForSec();
-      loadModelos();
       loadDoctors();
       loadPatients();
       return;
@@ -1111,6 +1148,7 @@ async function saveLaudo() {
     aorta:      { ativo: document.getElementById('chk-aorta').checked,      texto: get('txt-aorta') },
     cava:       { ativo: document.getElementById('chk-cava').checked,       texto: get('txt-cava') },
     superiores: { ativo: document.getElementById('chk-superiores').checked, texto: get('txt-superiores') },
+    ecoca:      { ativo: document.getElementById('chk-ecoca').checked,      texto: get('txt-ecoca') },
   };
   const payload = {
     paciente_nome:  get('p-nome'),
@@ -1141,206 +1179,6 @@ async function saveLaudo() {
   loadSaved();
 }
 
-// ══════════════════════════════════════════════════════
-// MODELOS DE LAUDO
-// ══════════════════════════════════════════════════════
-let modelosList = [];
-const SECOES_META = {
-  venoso_d:   { label: '🩸 Eco Doppler Venoso D', key: 'venoso_d' },
-  venoso_e:   { label: '🩸 Eco Doppler Venoso E', key: 'venoso_e' },
-  arterial:   { label: '🔴 Eco Doppler Arterial MMII', key: 'arterial' },
-  carotidas:  { label: '🧠 Carótidas e Vertebrais', key: 'carotidas' },
-  aorta:      { label: '🔵 Aorta Abdominal', key: 'aorta' },
-  cava:       { label: '🔷 Veia Cava', key: 'cava' },
-  superiores: { label: '💪 MMSS', key: 'superiores' },
-};
-
-const MODELOS_DEFAULT = [
-  { nome: 'Eco Doppler Venoso MMII', descricao: 'Mapeamento venoso bilateral dos membros inferiores',
-    secoes: { venoso_d: { ativo: true, texto: 'PERVIEDADE:\n\nVeias do sistema superficial e profundo encontram-se pérvias, calibres normais, compressíveis, sem trombos visíveis ao mapeamento a cores e espectral, revela:\n\nMEMBRO INFERIOR DIREITO\n\nVeias do sistema superficial e profundo com calibres normais, compressíveis.\n\nAo Doppler detectamos fluxos fásicos com manobras de Valsalva normais.\n\nIMPRESSÃO:\n\nAusência de sinais de trombose venosa profunda.' },
-      venoso_e: { ativo: true, texto: 'MEMBRO INFERIOR ESQUERDO\n\nVeias do sistema superficial e profundo com calibres normais, compressíveis.\n\nAo Doppler detectamos fluxos fásicos com manobras de Valsalva normais.' },
-      arterial: { ativo: false, texto: '' }, carotidas: { ativo: false, texto: '' },
-      aorta: { ativo: false, texto: '' }, cava: { ativo: false, texto: '' }, superiores: { ativo: false, texto: '' } } },
-  { nome: 'Eco Doppler Arterial MMII', descricao: 'Mapeamento arterial bilateral dos membros inferiores',
-    secoes: { venoso_d: { ativo: false, texto: '' }, venoso_e: { ativo: false, texto: '' },
-      arterial: { ativo: true, texto: 'ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES\n\nO exame com Doppler espectral e colorido revela:\n\nMEMBRO INFERIOR DIREITO\n\nArtérias tronculares do membro inferior direito apresentam calibres e pulsatilidades normais.\n\nArtérias femorais (comum, superficial, profunda), poplítea, tibial posterior, fibular e tibial anterior estão com espessamento médio-intimal, compatível com a faixa etária, sem lesões obstrutivas.\n\nAo Doppler detectamos fluxos trifásicos com velocidades normais.\n\nMEMBRO INFERIOR ESQUERDO\n\nArtérias tronculares do membro inferior esquerdo apresentam calibres e pulsatilidades normais.\n\nArtérias femorais (comum, superficial, profunda), poplítea, tibial posterior, fibular e tibial anterior estão com espessamento médio-intimal, compatível com a faixa etária, sem lesões obstrutivas.\n\nAo Doppler detectamos fluxos trifásicos com velocidades normais.\n\nIMPRESSÃO:\n\nNão foi evidenciado redução no desàgue arterial dos membros inferiores.' },
-      carotidas: { ativo: false, texto: '' }, aorta: { ativo: false, texto: '' },
-      cava: { ativo: false, texto: '' }, superiores: { ativo: false, texto: '' } } },
-  { nome: 'Eco Doppler Carótidas e Vertebrais', descricao: 'Mapeamento das artérias carótidas e vertebrais',
-    secoes: { venoso_d: { ativo: false, texto: '' }, venoso_e: { ativo: false, texto: '' },
-      arterial: { ativo: false, texto: '' },
-      carotidas: { ativo: true, texto: 'ECOCOLOR DOPPLER DAS CARÓTIDAS E VERTEBRAIS\n\nO exame com mapeamento a cores e espectral, revela:\n\nArtérias carótidas e vertebrais apresentam calibres e pulsatilidades normais, sem tortuosidades destes vasos.\n\nLeve espessamento médio-intimal, sendo observado pequenas placas ateromatosas em ambos os bulbos carotídeos que causam estenoses inferiores a 10% à direita e entre 20% e 30% à esquerda, sem causar repercussão hemodinâmica.\n\nAo Doppler, foram detectados fluxos ascendentes e laminares, com morfologia e velocidades características.\n\nIMPRESSÃO:\n\nAusências de lesões hemodinamicamente significativas.' },
-      aorta: { ativo: false, texto: '' }, cava: { ativo: false, texto: '' }, superiores: { ativo: false, texto: '' } } },
-  { nome: 'Eco Doppler Aorta Abdominal', descricao: 'Mapeamento da aorta abdominal e ramos',
-    secoes: { venoso_d: { ativo: false, texto: '' }, venoso_e: { ativo: false, texto: '' },
-      arterial: { ativo: false, texto: '' }, carotidas: { ativo: false, texto: '' },
-      aorta: { ativo: true, texto: 'ECOCOLOR DOPPLER DA AORTA ABDOMINAL\n\nAorta abdominal com calibre normal, paredes regulares, sem evidência de aneurisma ou dissecção.\n\nFluxo laminar ao Doppler espectral com velocidades dentro dos limites normais.\n\nIMPRESSÃO:\n\nAorta abdominal sem alterações significativas ao exame atual.' },
-      cava: { ativo: false, texto: '' }, superiores: { ativo: false, texto: '' } } },
-  { nome: 'Eco Doppler Veia Cava', descricao: 'Avaliação da veia cava inferior',
-    secoes: { venoso_d: { ativo: false, texto: '' }, venoso_e: { ativo: false, texto: '' },
-      arterial: { ativo: false, texto: '' }, carotidas: { ativo: false, texto: '' },
-      aorta: { ativo: false, texto: '' },
-      cava: { ativo: true, texto: 'ECOCOLOR DOPPLER DA VEIA CAVA INFERIOR\n\nVeia cava inferior com calibre normal, paredes regulares e compressíveis.\n\nFluxo fásico ao Doppler espectral, sem evidência de trombos ou compressão extrínseca.\n\nIMPRESSÃO:\n\nVeia cava inferior sem alterações ao exame atual.' },
-      superiores: { ativo: false, texto: '' } } },
-  { nome: 'Eco Doppler MMSS', descricao: 'Mapeamento dos membros superiores',
-    secoes: { venoso_d: { ativo: false, texto: '' }, venoso_e: { ativo: false, texto: '' },
-      arterial: { ativo: false, texto: '' }, carotidas: { ativo: false, texto: '' },
-      aorta: { ativo: false, texto: '' }, cava: { ativo: false, texto: '' },
-      superiores: { ativo: true, texto: 'ECOCOLOR DOPPLER DOS MEMBROS SUPERIORES\n\nO exame com Doppler espectral e colorido revela:\n\nArtérias e veias dos membros superiores com calibres normais, sem lesões obstrutivas ou trombos visíveis.\n\nAo Doppler detectamos fluxos com morfologia e velocidades normais para a topografia.\n\nIMPRESSÃO:\n\nExame dentro dos limites da normalidade.' } } },
-];
-
-async function loadModelos() {
-  const { data } = await supa.from('modelos_laudo').select('*').eq('ativo', true).order('nome');
-  if (data && data.length > 0) {
-    modelosList = data;
-  } else {
-    // Seed defaults on first use
-    await seedDefaultModelos();
-  }
-  renderModelosSec();
-}
-
-async function seedDefaultModelos() {
-  const inserts = MODELOS_DEFAULT.map(m => ({ nome: m.nome, descricao: m.descricao, secoes: m.secoes, ativo: true }));
-  const { data } = await supa.from('modelos_laudo').insert(inserts).select();
-  modelosList = data || MODELOS_DEFAULT.map((m,i) => ({ ...m, id: 'default_'+i }));
-}
-
-function renderModelosSec() {
-  // Populate secretary model selector
-  const sel = document.getElementById('sec-modelo-select');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">— Selecione um modelo —</option>' +
-    modelosList.map(m => `<option value="${m.id}">${m.nome}</option>`).join('');
-}
-
-function applyModeloToSec(modeloId) {
-  const m = modelosList.find(x => String(x.id) === String(modeloId));
-  if (!m) return;
-  // Update exam checkboxes based on model
-  const s = m.secoes || {};
-  const vOn = s.venoso_d?.ativo || s.venoso_e?.ativo || false;
-  const chkMap = { venoso: vOn, arterial: s.arterial?.ativo||false,
-    carotidas: s.carotidas?.ativo||false, aorta: s.aorta?.ativo||false,
-    cava: s.cava?.ativo||false, superiores: s.superiores?.ativo||false };
-  Object.entries(chkMap).forEach(([k, v]) => {
-    const el = document.getElementById('sec-chk-'+k);
-    if (el) el.checked = v;
-  });
-  toast('Modelo aplicado: ' + m.nome, 'ok');
-}
-
-// ── ADMIN: MODELOS PANEL ──
-let editingModeloId = null;
-
-async function loadAdminModelos() {
-  const { data } = await supa.from('modelos_laudo').select('*').order('nome');
-  modelosList = data || [];
-  renderAdminModelos();
-}
-
-function renderAdminModelos() {
-  if (!c) return;
-  if (!modelosList.length) { c.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:12px">Nenhum modelo cadastrado.</div>'; return; }
-  const html = modelosList.map(m => {
-    const ativos = Object.entries(m.secoes||{}).filter(([,v])=>v.ativo).map(([k])=>SECOES_META[k]?.label||k).join(', ');
-    return `<div class="modelo-card">
-      <div style="flex:1">
-        <div class="modelo-nome">${m.nome} ${!m.ativo?'<span style="color:#999;font-weight:400;font-size:11px">(inativo)</span>':''}</div>
-        <div class="modelo-desc">${m.descricao||''}</div>
-        <div class="modelo-secoes">📋 ${ativos||'Nenhuma seção ativa'}</div>
-      </div>
-      <div class="modelo-actions">
-        <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="openEditModelo('${m.id}')">✏️ Editar</button>
-        <button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deleteModelo('${m.id}')">🗑️</button>
-      </div>
-    </div>`;
-  }).join('') || '<div style="color:var(--text-muted);font-size:13px;padding:12px">Nenhum modelo cadastrado.</div>';
-  ['admin-modelos-list','admin-sec-modelos-list'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = html;
-  });
-}
-
-function openNewModelo() {
-  editingModeloId = null;
-  document.getElementById('modelo-modal-title').textContent = '➕ Novo Modelo de Laudo';
-  document.getElementById('modelo-nome-input').value = '';
-  document.getElementById('modelo-desc-input').value = '';
-  // Reset all sections
-  Object.keys(SECOES_META).forEach(k => {
-    const chk = document.getElementById('med-chk-'+k);
-    const txt = document.getElementById('med-txt-'+k);
-    if (chk) chk.checked = false;
-    if (txt) txt.value = '';
-    const body = document.getElementById('med-body-'+k);
-    if (body) body.classList.remove('open');
-  });
-  openModal('modal-modelo');
-}
-
-function openEditModelo(id) {
-  const m = modelosList.find(x => String(x.id) === String(id));
-  if (!m) return;
-  editingModeloId = id;
-  document.getElementById('modelo-modal-title').textContent = '✏️ Editar Modelo';
-  document.getElementById('modelo-nome-input').value = m.nome || '';
-  document.getElementById('modelo-desc-input').value = m.descricao || '';
-  const s = m.secoes || {};
-  Object.keys(SECOES_META).forEach(k => {
-    const chk = document.getElementById('med-chk-'+k);
-    const txt = document.getElementById('med-txt-'+k);
-    const body = document.getElementById('med-body-'+k);
-    const sec = s[k] || { ativo: false, texto: '' };
-    if (chk) chk.checked = sec.ativo;
-    if (txt) txt.value = sec.texto || '';
-    if (body) body.classList.toggle('open', sec.ativo);
-  });
-  openModal('modal-modelo');
-}
-
-function toggleSecEditor(key) {
-  const chk = document.getElementById('med-chk-'+key);
-  const body = document.getElementById('med-body-'+key);
-  if (body) body.classList.toggle('open', chk?.checked);
-}
-
-async function saveModelo() {
-  const nome = document.getElementById('modelo-nome-input').value.trim();
-  if (!nome) { toast('Informe o nome do modelo.','err'); return; }
-  const descricao = document.getElementById('modelo-desc-input').value.trim();
-  const secoes = {};
-  Object.keys(SECOES_META).forEach(k => {
-    const chk = document.getElementById('med-chk-'+k);
-    const txt = document.getElementById('med-txt-'+k);
-    secoes[k] = { ativo: chk?.checked || false, texto: txt?.value || '' };
-  });
-  loading(true, 'Salvando modelo...');
-  let error;
-  if (editingModeloId) {
-    ({ error } = await supa.from('modelos_laudo').update({ nome, descricao, secoes }).eq('id', editingModeloId));
-  } else {
-    ({ error } = await supa.from('modelos_laudo').insert({ nome, descricao, secoes, ativo: true }));
-  }
-  loading(false);
-  if (error) { toast('Erro: ' + error.message, 'err'); return; }
-  toast(editingModeloId ? 'Modelo atualizado!' : 'Modelo criado!', 'ok');
-  closeModal('modal-modelo');
-  loadAdminModelos();
-  loadModelos(); // refresh secretary selector
-}
-
-async function deleteModelo(id) {
-  if (!confirm('Excluir este modelo de laudo?')) return;
-  loading(true, 'Excluindo...');
-  const { error } = await supa.from('modelos_laudo').delete().eq('id', id);
-  loading(false);
-  if (error) { toast('Erro: ' + error.message, 'err'); return; }
-  toast('Modelo excluído.', 'ok');
-  loadAdminModelos();
-  loadModelos();
-}
-
 // ── AUTOSAVE ──
 let autosaveTimer = null;
 let autosaveToastShown = false;
@@ -1356,6 +1194,7 @@ async function autosaveLaudo() {
     aorta:      { ativo: document.getElementById('chk-aorta').checked,      texto: get('txt-aorta') },
     cava:       { ativo: document.getElementById('chk-cava').checked,       texto: get('txt-cava') },
     superiores: { ativo: document.getElementById('chk-superiores').checked, texto: get('txt-superiores') },
+    ecoca:      { ativo: document.getElementById('chk-ecoca').checked,      texto: get('txt-ecoca') },
   };
   const payload = {
     secoes,
@@ -1443,7 +1282,7 @@ async function loadLaudo(id) {
   const s=data.secoes||{};
   if(s.venoso_d) document.getElementById('txt-venoso-d').value=s.venoso_d.texto||'';
   if(s.venoso_e) document.getElementById('txt-venoso-e').value=s.venoso_e.texto||'';
-  ['arterial','carotidas','aorta','cava','superiores'].forEach(k => {
+  ['arterial','carotidas','aorta','cava','superiores','ecoca'].forEach(k => {
     const chk = document.getElementById('chk-'+k);
     const lbl = document.getElementById('lb-'+k);
     const txt = document.getElementById('txt-'+k);
@@ -1545,6 +1384,7 @@ function buildPrint(data) {
     { key: 'aorta',      title: 'ECOCOLOR DOPPLER DE AORTA E ARTÉRIAS ILÍACAS', subtitle: null },
     { key: 'cava',       title: 'ECOCOLOR DOPPLER DA VEIA CAVA E ILÍACAS', subtitle: null },
     { key: 'superiores', title: 'ECOCOLOR DOPPLER DOS MEMBROS SUPERIORES', subtitle: null },
+    { key: 'ecoca',      title: 'ECOCARDIOGRAMA COM DOPPLER', subtitle: null },
   ];
 
   let pagesHtml = '';
@@ -1721,7 +1561,7 @@ function showSecTab(name, el) {
   if (name==='fila-sec') loadSecQueue();
   if (name==='concluidos-sec') loadSecConcluidos();
   if (name==='novo-sec') loadDoctorsForSec();
-  if (name==='admin-sec') { loadAdminSecDoctors(); loadAdminSecPatients(); loadAdminModelos(); }
+  if (name==='admin-sec') { loadAdminSecDoctors(); loadAdminSecPatients(); }
 }
 
 async function loadAdminSecDoctors() {
@@ -1784,18 +1624,13 @@ async function savePendente() {
     medico_responsavel_nome: document.getElementById('sec-medico-nome')?.value || '',
     criado_por:     'secretaria',
     secoes:         (() => {
-      // Use selected model's texts as default
-      const modeloId = document.getElementById('sec-modelo-select')?.value;
-      const modelo = modelosList.find(m => String(m.id) === String(modeloId));
-      const mSecoes = modelo?.secoes || {};
       const s = {};
-      // Always build all sections
-      const chkVenoso = document.getElementById('sec-chk-venoso')?.checked || false;
-      s['venoso_d'] = { ativo: chkVenoso, texto: mSecoes.venoso_d?.texto || '' };
-      s['venoso_e'] = { ativo: chkVenoso, texto: mSecoes.venoso_e?.texto || '' };
-      ['arterial','carotidas','aorta','cava','superiores'].forEach(k => {
-        const on = document.getElementById('sec-chk-'+k)?.checked || false;
-        s[k] = { ativo: on, texto: mSecoes[k]?.texto || '' };
+      document.querySelectorAll('.sec-exame-chk').forEach(chk => {
+        s[chk.value] = { ativo: chk.checked, texto: '' };
+        if (chk.value === 'venoso') {
+          s['venoso_d'] = { ativo: chk.checked, texto: '' };
+          s['venoso_e'] = { ativo: chk.checked, texto: '' };
+        }
       });
       return s;
     })(),
@@ -2017,16 +1852,6 @@ async function openPendente(id) {
 
   <!-- NOVO PACIENTE (Secretaria) -->
   <div id="tab-novo-sec" class="app-main">
-    <div class="card" style="border:2px solid var(--green)">
-      <div class="card-hdr"><div class="card-ico">📋</div><div class="card-title">Modelo de Laudo</div></div>
-      <div class="field" style="margin:0">
-        <label>Selecione o modelo do exame</label>
-        <select id="sec-modelo-select" onchange="applyModeloToSec(this.value)" style="width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-family:Lato,sans-serif;font-size:13px;background:#fff">
-          <option value="">— Selecione um modelo —</option>
-        </select>
-      </div>
-    </div>
-
     <div class="card">
       <div class="card-hdr"><div class="card-ico">👤</div><div class="card-title">Cadastrar Paciente para Laudo</div></div>
       <div class="g2">
@@ -2049,10 +1874,50 @@ async function openPendente(id) {
         <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="aorta" id="sec-chk-aorta"> 🔵 Eco Doppler Aorta Abdominal</label>
         <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="cava" id="sec-chk-cava"> 🔷 Eco Doppler Veia Cava</label>
         <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="superiores" id="sec-chk-superiores"> 💪 Eco Doppler MMSS</label>
+        <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="ecoca" id="sec-chk-ecoca"> 🫀 Ecocardiograma com Doppler</label>
       </div>
       <div class="tip" style="margin-top:10px;font-size:12px">💡 Selecione os exames que o médico deverá preencher neste laudo.</div>
     </div>
 
+      <div class="lb" id="lb-ecoca">
+        <div class="lb-hdr" onclick="toggleLb('ecoca')">
+          <span class="lb-title">ECOCARDIOGRAMA COM DOPPLER</span>
+          <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-ecoca" onchange="toggleLb('ecoca')"><div class="tog-track"></div><div class="tog-knob"></div></label>
+        </div>
+        <div class="lb-body"><textarea oninput="scheduleAutosave()" id="txt-ecoca">ECOCARDIOGRAMA TRANSTORÁCICO COM DOPPLER
+
+Exame realizado em decúbito lateral esquerdo com transdutor de 2,5 MHz.
+
+DIMENSÕES DAS CÂMARAS:
+Átrio esquerdo: ___ mm (VR: até 40 mm)
+Ventrículo esquerdo diástole: ___ mm (VR: até 55 mm)
+Ventrículo esquerdo sístole: ___ mm
+Septo interventricular: ___ mm (VR: até 11 mm)
+Parede posterior: ___ mm (VR: até 11 mm)
+Ventrículo direito: ___ mm (VR: até 26 mm)
+Aorta: ___ mm (VR: até 37 mm)
+
+FUNÇÃO SISTÓLICA:
+Fração de ejeção (Teicholz): ___%
+Fração de encurtamento: ___%
+Função sistólica do ventrículo esquerdo preservada / reduzida.
+
+FUNÇÃO DIASTÓLICA:
+Padrão de enchimento mitral compatível com função diastólica normal / disfunção grau I.
+Relação E/A: ___
+
+VÁLVULAS:
+Valva mitral: morfologia e mobilidade normais. Sem insuficiência/estenose significativa.
+Valva aórtica: trivalvulada, com abertura normal. Sem insuficiência/estenose significativa.
+Valva tricúspide: morfologia normal. Refluxo tricúspide fisiológico.
+Valva pulmonar: morfologia normal.
+
+PERICÁRDIO: Sem derrame pericárdico.
+
+IMPRESSÃO:
+
+Ecocardiograma dentro dos limites da normalidade.</textarea></div>
+      </div>
     <div class="card">
       <div class="card-hdr"><div class="card-ico">🖼️</div><div class="card-title">Imagens do Exame (opcional)</div></div>
       <div class="drop-zone" id="dz-sec" onclick="document.getElementById('fi-sec').click()" ondrop="onDropSec(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)">
@@ -2090,12 +1955,6 @@ async function openPendente(id) {
       <div id="admin-sec-patients" style="margin-top:12px"></div>
       <button class="btn btn-green" style="margin-top:12px" onclick="openModal('modal-patient')">+ Cadastrar Paciente</button>
     </div>
-    <div class="card">
-      <div class="card-hdr"><div class="card-ico">📋</div><div class="card-title">Modelos de Laudo</div></div>
-      <div class="tip" style="margin-bottom:12px">Crie e edite os modelos disponíveis para a secretaria.</div>
-      <div id="admin-sec-modelos-list" style="display:flex;flex-direction:column;gap:8px"></div>
-      <button class="btn btn-green" style="margin-top:14px" onclick="openNewModelo()">➕ Novo Modelo</button>
-    </div>
   </div>
 
   <!-- CONCLUÍDOS (leitura) -->
@@ -2110,82 +1969,6 @@ async function openPendente(id) {
   </div>
 </div>
 
-
-<!-- MODAL MODELO LAUDO -->
-<div id="modal-modelo" class="modal" style="display:none">
-  <div class="modal-box" style="max-width:700px;max-height:90vh;overflow-y:auto">
-    <div class="modal-hdr">
-      <h3 id="modelo-modal-title">📋 Modelo de Laudo</h3>
-      <button class="modal-close" onclick="closeModal('modal-modelo')">✕</button>
-    </div>
-    <div class="field"><label>Nome do Modelo *</label><input type="text" id="modelo-nome-input" placeholder="Ex: Eco Doppler Venoso MMII"></div>
-    <div class="field"><label>Descrição <span style="font-weight:400;font-size:11px">(opcional)</span></label><input type="text" id="modelo-desc-input" placeholder="Breve descrição do exame"></div>
-    <div style="margin:14px 0 8px;font-weight:700;font-size:13px;color:var(--text)">Seções e Textos Padrão</div>
-    <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px">Marque as seções que devem aparecer e preencha o texto padrão. O médico poderá editar.</div>
-
-    <div class="sec-editor">
-      <div class="sec-editor-hdr" onclick="toggleSecEditor('venoso_d')">
-        <input type="checkbox" id="med-chk-venoso_d" onclick="event.stopPropagation();toggleSecEditor('venoso_d')"> 🩸 Eco Doppler Venoso — Membro Direito
-      </div>
-      <div class="sec-editor-body" id="med-body-venoso_d">
-        <textarea id="med-txt-venoso_d" placeholder="Texto padrão para esta seção..."></textarea>
-      </div>
-    </div>
-    <div class="sec-editor">
-      <div class="sec-editor-hdr" onclick="toggleSecEditor('venoso_e')">
-        <input type="checkbox" id="med-chk-venoso_e" onclick="event.stopPropagation();toggleSecEditor('venoso_e')"> 🩸 Eco Doppler Venoso — Membro Esquerdo
-      </div>
-      <div class="sec-editor-body" id="med-body-venoso_e">
-        <textarea id="med-txt-venoso_e" placeholder="Texto padrão para esta seção..."></textarea>
-      </div>
-    </div>
-    <div class="sec-editor">
-      <div class="sec-editor-hdr" onclick="toggleSecEditor('arterial')">
-        <input type="checkbox" id="med-chk-arterial" onclick="event.stopPropagation();toggleSecEditor('arterial')"> 🔴 Eco Doppler Arterial MMII
-      </div>
-      <div class="sec-editor-body" id="med-body-arterial">
-        <textarea id="med-txt-arterial" placeholder="Texto padrão para esta seção..."></textarea>
-      </div>
-    </div>
-    <div class="sec-editor">
-      <div class="sec-editor-hdr" onclick="toggleSecEditor('carotidas')">
-        <input type="checkbox" id="med-chk-carotidas" onclick="event.stopPropagation();toggleSecEditor('carotidas')"> 🧠 Carótidas e Vertebrais
-      </div>
-      <div class="sec-editor-body" id="med-body-carotidas">
-        <textarea id="med-txt-carotidas" placeholder="Texto padrão para esta seção..."></textarea>
-      </div>
-    </div>
-    <div class="sec-editor">
-      <div class="sec-editor-hdr" onclick="toggleSecEditor('aorta')">
-        <input type="checkbox" id="med-chk-aorta" onclick="event.stopPropagation();toggleSecEditor('aorta')"> 🔵 Aorta Abdominal
-      </div>
-      <div class="sec-editor-body" id="med-body-aorta">
-        <textarea id="med-txt-aorta" placeholder="Texto padrão para esta seção..."></textarea>
-      </div>
-    </div>
-    <div class="sec-editor">
-      <div class="sec-editor-hdr" onclick="toggleSecEditor('cava')">
-        <input type="checkbox" id="med-chk-cava" onclick="event.stopPropagation();toggleSecEditor('cava')"> 🔷 Veia Cava
-      </div>
-      <div class="sec-editor-body" id="med-body-cava">
-        <textarea id="med-txt-cava" placeholder="Texto padrão para esta seção..."></textarea>
-      </div>
-    </div>
-    <div class="sec-editor">
-      <div class="sec-editor-hdr" onclick="toggleSecEditor('superiores')">
-        <input type="checkbox" id="med-chk-superiores" onclick="event.stopPropagation();toggleSecEditor('superiores')"> 💪 Membros Superiores
-      </div>
-      <div class="sec-editor-body" id="med-body-superiores">
-        <textarea id="med-txt-superiores" placeholder="Texto padrão para esta seção..."></textarea>
-      </div>
-    </div>
-
-    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
-      <button class="btn btn-outline" onclick="closeModal('modal-modelo')">Cancelar</button>
-      <button class="btn btn-green" onclick="saveModelo()">💾 Salvar Modelo</button>
-    </div>
-  </div>
-</div>
 
 <!-- MODAL SEC IMAGES -->
 <div id="modal-sec-images" class="modal" style="display:none">
