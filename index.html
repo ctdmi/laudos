@@ -514,6 +514,9 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 
   <!-- TAB NOVO -->
   <div id="tab-novo" class="app-main">
+    <div id="autosave-bar" style="display:flex;justify-content:flex-end;align-items:center;padding:4px 0 8px;font-size:11px;color:var(--text-muted)">
+      <span id="autosave-ind" style="opacity:0;transition:opacity 0.5s;background:var(--green-light);color:var(--green-dark);padding:3px 10px;border-radius:12px;font-weight:600"></span>
+    </div>
     <div class="card">
       <div class="card-hdr"><div class="card-ico">👤</div><div class="card-title">Dados do Paciente</div></div>
       <div class="g2">
@@ -536,7 +539,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
         </div>
         <div class="lb-body">
           <div style="margin-bottom:10px;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">🦵 Membro Inferior Direito</div>
-          <textarea id="txt-venoso-d" style="margin-bottom:16px">PERVIEDADE:
+          <textarea oninput="scheduleAutosave()" id="txt-venoso-d" style="margin-bottom:16px">PERVIEDADE:
 
 Veias do sistema superficial e profundo encontram-se pérvias, calibres normais, compressíveis, sem trombos visíveis ao mapeamento a cores, com fluxos fásicos com a respiração, sendo suas paredes lisas sem irregularidades parietais.
 
@@ -552,7 +555,7 @@ Não foram visualizadas veias perfurantes incompetentes.
 
 Há varicosidades conforme ectoscopia. Telangiectasias e varizes reticulares subcutâneas, visualizadas veias extra-faciais insuficientes na face anterior e lateral e posterior da coxa e perna.</textarea>
           <div style="margin-bottom:10px;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">🦵 Membro Inferior Esquerdo</div>
-          <textarea id="txt-venoso-e">PERVIEDADE:
+          <textarea oninput="scheduleAutosave()" id="txt-venoso-e">PERVIEDADE:
 
 Veias do sistema superficial e profundo encontram-se pérvias, calibres normais, compressíveis, sem trombos visíveis ao mapeamento a cores, com fluxos fásicos com a respiração, sendo suas paredes lisas sem irregularidades parietais.
 
@@ -575,7 +578,7 @@ Há varicosidades conforme ectoscopia. Telangiectasias e varizes reticulares sub
           <span class="lb-title">ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-arterial" checked onchange="toggleLb('arterial')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
-        <div class="lb-body"><textarea id="txt-arterial">O exame com Doppler espectral e colorido revela:
+        <div class="lb-body"><textarea oninput="scheduleAutosave()" id="txt-arterial">O exame com Doppler espectral e colorido revela:
 
 MEMBRO INFERIOR DIREITO
 
@@ -603,7 +606,7 @@ Não foi evidenciado redução no deságue arterial dos membros inferiores.</tex
           <span class="lb-title">ECOCOLOR DOPPLER DAS CARÓTIDAS E VERTEBRAIS</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-carotidas" checked onchange="toggleLb('carotidas')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
-        <div class="lb-body"><textarea id="txt-carotidas">O exame com mapeamento a cores e espectral, revela:
+        <div class="lb-body"><textarea oninput="scheduleAutosave()" id="txt-carotidas">O exame com mapeamento a cores e espectral, revela:
 
 Artérias carótidas e vertebrais apresentam calibres e pulsatilidades normais, sem tortuosidades destes vasos.
 
@@ -621,7 +624,7 @@ Ausências de lesões hemodinamicamente significativas.</textarea></div>
           <span class="lb-title">ECOCOLOR DOPPLER DE AORTA E ARTÉRIAS ILÍACAS</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-aorta" onchange="toggleLb('aorta')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
-        <div class="lb-body"><textarea id="txt-aorta">O exame com Doppler espectral e colorido, revela:
+        <div class="lb-body"><textarea oninput="scheduleAutosave()" id="txt-aorta">O exame com Doppler espectral e colorido, revela:
 
 Aorta abdominal e artérias ilíacas estão com calibres e pulsatilidades normais. Espessamento da camada médio intimal compatível com a faixa etária, sem lesões obstrutivas.
 
@@ -637,7 +640,7 @@ Ausência de lesões hemodinamicamente significativas.</textarea></div>
           <span class="lb-title">ECOCOLOR DOPPLER DA VEIA CAVA E ILÍACAS</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-cava" onchange="toggleLb('cava')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
-        <div class="lb-body"><textarea id="txt-cava">Veia Cava apresenta calibres e pulsatilidades normais, sem tortuosidades e ausência de dilatações.
+        <div class="lb-body"><textarea oninput="scheduleAutosave()" id="txt-cava">Veia Cava apresenta calibres e pulsatilidades normais, sem tortuosidades e ausência de dilatações.
 
 Veia Ilíacas apresenta calibres e pulsatilidades normais, sem tortuosidades e ausência de dilatações. Ao Doppler, foram detectados fluxos ascendentes e laminares, com morfologia e velocidades características.
 
@@ -651,7 +654,7 @@ Ausência de placas ateromatosas, sem alterações importantes de fluxo ao Doppl
           <span class="lb-title">ECOCOLOR DOPPLER DOS MEMBROS SUPERIORES</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-superiores" onchange="toggleLb('superiores')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
-        <div class="lb-body"><textarea id="txt-superiores">Veias do sistema venoso dos membros superiores superficial e profundo encontram-se pérvias, calibres normais, compressíveis, sem trombos visíveis ao mapeamento a cores.
+        <div class="lb-body"><textarea oninput="scheduleAutosave()" id="txt-superiores">Veias do sistema venoso dos membros superiores superficial e profundo encontram-se pérvias, calibres normais, compressíveis, sem trombos visíveis ao mapeamento a cores.
 
 Artérias axilar, braquial, radial e ulnar pérvias, com calibres e pulsatilidades normais. Espessamento da camada médio intimal compatível com a faixa etária, sem lesões obstrutivas.
 
@@ -711,8 +714,8 @@ Não foi evidenciado redução no deságue arterial dos membros superiores.</tex
       <div class="abar"><button class="btn btn-green" onclick="openModal('modal-doctor')">+ Cadastrar Médico / Secretaria</button></div>
     </div>
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">👥</div><div class="card-title">Pacientes com Acesso (máx. 5)</div></div>
-      <div class="tip">Pacientes conseguem fazer login e visualizar seus laudos. Máximo 5 acessos simultâneos.</div>
+      <div class="card-hdr"><div class="card-ico">👥</div><div class="card-title">Pacientes com Acesso</div></div>
+      <div class="tip">Pacientes conseguem fazer login e visualizar seus laudos. Pacientes podem fazer login e visualizar seus laudos.</div>
       <div id="patients-list"></div>
       <div class="abar"><button class="btn btn-green" onclick="openModal('modal-patient')">+ Cadastrar Paciente</button></div>
     </div>
@@ -779,7 +782,7 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 let currentUser = null, currentDoctor = null, currentPatient = null;
-let images = [], editingLaudoId = null;
+let images = [], editingLaudoId = null, editingLaudoMedico = null;
 let isPatientLogin = false;
 
 window.onload = async () => {
@@ -878,6 +881,8 @@ async function afterLogin() {
     showScreen('screen-app');
     loadPending();
     loadSaved();
+    // Periodic autosave every 30s
+    setInterval(autosaveLaudo, 30000);
     return;
   }
   // Check if patient
@@ -898,6 +903,43 @@ async function afterLogin() {
 // ── Secretary: add images to concluded laudo ──
 let secEditId = null;
 let secEditImages = [];
+
+// ── SUPABASE STORAGE UPLOAD ──
+const STORAGE_BUCKET = 'laudo-imagens';
+
+async function uploadImageToStorage(base64DataUrl, fileName) {
+  // Convert base64 data URL to blob
+  const res = await fetch(base64DataUrl);
+  const blob = await res.blob();
+  const ext = blob.type.includes('png') ? 'png' : 'jpg';
+  const path = `laudos/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const { data, error } = await supa.storage.from(STORAGE_BUCKET).upload(path, blob, {
+    contentType: blob.type,
+    upsert: false
+  });
+  if (error) {
+    console.warn('Storage upload failed, using base64 fallback:', error.message);
+    return base64DataUrl; // fallback to base64
+  }
+  const { data: urlData } = supa.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+  return urlData.publicUrl;
+}
+
+async function processImagesForStorage(imageObjects) {
+  // imageObjects: [{id, src, name}] where src may be base64 or already a URL
+  const results = [];
+  for (const img of imageObjects) {
+    if (img.src && img.src.startsWith('data:')) {
+      // Upload to storage
+      const url = await uploadImageToStorage(img.src, img.name || 'imagem');
+      results.push({ src: url, name: img.name || '' });
+    } else {
+      // Already a URL, keep as-is
+      results.push({ src: img.src, name: img.name || '' });
+    }
+  }
+  return results;
+}
 
 async function secAddImages(id, nome) {
   secEditId = id;
@@ -931,9 +973,10 @@ function onSecEditFileSelect(e) {
 
 async function saveSecEditImages() {
   if (!secEditId) return;
-  loading(true, 'Salvando imagens...');
+  loading(true, 'Enviando imagens...');
+  const processed = await processImagesForStorage(secEditImages);
   const { error } = await supa.from('laudos').update({
-    imagens: secEditImages.map(i => ({src: i.src, name: i.name||''}))
+    imagens: processed
   }).eq('id', secEditId);
   loading(false);
   if (error) { toast('Erro: ' + error.message, 'err'); return; }
@@ -1074,8 +1117,8 @@ async function saveLaudo() {
     data_exame:     get('p-data'),
     convenio:       get('p-convenio'),
     solicitante:    get('p-solicitante'),
-    medico_nome:    currentDoctor?.nome || '',
-    medico_crm:     currentDoctor?.crm  || '',
+    medico_nome:    (editingLaudoMedico?.nome || currentDoctor?.nome || ''),
+    medico_crm:     (editingLaudoMedico?.crm  || currentDoctor?.crm  || ''),
     status:         'concluido',
     criado_por:     currentDoctor?.papel || 'medico',
     secoes,
@@ -1092,7 +1135,43 @@ async function saveLaudo() {
   if (result.error) { toast('Erro ao salvar: '+result.error.message,'err'); return; }
   toast('Laudo salvo com sucesso!','ok');
   editingLaudoId=null;
+  editingLaudoMedico=null;
   loadSaved();
+}
+
+// ── AUTOSAVE ──
+let autosaveTimer = null;
+let autosaveToastShown = false;
+
+async function autosaveLaudo() {
+  if (!editingLaudoId) return; // only autosave existing laudos
+  if (!get('p-nome')) return;
+  const secoes = {
+    venoso_d: { ativo: document.getElementById('chk-venoso').checked, texto: get('txt-venoso-d') },
+    venoso_e: { ativo: document.getElementById('chk-venoso').checked, texto: get('txt-venoso-e') },
+    arterial:   { ativo: document.getElementById('chk-arterial').checked,   texto: get('txt-arterial') },
+    carotidas:  { ativo: document.getElementById('chk-carotidas').checked,  texto: get('txt-carotidas') },
+    aorta:      { ativo: document.getElementById('chk-aorta').checked,      texto: get('txt-aorta') },
+    cava:       { ativo: document.getElementById('chk-cava').checked,       texto: get('txt-cava') },
+    superiores: { ativo: document.getElementById('chk-superiores').checked, texto: get('txt-superiores') },
+  };
+  const payload = {
+    secoes,
+    medico_nome: (editingLaudoMedico?.nome || currentDoctor?.nome || ''),
+    medico_crm:  (editingLaudoMedico?.crm  || currentDoctor?.crm  || ''),
+    status: 'pendente', // keep as pendente during autosave, only concluido on manual save
+  };
+  const { error } = await supa.from('laudos').update(payload).eq('id', editingLaudoId);
+  if (!error) {
+    // Show subtle indicator
+    const ind = document.getElementById('autosave-ind');
+    if (ind) { ind.textContent = '✓ Rascunho salvo ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); ind.style.opacity='1'; setTimeout(()=>{ ind.style.opacity='0'; },3000); }
+  }
+}
+
+function scheduleAutosave() {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(autosaveLaudo, 8000); // 8s after last keystroke
 }
 
 // ── LOAD SAVED ──
@@ -1163,7 +1242,18 @@ async function loadLaudo(id) {
   if(s.venoso_d) document.getElementById('txt-venoso-d').value=s.venoso_d.texto||'';
   if(s.venoso_e) document.getElementById('txt-venoso-e').value=s.venoso_e.texto||'';
   ['arterial','carotidas','aorta','cava','superiores'].forEach(k => {
-    if(s[k]) { document.getElementById('chk-'+k).checked=s[k].ativo; document.getElementById('txt-'+k).value=s[k].texto||''; document.getElementById('lb-'+k).classList.toggle('on',s[k].ativo); }
+    const chk = document.getElementById('chk-'+k);
+    const lbl = document.getElementById('lb-'+k);
+    const txt = document.getElementById('txt-'+k);
+    if (s[k] !== undefined) {
+      if(chk) chk.checked=s[k].ativo;
+      if(txt) txt.value=s[k].texto||'';
+      if(lbl) lbl.classList.toggle('on',s[k].ativo);
+    } else {
+      // Not in secoes = not selected by secretary, disable
+      if(chk) { chk.checked=false; }
+      if(lbl) lbl.classList.remove('on');
+    }
   });
   const vOn = s.venoso_d?.ativo||false;
   document.getElementById('chk-venoso').checked=vOn;
@@ -1171,6 +1261,11 @@ async function loadLaudo(id) {
   images=(data.imagens||[]).map(i=>({id:Math.random(),src:i.src,name:i.name}));
   renderImages();
   editingLaudoId=id;
+  // Store the responsible doctor from the laudo (not currentDoctor)
+  editingLaudoMedico = {
+    nome: data.medico_responsavel_nome || data.medico_nome || currentDoctor?.nome || '',
+    crm:  data.medico_responsavel_crm  || data.medico_crm  || currentDoctor?.crm  || ''
+  };
   showTab('novo',document.querySelectorAll('.tab')[0]);
   toast('Laudo carregado!','inf');
 }
@@ -1353,8 +1448,7 @@ async function savePatient() {
   if (cpf.length!==11) { showErr(err,'CPF deve ter 11 dígitos.'); return; }
   if (!email) { showErr(err,'Informe o email para recuperação de senha.'); return; }
   // Check limit
-  const { data: existing } = await supa.from('pacientes').select('id');
-  if (existing && existing.length >= 5) { showErr(err,'Limite de 5 pacientes atingido.'); return; }
+  // Sem limite de pacientes
   loading(true,'Cadastrando...');
   // Use CPF as username (email format: cpf@ctdmi.pac) and CPF as password
   const fakeEmail = cpf + '@ctdmi.pac';
@@ -1487,9 +1581,21 @@ async function savePendente() {
     medico_responsavel_id: document.getElementById('sec-medico-id')?.value || null,
     medico_responsavel_nome: document.getElementById('sec-medico-nome')?.value || '',
     criado_por:     'secretaria',
-    secoes:         {},
-    imagens:        secImages.map(i=>({src:i.src,name:i.name})),
+    secoes:         (() => {
+      const s = {};
+      document.querySelectorAll('.sec-exame-chk').forEach(chk => {
+        s[chk.value] = { ativo: chk.checked, texto: '' };
+        if (chk.value === 'venoso') {
+          s['venoso_d'] = { ativo: chk.checked, texto: '' };
+          s['venoso_e'] = { ativo: chk.checked, texto: '' };
+        }
+      });
+      return s;
+    })(),
+    imagens:        [],
   };
+  loading(true,'Enviando imagens...');
+  payload.imagens = await processImagesForStorage(secImages.map(i=>({src:i.src,name:i.name||'',id:i.id})));
   loading(true,'Salvando na fila...');
   const { error } = await supa.from('laudos').insert(payload);
   loading(false);
@@ -1503,6 +1609,8 @@ function resetSecForm() {
   ['sec-nome','sec-nasc','sec-convenio','sec-solicitante'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('sec-idade').value='';
   document.getElementById('sec-data').value=todayISO();
+  // Reset exam checkboxes to default (only venoso checked)
+  document.querySelectorAll('.sec-exame-chk').forEach(chk => { chk.checked = chk.value === 'venoso'; });
   secImages=[]; renderSecImages();
 }
 
@@ -1716,6 +1824,19 @@ async function openPendente(id) {
     </div>
 
     <div class="card">
+      <div class="card-hdr"><div class="card-ico">🔬</div><div class="card-title">Tipos de Exame a Realizar</div></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:4px">
+        <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="venoso" id="sec-chk-venoso" checked> 🩸 Eco Doppler Venoso MMII</label>
+        <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="arterial" id="sec-chk-arterial"> 🔴 Eco Doppler Arterial MMII</label>
+        <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="carotidas" id="sec-chk-carotidas"> 🧠 Eco Doppler Carótidas/Vertebrais</label>
+        <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="aorta" id="sec-chk-aorta"> 🔵 Eco Doppler Aorta Abdominal</label>
+        <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="cava" id="sec-chk-cava"> 🔷 Eco Doppler Veia Cava</label>
+        <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="superiores" id="sec-chk-superiores"> 💪 Eco Doppler MMSS</label>
+      </div>
+      <div class="tip" style="margin-top:10px;font-size:12px">💡 Selecione os exames que o médico deverá preencher neste laudo.</div>
+    </div>
+
+    <div class="card">
       <div class="card-hdr"><div class="card-ico">🖼️</div><div class="card-title">Imagens do Exame (opcional)</div></div>
       <div class="drop-zone" id="dz-sec" onclick="document.getElementById('fi-sec').click()" ondrop="onDropSec(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)">
         <div class="dz-icon">📁</div>
@@ -1747,8 +1868,8 @@ async function openPendente(id) {
       <button class="btn btn-green" style="margin-top:12px" onclick="openModal('modal-doctor')">+ Cadastrar Médico / Secretaria</button>
     </div>
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">👤</div><div class="card-title">Pacientes com Acesso (máx. 5)</div></div>
-      <div class="tip">Pacientes conseguem fazer login e visualizar seus laudos. Máximo 5 acessos simultâneos.</div>
+      <div class="card-hdr"><div class="card-ico">👤</div><div class="card-title">Pacientes com Acesso</div></div>
+      <div class="tip">Pacientes conseguem fazer login e visualizar seus laudos. Pacientes podem fazer login e visualizar seus laudos.</div>
       <div id="admin-sec-patients" style="margin-top:12px"></div>
       <button class="btn btn-green" style="margin-top:12px" onclick="openModal('modal-patient')">+ Cadastrar Paciente</button>
     </div>
