@@ -1179,6 +1179,130 @@ async function saveLaudo() {
   loadSaved();
 }
 
+// Default texts for each section — used when creating new laudo or if DB has empty text
+const TEXTOS_PADRAO = {
+  'venoso-d': `PERVIEDADE:
+
+Veias do sistema superficial e profundo encontram-se pérvias, calibres normais, compressíveis, sem trombos visíveis ao mapeamento a cores, com fluxos fásicos com a respiração, sendo suas paredes lisas sem irregularidades parietais.
+
+COMPETÊNCIA:
+
+Veia Femoral Comum, Femoral Superficial, Poplítea, Tibiais Anteriores, Tibiais Posteriores, Fibulares, Gastrocnêmias e Soleares não demonstram refluxos ao Doppler espectral, com manobras provocativas.
+
+Veia Safena Magna apresenta calibre normal, sem tortuosidades e ou refluxos significativos, detectáveis ao Doppler espectral, com manobras provocativas.
+
+Veia Safena Parva apresenta calibre normal, sem tortuosidades e ou refluxos significativos, detectáveis ao Doppler espectral, com manobras provocativas.
+
+Não foram visualizadas veias perfurantes incompetentes.
+
+Há varicosidades conforme ectoscopia. Telangiectasias e varizes reticulares subcutâneas, visualizadas veias extra-faciais insuficientes na face anterior e lateral e posterior da coxa e perna.`,
+  'venoso-e': `PERVIEDADE:
+
+Veias do sistema superficial e profundo encontram-se pérvias, calibres normais, compressíveis, sem trombos visíveis ao mapeamento a cores, com fluxos fásicos com a respiração, sendo suas paredes lisas sem irregularidades parietais.
+
+COMPETÊNCIA:
+
+Veia Femoral Comum, Femoral Superficial, Poplítea, Tibiais Anteriores, Tibiais Posteriores, Fibulares, Gastrocnêmias e Soleares não demonstram refluxos ao Doppler espectral, com manobras provocativas.
+
+Veia Safena Magna apresenta calibre normal, sem tortuosidades e ou refluxos significativos, detectáveis ao Doppler espectral, com manobras provocativas.
+
+Veia Safena Parva apresenta calibre normal, sem tortuosidades e ou refluxos significativos, detectáveis ao Doppler espectral, com manobras provocativas.
+
+Não foram visualizadas veias perfurantes incompetentes.
+
+Há varicosidades conforme ectoscopia. Telangiectasias e varizes reticulares subcutâneas, visualizadas veias extra-faciais insuficientes na face anterior e lateral e posterior da coxa e perna.`,
+  'arterial': `O exame com Doppler espectral e colorido revela:
+
+MEMBRO INFERIOR DIREITO
+
+Artérias tronculares do membro inferior direito apresentam calibres e pulsatilidades normais.
+
+Artérias femorais (comum, superficial, profunda), poplítea, tibial posterior, fibular e tibial anterior estão com espessamento médio-intimal, compatível com a faixa etária, sem lesões obstrutivas.
+
+Ao Doppler detectamos fluxos trifásicos com velocidades normais.
+
+MEMBRO INFERIOR ESQUERDO
+
+Artérias tronculares do membro inferior esquerdo apresentam calibres e pulsatilidades normais.
+
+Artérias femorais (comum, superficial, profunda), poplítea, tibial posterior, fibular e tibial anterior estão com espessamento médio-intimal, compatível com a faixa etária, sem lesões obstrutivas.
+
+Ao Doppler detectamos fluxos trifásicos com velocidades normais.
+
+IMPRESSÃO:
+
+Não foi evidenciado redução no deságue arterial dos membros inferiores.`,
+  'carotidas': `O exame com mapeamento a cores e espectral, revela:
+
+Artérias carótidas e vertebrais apresentam calibres e pulsatilidades normais, sem tortuosidades destes vasos.
+
+Leve espessamento médio-intimal, sendo observado pequenas placas ateromatosas em ambos os bulbos carotídeos que causam estenoses inferiores a 10% à direita e entre 20% e 30% à esquerda, sem causar repercussão hemodinâmica.
+
+Ao Doppler, foram detectados fluxos ascendentes e laminares, com morfologia e velocidades características.
+
+IMPRESSÃO:
+
+Ausências de lesões hemodinamicamente significativas.`,
+  'aorta': `O exame com Doppler espectral e colorido, revela:
+
+Aorta abdominal e artérias ilíacas estão com calibres e pulsatilidades normais. Espessamento da camada médio intimal compatível com a faixa etária, sem lesões obstrutivas.
+
+Ao Doppler detectamos fluxos com velocidades e morfologia característica.
+
+IMPRESSÃO:
+
+Ausência de lesões hemodinamicamente significativas.`,
+  'cava': `Veia Cava apresenta calibres e pulsatilidades normais, sem tortuosidades e ausência de dilatações.
+
+Veia Ilíacas apresenta calibres e pulsatilidades normais, sem tortuosidades e ausência de dilatações. Ao Doppler, foram detectados fluxos ascendentes e laminares, com morfologia e velocidades características.
+
+IMPRESSÃO:
+
+Ausência de placas ateromatosas, sem alterações importantes de fluxo ao Doppler em cores. Exame dentro dos padrões de normalidade.`,
+  'superiores': `Veias do sistema venoso dos membros superiores superficial e profundo encontram-se pérvias, calibres normais, compressíveis, sem trombos visíveis ao mapeamento a cores.
+
+Artérias axilar, braquial, radial e ulnar pérvias, com calibres e pulsatilidades normais. Espessamento da camada médio intimal compatível com a faixa etária, sem lesões obstrutivas.
+
+Ao Doppler detectamos fluxos trifásicos com velocidades normais em todos os segmentos avaliados.
+
+IMPRESSÃO:
+
+Não foi evidenciado redução no deságue arterial dos membros superiores.`,
+  'ecoca': `ECOCARDIOGRAMA TRANSTORÁCICO COM DOPPLER
+
+Exame realizado em decúbito lateral esquerdo com transdutor de 2,5 MHz.
+
+DIMENSÕES DAS CÂMARAS:
+Átrio esquerdo: ___ mm (VR: até 40 mm)
+Ventrículo esquerdo diástole: ___ mm (VR: até 55 mm)
+Ventrículo esquerdo sístole: ___ mm
+Septo interventricular: ___ mm (VR: até 11 mm)
+Parede posterior: ___ mm (VR: até 11 mm)
+Ventrículo direito: ___ mm (VR: até 26 mm)
+Aorta: ___ mm (VR: até 37 mm)
+
+FUNÇÃO SISTÓLICA:
+Fração de ejeção (Teicholz): ___%
+Fração de encurtamento: ___%
+Função sistólica do ventrículo esquerdo preservada / reduzida.
+
+FUNÇÃO DIASTÓLICA:
+Padrão de enchimento mitral compatível com função diastólica normal / disfunção grau I.
+Relação E/A: ___
+
+VÁLVULAS:
+Valva mitral: morfologia e mobilidade normais. Sem insuficiência/estenose significativa.
+Valva aórtica: trivalvulada, com abertura normal. Sem insuficiência/estenose significativa.
+Valva tricúspide: morfologia normal. Refluxo tricúspide fisiológico.
+Valva pulmonar: morfologia normal.
+
+PERICÁRDIO: Sem derrame pericárdico.
+
+IMPRESSÃO:
+
+Ecocardiograma dentro dos limites da normalidade.`,
+};
+
 // ── AUTOSAVE ──
 let autosaveTimer = null;
 let autosaveToastShown = false;
@@ -1280,15 +1404,15 @@ async function loadLaudo(id) {
   document.getElementById('p-convenio').value = data.convenio||'';
   document.getElementById('p-solicitante').value = data.solicitante||'';
   const s=data.secoes||{};
-  if(s.venoso_d) document.getElementById('txt-venoso-d').value = s.venoso_d.texto || document.getElementById('txt-venoso-d').defaultValue;
-  if(s.venoso_e) document.getElementById('txt-venoso-e').value = s.venoso_e.texto || document.getElementById('txt-venoso-e').defaultValue;
+  if(s.venoso_d) document.getElementById('txt-venoso-d').value = s.venoso_d.texto || TEXTOS_PADRAO['venoso-d'] || '';
+  if(s.venoso_e) document.getElementById('txt-venoso-e').value = s.venoso_e.texto || TEXTOS_PADRAO['venoso-e'] || '';
   ['arterial','carotidas','aorta','cava','superiores','ecoca'].forEach(k => {
     const chk = document.getElementById('chk-'+k);
     const lbl = document.getElementById('lb-'+k);
     const txt = document.getElementById('txt-'+k);
     if (s[k] !== undefined) {
       if(chk) chk.checked=s[k].ativo;
-      if(txt) txt.value = s[k].texto || txt.defaultValue || '';
+      if(txt) txt.value = s[k].texto || TEXTOS_PADRAO[k] || '';
       if(lbl) lbl.classList.toggle('on',s[k].ativo);
     } else {
       // Not in secoes = not selected by secretary, disable
