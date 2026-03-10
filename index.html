@@ -506,12 +506,20 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
     </div>
   </header>
   <nav>
-    <div class="tab active" onclick="showTab('novo',this)">✏️ Novo Laudo</div>
+    <div class="tab active" onclick="showTab('inicio',this)">🏠 Início</div>
+    <div class="tab" onclick="showTab('novo',this)">✏️ Novo Laudo</div>
     <div class="tab" onclick="showTab('pendentes',this)">⏳ Pendentes <span class="tab-badge" id="pending-count" style="background:#d97706">0</span></div>
     <div class="tab" onclick="showTab('salvos',this)">📁 Concluídos <span class="tab-badge" id="saved-count">0</span></div>
     <div class="tab" onclick="showTab('lixeira',this)">🗑️ Lixeira <span class="tab-badge" id="lixeira-count" style="background:#9ca3af;display:none">0</span></div>
     <div class="tab" id="tab-admin-btn" onclick="showTab('admin',this)" style="display:none">⚙️ Administração</div>
   </nav>
+
+  <!-- TAB INÍCIO -->
+  <div id="tab-inicio" class="app-main">
+    <div id="dashboard-content">
+      <div class="empty"><div class="ei">⏳</div><p>Carregando...</p></div>
+    </div>
+  </div>
 
   <!-- TAB NOVO -->
   <div id="tab-novo" class="app-main">
@@ -939,7 +947,7 @@ async function afterLogin() {
     loadSaved();
     updateLixeiraBadge();
     // Periodic autosave every 30s
-    setInterval(autosaveLaudo, 30000);
+    setInterval(autosaveLaudo, 10000);
     return;
   }
   // Check if patient
@@ -1116,7 +1124,7 @@ function calcIdade() {
 }
 
 function showTab(name, el) {
-  ['novo','pendentes','salvos','lixeira','admin'].forEach(t => { const e=document.getElementById('tab-'+t); if(e) e.style.display='none'; });
+  ['inicio','novo','pendentes','salvos','lixeira','admin'].forEach(t => { const e=document.getElementById('tab-'+t); if(e) e.style.display='none'; });
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   const tab = document.getElementById('tab-'+name);
   if (tab) tab.style.display='block';
@@ -1199,25 +1207,20 @@ async function saveLaudo() {
     editingLaudoId = result.data?.[0]?.id;
   }
   
-  toast('Laudo salvo com sucesso! ✓','ok');
-  
-  // Update save button to show saved state
-  const saveBtn = document.getElementById('btn-salvar-laudo');
-  if (saveBtn) {
-    saveBtn.textContent = '✅ Laudo Salvo';
-    saveBtn.style.background = '#166534';
-    setTimeout(() => {
-      saveBtn.textContent = '💾 Salvar Laudo';
-      saveBtn.style.background = '';
-    }, 3000);
-  }
-  
-  // Update autosave indicator
-  const ind = document.getElementById('autosave-ind');
-  if (ind) { ind.textContent = '✅ Concluído e salvo'; ind.style.opacity='1'; setTimeout(()=>{ ind.style.opacity='0'; },5000); }
+  // Mark as concluded so autosave never reverts it
+  laudoConcluido = true;
+  clearTimeout(autosaveTimer);
+  autosaveTimer = null;
 
+  toast('Laudo salvo com sucesso! ✓','ok');
   loadSaved();
   loadPending();
+  updateLixeiraBadge();
+
+  // Go to dashboard so doctor doesn't accidentally edit again
+  setTimeout(() => {
+    showTab('inicio', document.querySelector('#screen-app nav .tab'));
+  }, 400);
 }
 
 // Default texts for each section — used when creating new laudo or if DB has empty text
@@ -1365,9 +1368,11 @@ async function retornarPendente() {
 // ── AUTOSAVE ──
 let autosaveTimer = null;
 let autosaveToastShown = false;
+let laudoConcluido = false; // prevents autosave from reverting status to pendente
 
 async function autosaveLaudo() {
-  if (!editingLaudoId) return; // only autosave existing laudos
+  if (!editingLaudoId) return;
+  if (laudoConcluido) return; // never overwrite a concluded laudo with pendente
   if (!get('p-nome')) return;
   const secoes = {
     venoso_d: { ativo: document.getElementById('chk-venoso').checked, texto: get('txt-venoso-d') },
@@ -1395,7 +1400,7 @@ async function autosaveLaudo() {
 
 function scheduleAutosave() {
   clearTimeout(autosaveTimer);
-  autosaveTimer = setTimeout(autosaveLaudo, 8000); // 8s after last keystroke
+  autosaveTimer = setTimeout(autosaveLaudo, 1500); // 1.5s after last keystroke
 }
 
 // ── LOAD SAVED ──
@@ -1492,10 +1497,10 @@ async function loadLaudo(id) {
   };
   showTab('novo',document.querySelectorAll('.tab')[0]);
   
-  // Show "Retornar aos Pendentes" button only for concluded laudos
+  // Track concluded status so autosave never reverts it
+  laudoConcluido = (data.status === 'concluido');
   const retBtn = document.getElementById('btn-retornar-pendente');
-  if (retBtn) retBtn.style.display = (data.status === 'concluido') ? 'flex' : 'none';
-  
+  if (retBtn) retBtn.style.display = laudoConcluido ? 'flex' : 'none';
   toast('Laudo carregado!','inf');
 }
 
@@ -1628,6 +1633,117 @@ async function loadPatientLaudos() {
         <button class="btn btn-green" style="padding:7px 12px;font-size:12px" onclick="printById('${l.id}')">🖨️ Imprimir / PDF</button>
       </div>
     </div>`).join('');
+}
+
+// ── DASHBOARD ──
+async function loadInicio() {
+  const cont = document.getElementById('dashboard-content');
+  if (!cont) return;
+
+  const now = new Date();
+  const todayISO_ = now.toISOString().slice(0,10);
+  const nomeMedico = currentDoctor?.nome || '';
+  const hora = now.getHours();
+  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+
+  // Load stats in parallel
+  const [pendRes, hojRes, mesRes, totalRes] = await Promise.all([
+    supa.from('laudos').select('id,paciente_nome,data_exame,medico_responsavel_id', {count:'exact'})
+      .eq('status','pendente').is('deleted_at',null),
+    supa.from('laudos').select('id', {count:'exact',head:true})
+      .eq('status','concluido').eq('data_exame', todayISO_).is('deleted_at',null),
+    supa.from('laudos').select('id', {count:'exact',head:true})
+      .eq('status','concluido').gte('data_exame', todayISO_.slice(0,7)+'-01').is('deleted_at',null),
+    supa.from('laudos').select('id', {count:'exact',head:true})
+      .eq('status','concluido').is('deleted_at',null),
+  ]);
+
+  // Filter pending for this doctor (or all if admin)
+  const allPending = pendRes.data || [];
+  const myPending = currentDoctor?.papel === 'admin'
+    ? allPending
+    : allPending.filter(l => l.medico_responsavel_id === currentDoctor?.id);
+
+  const statPend  = myPending.length;
+  const statHoje  = hojRes.count || 0;
+  const statMes   = mesRes.count || 0;
+  const statTotal = totalRes.count || 0;
+
+  const pendList = myPending.slice(0,5).map(l => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:12px">
+      <div>
+        <div style="font-weight:700;font-size:13px;color:var(--text)">${l.paciente_nome}</div>
+        <div style="font-size:11px;color:var(--text-muted)">📅 ${l.data_exame ? fmtDate(l.data_exame) : 'Sem data'}</div>
+      </div>
+      <button class="btn btn-green" style="padding:6px 14px;font-size:12px;flex-shrink:0" onclick="openPendente('${l.id}')">▶ Laudar</button>
+    </div>`).join('');
+
+  const emptyPend = `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">🎉 Nenhum laudo pendente!</div>`;
+
+  cont.innerHTML = `
+    <div style="padding:4px 0 20px">
+      <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:2px">${saudacao}, Dr. ${nomeMedico.split(' ')[0]}!</div>
+      <div style="font-size:13px;color:var(--text-muted)">${now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:24px">
+      <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#d97706">${statPend}</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Pendentes</div>
+      </div>
+      <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:var(--green)">${statHoje}</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Hoje</div>
+      </div>
+      <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#2563eb">${statMes}</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Este mês</div>
+      </div>
+      <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#7c3aed">${statTotal}</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Total</div>
+      </div>
+    </div>
+
+    <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1.5px solid var(--border)">
+        <div style="font-weight:800;font-size:14px">⏳ Próximos pendentes</div>
+        ${statPend > 5 ? `<span style="font-size:12px;color:var(--text-muted)">${statPend - 5} mais na fila</span>` : ''}
+      </div>
+      ${statPend ? pendList : emptyPend}
+      ${statPend ? `<div style="padding:10px 14px"><button class="btn btn-outline" style="width:100%;font-size:13px" onclick="showTab('pendentes',document.querySelectorAll('#screen-app nav .tab')[2])">Ver todos os pendentes →</button></div>` : ''}
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-green btn-big" style="flex:1;min-width:160px" onclick="novoLaudoDireto()">✏️ Novo Laudo</button>
+      <button class="btn btn-outline btn-big" style="flex:1;min-width:160px" onclick="showTab('salvos',document.querySelectorAll('#screen-app nav .tab')[3])">📁 Concluídos</button>
+    </div>`;
+}
+
+function novoLaudoDireto() {
+  laudoConcluido = false;
+  editingLaudoId = null;
+  editingLaudoMedico = null;
+  clearTimeout(autosaveTimer);
+  // Reset form fields
+  ['p-nome','p-nasc','p-convenio','p-solicitante'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('p-idade').value='';
+  document.getElementById('p-data').value = todayISO();
+  ['venoso','arterial','carotidas'].forEach(k => { document.getElementById('chk-'+k).checked=true; document.getElementById('lb-'+k).classList.add('on'); });
+  ['aorta','cava','superiores','ecoca'].forEach(k => { document.getElementById('chk-'+k).checked=false; document.getElementById('lb-'+k).classList.remove('on'); });
+  // Reset textareas to defaults
+  document.getElementById('txt-venoso-d').value = TEXTOS_PADRAO['venoso-d'];
+  document.getElementById('txt-venoso-e').value = TEXTOS_PADRAO['venoso-e'];
+  ['arterial','carotidas','aorta','cava','superiores','ecoca'].forEach(k => {
+    const txt = document.getElementById('txt-'+k);
+    if (txt) txt.value = TEXTOS_PADRAO[k] || '';
+  });
+  images = []; renderImages();
+  const retBtn = document.getElementById('btn-retornar-pendente');
+  if (retBtn) retBtn.style.display = 'none';
+  const ind = document.getElementById('autosave-ind');
+  if (ind) { ind.textContent = ''; ind.style.opacity = '0'; }
+  showTab('novo', document.querySelectorAll('#screen-app nav .tab')[1]);
 }
 
 // ── LIXEIRA ──
@@ -2093,12 +2209,12 @@ async function loadPending() {
 }
 
 async function openPendente(id) {
+  laudoConcluido = false;
   await loadLaudo(id);
   editingLaudoId = id;
-  // Hide retornar button for pending laudos
   const retBtn = document.getElementById('btn-retornar-pendente');
   if (retBtn) retBtn.style.display = 'none';
-  showTab('novo', document.querySelectorAll('#screen-app .tab')[0]);
+  showTab('novo', document.querySelectorAll('#screen-app .tab')[1]); // tab[1] = Novo Laudo
 }
 
 </script>
