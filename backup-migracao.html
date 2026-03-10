@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C.T.D.M.I. — Backup & Migração</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg: #0a0f1a; --panel: #111827; --panel2: #1a2235;
+  --border: #1e2d47; --border2: #263550;
+  --text: #e2e8f0; --muted: #64748b; --dim: #3d5070;
+  --green: #10b981; --green-dim: rgba(16,185,129,0.1);
+  --blue: #3b82f6; --blue-dim: rgba(59,130,246,0.1);
+  --amber: #f59e0b; --amber-dim: rgba(245,158,11,0.1);
+  --red: #ef4444; --red-dim: rgba(239,68,68,0.1);
+  --cyan: #06b6d4;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family: 'Lato', sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+/* ── HEADER ── */
+header {
+  background: linear-gradient(90deg, #0f172a 0%, #0d1f3c 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 18px 32px; display:flex; align-items:center; gap:16px;
+}
+.hdr-icon { font-size:28px; }
+.hdr-title { font-size:18px; font-weight:900; letter-spacing:.5px; }
+.hdr-sub { font-size:11px; color:var(--muted); margin-top:2px; font-family:'JetBrains Mono',monospace; }
+.hdr-badge {
+  margin-left:auto; background:var(--amber-dim); border:1px solid var(--amber);
+  color:var(--amber); padding:4px 12px; border-radius:20px; font-size:11px; font-weight:700;
+}
+
+/* ── LAYOUT ── */
+.layout { display:grid; grid-template-columns:280px 1fr; min-height:calc(100vh - 61px); }
+.sidebar { background:var(--panel); border-right:1px solid var(--border); padding:24px 16px; }
+.main { padding:28px 32px; max-width:900px; }
+
+/* ── SIDEBAR ── */
+.sidebar-section { margin-bottom:24px; }
+.sidebar-label { font-size:10px; font-weight:700; color:var(--dim); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:10px; padding:0 8px; }
+.nav-item {
+  display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px;
+  cursor:pointer; transition:all .15s; color:var(--muted); font-size:13px; font-weight:700;
+}
+.nav-item:hover { background:var(--panel2); color:var(--text); }
+.nav-item.active { background:var(--blue-dim); color:var(--blue); border:1px solid rgba(59,130,246,0.2); }
+.nav-item .ni-icon { font-size:16px; width:20px; text-align:center; }
+.nav-item .ni-badge {
+  margin-left:auto; background:var(--red); color:#fff;
+  padding:2px 7px; border-radius:10px; font-size:10px; font-weight:900;
+}
+
+/* ── STAT CARDS ── */
+.stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:28px; }
+.stat-card {
+  background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px;
+  position:relative; overflow:hidden;
+}
+.stat-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+}
+.stat-card.green::before { background:var(--green); }
+.stat-card.blue::before  { background:var(--blue); }
+.stat-card.amber::before { background:var(--amber); }
+.stat-card.red::before   { background:var(--red); }
+.stat-num { font-size:30px; font-weight:900; font-family:'JetBrains Mono',monospace; }
+.stat-card.green .stat-num { color:var(--green); }
+.stat-card.blue  .stat-num { color:var(--blue); }
+.stat-card.amber .stat-num { color:var(--amber); }
+.stat-card.red   .stat-num { color:var(--red); }
+.stat-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-top:4px; }
+
+/* ── SECTION HEADER ── */
+.section-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.section-title { font-size:16px; font-weight:900; }
+.section-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+
+/* ── CARDS ── */
+.card {
+  background:var(--panel); border:1px solid var(--border); border-radius:12px;
+  margin-bottom:16px; overflow:hidden;
+}
+.card-body { padding:20px; }
+.card-footer { padding:14px 20px; background:var(--panel2); border-top:1px solid var(--border); display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+/* ── PROGRESS ── */
+.progress-wrap { background:var(--border); border-radius:99px; height:8px; overflow:hidden; margin:12px 0; }
+.progress-bar { height:100%; border-radius:99px; transition:width .4s ease; background:var(--green); }
+
+/* ── TERMINAL LOG ── */
+.log-box {
+  background:#060c14; border:1px solid var(--border); border-radius:10px;
+  padding:14px; font-family:'JetBrains Mono',monospace; font-size:11px;
+  max-height:220px; overflow-y:auto; line-height:1.8;
+}
+.log-ok    { color:var(--green); }
+.log-info  { color:var(--cyan); }
+.log-warn  { color:var(--amber); }
+.log-err   { color:var(--red); }
+.log-dim   { color:var(--dim); }
+
+/* ── BUTTONS ── */
+.btn {
+  padding:10px 20px; border-radius:8px; border:none; font-family:'Lato',sans-serif;
+  font-size:13px; font-weight:700; cursor:pointer; transition:all .15s;
+  display:inline-flex; align-items:center; gap:8px;
+}
+.btn:disabled { opacity:.4; cursor:not-allowed; }
+.btn-green  { background:var(--green); color:#fff; }
+.btn-green:hover:not(:disabled)  { background:#0d9669; }
+.btn-blue   { background:var(--blue); color:#fff; }
+.btn-blue:hover:not(:disabled)   { background:#2563eb; }
+.btn-amber  { background:var(--amber); color:#000; }
+.btn-amber:hover:not(:disabled)  { background:#d97706; }
+.btn-red    { background:var(--red); color:#fff; }
+.btn-red:hover:not(:disabled)    { background:#dc2626; }
+.btn-ghost  { background:transparent; color:var(--muted); border:1px solid var(--border2); }
+.btn-ghost:hover:not(:disabled)  { background:var(--panel2); color:var(--text); }
+.btn-lg { padding:13px 28px; font-size:14px; border-radius:10px; }
+
+/* ── TABS ── */
+.tabs { display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:24px; }
+.tab { padding:10px 18px; font-size:13px; font-weight:700; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; transition:all .15s; }
+.tab.active { color:var(--blue); border-bottom-color:var(--blue); }
+.tab-pane { display:none; }
+.tab-pane.active { display:block; }
+
+/* ── BADGE ── */
+.badge { padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:4px; }
+.badge-green { background:var(--green-dim); color:var(--green); border:1px solid rgba(16,185,129,0.2); }
+.badge-amber { background:var(--amber-dim); color:var(--amber); border:1px solid rgba(245,158,11,0.2); }
+.badge-red   { background:var(--red-dim);   color:var(--red);   border:1px solid rgba(239,68,68,0.2); }
+.badge-blue  { background:var(--blue-dim);  color:var(--blue);  border:1px solid rgba(59,130,246,0.2); }
+
+/* ── TABLE ── */
+.tbl { width:100%; border-collapse:collapse; font-size:12px; }
+.tbl th { text-align:left; padding:8px 12px; color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.5px; border-bottom:1px solid var(--border); }
+.tbl td { padding:9px 12px; border-bottom:1px solid var(--border); }
+.tbl tr:last-child td { border-bottom:none; }
+.tbl tr:hover td { background:var(--panel2); }
+
+/* ── DRIVE CONNECT ── */
+.drive-box {
+  border:2px dashed var(--border2); border-radius:12px; padding:28px; text-align:center;
+  transition:all .2s;
+}
+.drive-box.connected { border-color:var(--green); border-style:solid; background:var(--green-dim); }
+.drive-icon { font-size:44px; margin-bottom:12px; }
+.drive-title { font-size:15px; font-weight:800; margin-bottom:6px; }
+.drive-sub { font-size:12px; color:var(--muted); line-height:1.6; }
+
+/* ── INPUT ── */
+.field-label { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; }
+.field-input {
+  width:100%; background:var(--panel2); border:1px solid var(--border2); border-radius:8px;
+  color:var(--text); font-family:'Lato',sans-serif; font-size:13px; padding:10px 14px;
+  outline:none; transition:border-color .2s;
+}
+.field-input:focus { border-color:var(--blue); }
+
+/* ── NOTICE ── */
+.notice { border-radius:10px; padding:12px 16px; font-size:12px; line-height:1.6; display:flex; gap:10px; align-items:flex-start; }
+.notice-amber { background:var(--amber-dim); border:1px solid rgba(245,158,11,0.25); color:var(--amber); }
+.notice-green { background:var(--green-dim); border:1px solid rgba(16,185,129,0.25); color:var(--green); }
+.notice-blue  { background:var(--blue-dim);  border:1px solid rgba(59,130,246,0.25); color:var(--blue); }
+.notice-icon { font-size:16px; flex-shrink:0; margin-top:1px; }
+
+@media (max-width:768px) {
+  .layout { grid-template-columns:1fr; }
+  .sidebar { display:none; }
+  .main { padding:20px 16px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-icon">🛡️</div>
+  <div>
+    <div class="hdr-title">C.T.D.M.I. — Backup & Migração</div>
+    <div class="hdr-sub">Ferramenta administrativa de dados</div>
+  </div>
+  <div class="hdr-badge">⚠️ ADMIN ONLY</div>
+</header>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Navegação</div>
+      <div class="nav-item active" onclick="showTab('tab-status',this)">
+        <span class="ni-icon">📊</span> Status do Banco
+      </div>
+      <div class="nav-item" onclick="showTab('tab-migrar',this)">
+        <span class="ni-icon">🔄</span> Migrar Imagens
+        <span class="ni-badge" id="badge-base64">0</span>
+      </div>
+      <div class="nav-item" onclick="showTab('tab-backup',this)">
+        <span class="ni-icon">💾</span> Backup Completo
+      </div>
+      <div class="nav-item" onclick="showTab('tab-drive',this)">
+        <span class="ni-icon">📁</span> Google Drive
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Info</div>
+      <div style="padding:0 8px;font-size:11px;color:var(--muted);line-height:1.8">
+        <div>Bucket: <span style="color:var(--cyan);font-family:monospace">laudo-imagens</span></div>
+        <div>Projeto: <span style="color:var(--cyan);font-family:monospace">ncrsgnl...</span></div>
+        <div id="sidebar-conn" style="margin-top:8px">Conectando...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- TAB: STATUS -->
+    <div class="tab-pane active" id="tab-status">
+      <div class="section-hdr">
+        <div>
+          <div class="section-title">📊 Status do Banco de Dados</div>
+          <div class="section-sub">Visão geral dos dados armazenados</div>
+        </div>
+        <button class="btn btn-ghost" onclick="loadStatus()">↻ Atualizar</button>
+      </div>
+
+      <div class="stats-row" id="stats-row">
+        <div class="stat-card blue"><div class="stat-num" id="stat-laudos">—</div><div class="stat-label">Total de Laudos</div></div>
+        <div class="stat-card amber"><div class="stat-num" id="stat-base64">—</div><div class="stat-label">Imagens Base64</div></div>
+        <div class="stat-card green"><div class="stat-num" id="stat-storage">—</div><div class="stat-label">No Storage</div></div>
+        <div class="stat-card red"><div class="stat-num" id="stat-semimg">—</div><div class="stat-label">Sem Imagem</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <div style="font-weight:800;margin-bottom:14px;font-size:14px">🗄️ Últimos laudos com imagens</div>
+          <div id="laudos-preview"><div style="color:var(--muted);font-size:13px">Carregando...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: MIGRAR -->
+    <div class="tab-pane" id="tab-migrar">
+      <div class="section-hdr">
+        <div>
+          <div class="section-title">🔄 Migrar Imagens para Storage</div>
+          <div class="section-sub">Move imagens base64 do banco para o Supabase Storage</div>
+        </div>
+      </div>
+
+      <div class="notice notice-amber" style="margin-bottom:20px">
+        <div class="notice-icon">⚠️</div>
+        <div>Esta operação é <strong>irreversível</strong>. As imagens serão movidas para o bucket <code style="background:rgba(0,0,0,0.3);padding:1px 6px;border-radius:4px">laudo-imagens</code> e os laudos serão atualizados com as novas URLs. Faça um backup antes de prosseguir.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <div>
+              <div style="font-weight:800;font-size:14px">Imagens em Base64</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:3px" id="mig-count-text">Analisando banco...</div>
+            </div>
+            <span class="badge badge-amber" id="mig-badge">0 laudos</span>
+          </div>
+          <div id="mig-list" style="max-height:200px;overflow-y:auto;font-size:12px;color:var(--muted)">
+            Clique em "Analisar" para verificar os laudos que precisam de migração.
+          </div>
+        </div>
+        <div class="card-footer">
+          <button class="btn btn-ghost" onclick="analisarBase64()">🔍 Analisar</button>
+          <button class="btn btn-amber" id="btn-migrar" onclick="iniciarMigracao()" disabled>🔄 Migrar Tudo</button>
+        </div>
+      </div>
+
+      <div class="card" id="mig-progress-card" style="display:none">
+        <div class="card-body">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-weight:800;font-size:13px">Progresso da Migração</span>
+            <span id="mig-pct" style="font-family:monospace;font-size:12px;color:var(--green)">0%</span>
+          </div>
+          <div class="progress-wrap"><div class="progress-bar" id="mig-bar" style="width:0%"></div></div>
+          <div class="log-box" id="mig-log"><span class="log-dim">Aguardando início...</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: BACKUP -->
+    <div class="tab-pane" id="tab-backup">
+      <div class="section-hdr">
+        <div>
+          <div class="section-title">💾 Backup Completo</div>
+          <div class="section-sub">Exporta todos os dados e imagens para sua máquina</div>
+        </div>
+      </div>
+
+      <div class="notice notice-blue" style="margin-bottom:20px">
+        <div class="notice-icon">ℹ️</div>
+        <div>O backup gera um arquivo <strong>ZIP</strong> contendo: todos os laudos em JSON, imagens separadas por pasta do laudo, e um arquivo Excel/CSV com o índice completo.</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div class="card">
+          <div class="card-body">
+            <div style="font-size:24px;margin-bottom:10px">📄</div>
+            <div style="font-weight:800;font-size:14px;margin-bottom:4px">Laudos (JSON)</div>
+            <div style="font-size:12px;color:var(--muted);line-height:1.6">Todos os registros do banco em formato JSON estruturado. Inclui dados do paciente, texto dos exames e referências de imagens.</div>
+          </div>
+          <div class="card-footer">
+            <button class="btn btn-blue" onclick="downloadJSON()">⬇ Baixar JSON</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <div style="font-size:24px;margin-bottom:10px">📊</div>
+            <div style="font-weight:800;font-size:14px;margin-bottom:4px">Índice CSV</div>
+            <div style="font-size:12px;color:var(--muted);line-height:1.6">Planilha com todos os laudos: paciente, data, médico, convênio, status. Compatível com Excel e Google Sheets.</div>
+          </div>
+          <div class="card-footer">
+            <button class="btn btn-green" onclick="downloadCSV()">⬇ Baixar CSV</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <div style="font-size:24px;margin-bottom:10px">🗜️</div>
+          <div style="font-weight:800;font-size:14px;margin-bottom:4px">Backup Completo (ZIP)</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:14px">Baixa todos os laudos + imagens em um arquivo ZIP organizado. Pode demorar alguns minutos dependendo da quantidade de imagens.</div>
+          <div class="progress-wrap" id="zip-progress-wrap" style="display:none">
+            <div class="progress-bar" id="zip-bar" style="width:0%;background:var(--blue)"></div>
+          </div>
+          <div id="zip-status" style="font-size:12px;color:var(--muted);margin-top:8px;display:none"></div>
+        </div>
+        <div class="card-footer">
+          <button class="btn btn-amber btn-lg" id="btn-zip" onclick="downloadZIP()">⬇ Baixar ZIP Completo</button>
+          <span style="font-size:11px;color:var(--muted)">Recomendado como backup mensal</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <div style="font-weight:800;font-size:14px;margin-bottom:4px">📦 Apenas Imagens</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Baixa todas as imagens do Storage em um ZIP, organizadas por ID do laudo.</div>
+        </div>
+        <div class="card-footer">
+          <button class="btn btn-ghost" onclick="downloadImagens()">⬇ Baixar Imagens</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: DRIVE -->
+    <div class="tab-pane" id="tab-drive">
+      <div class="section-hdr">
+        <div>
+          <div class="section-title">📁 Enviar para Google Drive</div>
+          <div class="section-sub">Upload automático do backup para sua conta Google</div>
+        </div>
+      </div>
+
+      <div class="notice notice-amber" style="margin-bottom:20px">
+        <div class="notice-icon">🔑</div>
+        <div>Para enviar ao Drive, você precisa de uma <strong>API Key do Google</strong> com acesso à Drive API. <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color:var(--amber)">Criar credenciais aqui →</a></div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-body">
+          <div style="font-weight:800;font-size:14px;margin-bottom:16px">🔑 Credenciais Google OAuth</div>
+          <div style="margin-bottom:14px">
+            <div class="field-label">Client ID</div>
+            <input class="field-input" id="google-client-id" placeholder="123456789.apps.googleusercontent.com" type="text">
+          </div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.7">
+            1. Acesse <a href="https://console.cloud.google.com" target="_blank" style="color:var(--blue)">console.cloud.google.com</a><br>
+            2. Crie um projeto → Ative a Drive API<br>
+            3. Crie credenciais OAuth 2.0 (Tipo: Aplicativo da Web)<br>
+            4. Adicione <code style="background:rgba(255,255,255,0.08);padding:1px 6px;border-radius:3px">https://ctdmi.github.io</code> como origem autorizada<br>
+            5. Cole o Client ID acima
+          </div>
+        </div>
+        <div class="card-footer">
+          <button class="btn btn-blue" onclick="autenticarGoogle()">🔑 Autenticar com Google</button>
+          <span id="google-status" style="font-size:12px;color:var(--muted)">Não autenticado</span>
+        </div>
+      </div>
+
+      <div class="card" id="drive-actions-card" style="display:none">
+        <div class="card-body">
+          <div class="drive-box connected" style="margin-bottom:0">
+            <div class="drive-icon">✅</div>
+            <div class="drive-title">Conectado ao Google Drive</div>
+            <div class="drive-sub" id="drive-user-info">Conta conectada com sucesso</div>
+          </div>
+        </div>
+        <div class="card-footer" style="flex-wrap:wrap;gap:10px">
+          <button class="btn btn-green" onclick="enviarJSONDrive()">📄 Enviar JSON</button>
+          <button class="btn btn-green" onclick="enviarCSVDrive()">📊 Enviar CSV</button>
+          <button class="btn btn-amber" onclick="enviarZIPDrive()">🗜️ Enviar ZIP Completo</button>
+          <span style="font-size:11px;color:var(--muted);width:100%">Os arquivos serão salvos em uma pasta <strong>CTDMI_Backup</strong> no seu Drive</span>
+        </div>
+        <div class="card-body" id="drive-log-wrap" style="display:none;padding-top:0">
+          <div class="log-box" id="drive-log"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+const SUPA_URL = 'https://ncrsgnlyskasdjmjqhpx.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcnNnbmx5c2thc2RqbWpxaHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQ5NjYsImV4cCI6MjA4ODMwMDk2Nn0.xb1EbGvS9bvxbwW-2mqcDJ5bJ3kjAiz2vBlxHRyXB_4';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+const BUCKET = 'laudo-imagens';
+
+let allLaudos = [];
+let laudosParaMigrar = [];
+let googleToken = null;
+let driveFolder = null;
+
+// ── TABS ──
+function showTab(id, el) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (el) el.classList.add('active');
+}
+
+// ── LOAD STATUS ──
+async function loadStatus() {
+  try {
+    const { data } = await supa.from('laudos').select('id,paciente_nome,data_exame,medico_nome,imagens,deleted_at').order('criado_em',{ascending:false});
+    allLaudos = data || [];
+    const comImg = allLaudos.filter(l => (l.imagens||[]).length > 0);
+    const base64 = allLaudos.filter(l => (l.imagens||[]).some(i => i.src?.startsWith('data:')));
+    const storage = allLaudos.filter(l => (l.imagens||[]).some(i => i.src?.startsWith('http')));
+    const semImg  = allLaudos.filter(l => !(l.imagens||[]).length);
+
+    document.getElementById('stat-laudos').textContent  = allLaudos.length;
+    document.getElementById('stat-base64').textContent  = base64.length;
+    document.getElementById('stat-storage').textContent = storage.length;
+    document.getElementById('stat-semimg').textContent  = semImg.length;
+    document.getElementById('badge-base64').textContent = base64.length;
+    document.getElementById('badge-base64').style.display = base64.length ? 'inline-flex' : 'none';
+    document.getElementById('sidebar-conn').innerHTML = '<span style="color:var(--green)">● Conectado</span>';
+    document.getElementById('mig-count-text').textContent = base64.length + ' laudos com imagens em base64';
+    document.getElementById('mig-badge').textContent = base64.length + ' laudos';
+
+    // Preview table
+    const preview = comImg.slice(0,8);
+    if (!preview.length) { document.getElementById('laudos-preview').innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">Nenhum laudo com imagens encontrado.</div>'; return; }
+    document.getElementById('laudos-preview').innerHTML = `<table class="tbl">
+      <thead><tr><th>Paciente</th><th>Data</th><th>Médico</th><th>Imgs</th><th>Tipo</th></tr></thead>
+      <tbody>${preview.map(l => {
+        const imgs = l.imagens||[];
+        const hasB64 = imgs.some(i=>i.src?.startsWith('data:'));
+        const hasUrl = imgs.some(i=>i.src?.startsWith('http'));
+        const tipo = hasB64 && hasUrl ? '<span class="badge badge-amber">Misto</span>' :
+                     hasB64 ? '<span class="badge badge-red">Base64</span>' :
+                     '<span class="badge badge-green">Storage</span>';
+        return `<tr>
+          <td style="font-weight:700">${l.paciente_nome||'—'}</td>
+          <td style="font-family:monospace;font-size:11px">${l.data_exame||'—'}</td>
+          <td style="color:var(--muted)">${(l.medico_nome||'—').split(' ').slice(0,2).join(' ')}</td>
+          <td style="font-family:monospace">${imgs.length}</td>
+          <td>${tipo}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  } catch(e) {
+    document.getElementById('sidebar-conn').innerHTML = '<span style="color:var(--red)">● Erro de conexão</span>';
+  }
+}
+
+// ── ANALISAR BASE64 ──
+async function analisarBase64() {
+  if (!allLaudos.length) await loadStatus();
+  laudosParaMigrar = allLaudos.filter(l => (l.imagens||[]).some(i => i.src?.startsWith('data:')));
+  const btn = document.getElementById('btn-migrar');
+  btn.disabled = laudosParaMigrar.length === 0;
+  if (!laudosParaMigrar.length) {
+    document.getElementById('mig-list').innerHTML = '<span style="color:var(--green)">✅ Nenhuma imagem base64 encontrada! Banco já está migrado.</span>';
+    return;
+  }
+  let totalImgs = 0;
+  laudosParaMigrar.forEach(l => { totalImgs += (l.imagens||[]).filter(i=>i.src?.startsWith('data:')).length; });
+  document.getElementById('mig-count-text').textContent = `${laudosParaMigrar.length} laudos com ${totalImgs} imagens base64`;
+  document.getElementById('mig-badge').textContent = laudosParaMigrar.length + ' laudos';
+  document.getElementById('mig-list').innerHTML = `<div style="margin-bottom:10px;color:var(--amber)">⚠️ ${laudosParaMigrar.length} laudos precisam de migração (${totalImgs} imagens):</div>` +
+    laudosParaMigrar.slice(0,20).map(l => {
+      const n = (l.imagens||[]).filter(i=>i.src?.startsWith('data:')).length;
+      return `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)">
+        <span>${l.paciente_nome}</span>
+        <span style="color:var(--amber);font-family:monospace">${n} imagem${n!==1?'s':''}</span>
+      </div>`;
+    }).join('') +
+    (laudosParaMigrar.length > 20 ? `<div style="color:var(--muted);margin-top:6px">... e mais ${laudosParaMigrar.length-20}</div>` : '');
+}
+
+// ── MIGRAÇÃO ──
+function log(msg, type='info') {
+  const box = document.getElementById('mig-log');
+  const line = document.createElement('div');
+  line.className = 'log-' + type;
+  const time = new Date().toLocaleTimeString('pt-BR');
+  line.textContent = `[${time}] ${msg}`;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function iniciarMigracao() {
+  if (!laudosParaMigrar.length) { await analisarBase64(); }
+  if (!laudosParaMigrar.length) return;
+  if (!confirm(`Migrar ${laudosParaMigrar.length} laudos para o Supabase Storage?\n\nEsta operação pode levar alguns minutos.`)) return;
+
+  document.getElementById('mig-progress-card').style.display = 'block';
+  document.getElementById('btn-migrar').disabled = true;
+  document.getElementById('mig-log').innerHTML = '';
+
+  let done = 0, erros = 0;
+  const total = laudosParaMigrar.length;
+
+  for (const laudo of laudosParaMigrar) {
+    log(`Processando: ${laudo.paciente_nome} (${laudo.id.slice(0,8)}...)`, 'info');
+    try {
+      const imgs = laudo.imagens || [];
+      const novasImgs = [];
+      for (const img of imgs) {
+        if (!img.src?.startsWith('data:')) { novasImgs.push(img); continue; }
+        // Upload to storage
+        const res = await fetch(img.src);
+        const blob = await res.blob();
+        const ext  = blob.type.includes('png') ? 'png' : 'jpg';
+        const path = `laudos/${laudo.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: upErr } = await supa.storage.from(BUCKET).upload(path, blob, { contentType: blob.type });
+        if (upErr) { log(`  ✗ Erro no upload: ${upErr.message}`, 'err'); novasImgs.push(img); continue; }
+        const { data: urlData } = supa.storage.from(BUCKET).getPublicUrl(path);
+        novasImgs.push({ src: urlData.publicUrl, name: img.name || '' });
+        log(`  ✓ Imagem → ${path.slice(-30)}`, 'ok');
+      }
+      // Update laudo
+      const { error: updErr } = await supa.from('laudos').update({ imagens: novasImgs }).eq('id', laudo.id);
+      if (updErr) { log(`  ✗ Erro ao atualizar laudo: ${updErr.message}`, 'err'); erros++; }
+      else { log(`✅ Laudo atualizado`, 'ok'); done++; }
+    } catch(e) { log(`✗ Erro: ${e.message}`, 'err'); erros++; }
+
+    const pct = Math.round(((done+erros)/total)*100);
+    document.getElementById('mig-bar').style.width = pct + '%';
+    document.getElementById('mig-pct').textContent = pct + '%';
+    await new Promise(r => setTimeout(r, 100));
+  }
+
+  log(`\n--- Concluído: ${done} migrados, ${erros} erros ---`, done>0?'ok':'warn');
+  document.getElementById('mig-bar').style.background = erros > 0 ? 'var(--amber)' : 'var(--green)';
+  await loadStatus();
+}
+
+// ── DOWNLOAD JSON ──
+async function downloadJSON() {
+  if (!allLaudos.length) await loadStatus();
+  const json = JSON.stringify({ exportado_em: new Date().toISOString(), total: allLaudos.length, laudos: allLaudos }, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  dlBlob(blob, `ctdmi_laudos_${hoje()}.json`);
+}
+
+// ── DOWNLOAD CSV ──
+async function downloadCSV() {
+  if (!allLaudos.length) await loadStatus();
+  const cols = ['id','paciente_nome','paciente_nasc','paciente_idade','data_exame','convenio','solicitante','medico_nome','medico_crm','status','criado_em'];
+  const header = cols.join(';');
+  const rows = allLaudos.map(l => cols.map(c => '"'+(l[c]||'').toString().replace(/"/g,'""')+'"').join(';'));
+  const csv = '\uFEFF' + [header, ...rows].join('\n');
+  dlBlob(new Blob([csv],{type:'text/csv;charset=utf-8'}), `ctdmi_laudos_${hoje()}.csv`);
+}
+
+// ── DOWNLOAD ZIP COMPLETO ──
+async function downloadZIP() {
+  if (!allLaudos.length) await loadStatus();
+  const btn = document.getElementById('btn-zip');
+  const prog = document.getElementById('zip-progress-wrap');
+  const bar  = document.getElementById('zip-bar');
+  const st   = document.getElementById('zip-status');
+  btn.disabled = true;
+  prog.style.display = 'block';
+  st.style.display   = 'block';
+  st.textContent = 'Inicializando...';
+  bar.style.width = '5%';
+
+  const zip = new JSZip();
+  zip.file('laudos.json', JSON.stringify({ exportado_em: new Date().toISOString(), total: allLaudos.length, laudos: allLaudos }, null, 2));
+
+  // CSV
+  const cols = ['id','paciente_nome','data_exame','convenio','medico_nome','medico_crm','status','criado_em'];
+  const csv = '\uFEFF' + [cols.join(';'), ...allLaudos.map(l=>cols.map(c=>'"'+(l[c]||'').toString().replace(/"/g,'""')+'"').join(';'))].join('\n');
+  zip.file('laudos_indice.csv', csv);
+
+  // Images
+  const laudosComImg = allLaudos.filter(l=>(l.imagens||[]).length>0);
+  let imgDone = 0;
+  for (const laudo of laudosComImg) {
+    const folder = zip.folder(`imagens/${laudo.paciente_nome.replace(/[^a-zA-Z0-9]/g,'_')}_${laudo.id.slice(0,8)}`);
+    for (const img of (laudo.imagens||[])) {
+      try {
+        if (img.src?.startsWith('data:')) {
+          const base64 = img.src.split(',')[1];
+          const ext = img.src.includes('png') ? 'png' : 'jpg';
+          folder.file(`img_${Date.now()}.${ext}`, base64, {base64:true});
+        } else if (img.src?.startsWith('http')) {
+          const res = await fetch(img.src);
+          if (res.ok) {
+            const buf = await res.arrayBuffer();
+            const ext = img.src.endsWith('png') ? 'png' : 'jpg';
+            folder.file(`img_${Date.now()}.${ext}`, buf);
+          }
+        }
+      } catch(e) {}
+    }
+    imgDone++;
+    const pct = Math.round(5 + (imgDone/laudosComImg.length)*85);
+    bar.style.width = pct + '%';
+    st.textContent = `Baixando imagens... ${imgDone}/${laudosComImg.length} laudos`;
+    await new Promise(r=>setTimeout(r,10));
+  }
+
+  st.textContent = 'Comprimindo ZIP...';
+  bar.style.width = '95%';
+  const blob = await zip.generateAsync({ type:'blob', compression:'DEFLATE', compressionOptions:{level:6} },
+    meta => { bar.style.width = (95 + meta.percent*0.05) + '%'; });
+  bar.style.width = '100%';
+  dlBlob(blob, `ctdmi_backup_${hoje()}.zip`);
+  st.textContent = '✅ Download iniciado!';
+  btn.disabled = false;
+}
+
+// ── DOWNLOAD IMAGENS ──
+async function downloadImagens() {
+  if (!allLaudos.length) await loadStatus();
+  const laudosComImg = allLaudos.filter(l=>(l.imagens||[]).length>0);
+  if (!laudosComImg.length) { alert('Nenhum laudo com imagens encontrado.'); return; }
+  const zip = new JSZip();
+  for (const laudo of laudosComImg) {
+    const folder = zip.folder(laudo.paciente_nome.replace(/[^a-zA-Z0-9]/g,'_')+'_'+laudo.id.slice(0,8));
+    for (const img of (laudo.imagens||[])) {
+      try {
+        if (img.src?.startsWith('data:')) {
+          const base64 = img.src.split(',')[1];
+          const ext = img.src.includes('png') ? 'png' : 'jpg';
+          folder.file(`img.${ext}`, base64, {base64:true});
+        } else if (img.src?.startsWith('http')) {
+          const res = await fetch(img.src);
+          if (res.ok) {
+            const buf = await res.arrayBuffer();
+            folder.file(`img.jpg`, buf);
+          }
+        }
+      } catch(e) {}
+    }
+  }
+  const blob = await zip.generateAsync({type:'blob'});
+  dlBlob(blob, `ctdmi_imagens_${hoje()}.zip`);
+}
+
+// ── GOOGLE DRIVE ──
+let gapi_loaded = false;
+
+async function autenticarGoogle() {
+  const clientId = document.getElementById('google-client-id').value.trim();
+  if (!clientId) { alert('Cole o Client ID do Google antes.'); return; }
+  const scope = 'https://www.googleapis.com/auth/drive.file';
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(location.href)}&response_type=token&scope=${encodeURIComponent(scope)}&include_granted_scopes=true`;
+  window.open(url, '_blank', 'width=500,height=600');
+  // Listen for token in URL hash (implicit flow)
+  window._checkGoogleAuth = setInterval(() => {
+    const hash = location.hash;
+    if (hash.includes('access_token=')) {
+      const token = new URLSearchParams(hash.slice(1)).get('access_token');
+      if (token) { googleToken = token; clearInterval(window._checkGoogleAuth); onGoogleAuth(); }
+    }
+  }, 1000);
+}
+
+async function onGoogleAuth() {
+  // Get user info
+  try {
+    const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer '+googleToken } });
+    const u = await r.json();
+    document.getElementById('google-status').innerHTML = `<span style="color:var(--green)">✅ ${u.email}</span>`;
+    document.getElementById('drive-user-info').textContent = 'Conectado como: ' + u.email;
+    document.getElementById('drive-actions-card').style.display = 'block';
+  } catch(e) { document.getElementById('google-status').textContent = 'Erro na autenticação'; }
+}
+
+async function getDriveFolder() {
+  if (driveFolder) return driveFolder;
+  // Check if folder exists
+  const q = encodeURIComponent(`name='CTDMI_Backup' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+  const r = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}`, { headers:{Authorization:'Bearer '+googleToken} });
+  const d = await r.json();
+  if (d.files?.length) { driveFolder = d.files[0].id; return driveFolder; }
+  // Create folder
+  const cr = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method:'POST', headers:{Authorization:'Bearer '+googleToken,'Content-Type':'application/json'},
+    body: JSON.stringify({ name:'CTDMI_Backup', mimeType:'application/vnd.google-apps.folder' })
+  });
+  const cf = await cr.json();
+  driveFolder = cf.id;
+  return driveFolder;
+}
+
+async function uploadToDrive(blob, filename, mime) {
+  const folderId = await getDriveFolder();
+  const meta = JSON.stringify({ name: filename, parents: [folderId] });
+  const form = new FormData();
+  form.append('metadata', new Blob([meta],{type:'application/json'}));
+  form.append('file', blob);
+  const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+    method:'POST', headers:{Authorization:'Bearer '+googleToken}, body: form
+  });
+  return r.ok;
+}
+
+function dlogDrive(msg) {
+  const box = document.getElementById('drive-log');
+  document.getElementById('drive-log-wrap').style.display = 'block';
+  box.innerHTML += `<div>${msg}</div>`;
+  box.scrollTop = box.scrollHeight;
+}
+
+async function enviarJSONDrive() {
+  if (!allLaudos.length) await loadStatus();
+  dlogDrive('<span style="color:var(--cyan)">Preparando JSON...</span>');
+  const json = JSON.stringify({ exportado_em: new Date().toISOString(), total: allLaudos.length, laudos: allLaudos }, null, 2);
+  const blob = new Blob([json],{type:'application/json'});
+  const ok = await uploadToDrive(blob, `ctdmi_laudos_${hoje()}.json`, 'application/json');
+  dlogDrive(ok ? '<span style="color:var(--green)">✅ JSON enviado para CTDMI_Backup/</span>' : '<span style="color:var(--red)">✗ Erro no upload</span>');
+}
+
+async function enviarCSVDrive() {
+  if (!allLaudos.length) await loadStatus();
+  dlogDrive('<span style="color:var(--cyan)">Preparando CSV...</span>');
+  const cols = ['id','paciente_nome','data_exame','convenio','medico_nome','status','criado_em'];
+  const csv = '\uFEFF' + [cols.join(';'), ...allLaudos.map(l=>cols.map(c=>'"'+(l[c]||'').toString().replace(/"/g,'""')+'"').join(';'))].join('\n');
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const ok = await uploadToDrive(blob, `ctdmi_laudos_${hoje()}.csv`, 'text/csv');
+  dlogDrive(ok ? '<span style="color:var(--green)">✅ CSV enviado para CTDMI_Backup/</span>' : '<span style="color:var(--red)">✗ Erro no upload</span>');
+}
+
+async function enviarZIPDrive() {
+  dlogDrive('<span style="color:var(--cyan)">Gerando ZIP (pode demorar)...</span>');
+  if (!allLaudos.length) await loadStatus();
+  const zip = new JSZip();
+  zip.file('laudos.json', JSON.stringify({exportado_em:new Date().toISOString(),laudos:allLaudos},null,2));
+  const laudosComImg = allLaudos.filter(l=>(l.imagens||[]).length>0);
+  for (const laudo of laudosComImg) {
+    const folder = zip.folder(laudo.paciente_nome.replace(/[^a-zA-Z0-9]/g,'_')+'_'+laudo.id.slice(0,8));
+    for (const img of (laudo.imagens||[])) {
+      try {
+        if (img.src?.startsWith('data:')) {
+          folder.file('img.jpg', img.src.split(',')[1], {base64:true});
+        } else if (img.src?.startsWith('http')) {
+          const res = await fetch(img.src);
+          if (res.ok) folder.file('img.jpg', await res.arrayBuffer());
+        }
+      } catch(e) {}
+    }
+  }
+  const blob = await zip.generateAsync({type:'blob',compression:'DEFLATE'});
+  dlogDrive('<span style="color:var(--cyan)">Enviando ZIP para o Drive...</span>');
+  const ok = await uploadToDrive(blob, `ctdmi_backup_${hoje()}.zip`, 'application/zip');
+  dlogDrive(ok ? '<span style="color:var(--green)">✅ ZIP enviado para CTDMI_Backup/</span>' : '<span style="color:var(--red)">✗ Erro no upload</span>');
+}
+
+// ── HELPERS ──
+function dlBlob(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+function hoje() {
+  return new Date().toISOString().slice(0,10).replace(/-/g,'');
+}
+
+// ── INIT ──
+window.onload = async () => {
+  await loadStatus();
+  // Handle Google OAuth redirect token in hash
+  if (location.hash.includes('access_token=')) {
+    googleToken = new URLSearchParams(location.hash.slice(1)).get('access_token');
+    if (googleToken) onGoogleAuth();
+  }
+};
+</script>
+</body>
+</html>
