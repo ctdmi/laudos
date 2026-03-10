@@ -514,7 +514,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
       .print-footer { position:absolute; bottom:10mm; left:22mm; right:22mm; border-top:1px solid #000; padding-top:6px; display:flex; justify-content:space-between; align-items:flex-start; }
       .pf-left { font-size:7.5pt; line-height:1.4; }
       .pf-warn { font-size:6.5pt; color:#666; margin-top:3px; max-width:480px; }
-      .print-img-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:16px; }
+      .print-img-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:16px; }
       .print-img-cell { aspect-ratio:4/3; overflow:hidden; border:1px solid #ccc; border-radius:4px; }
       .print-img-cell img { width:100%; height:100%; object-fit:cover; }
     }
@@ -609,7 +609,16 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 <script>
 const SUPA_URL = 'https://ncrsgnlyskasdjmjqhpx.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcnNnbmx5c2thc2RqbWpxaHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQ5NjYsImV4cCI6MjA4ODMwMDk2Nn0.xb1EbGvS9bvxbwW-2mqcDJ5bJ3kjAiz2vBlxHRyXB_4';
-const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+// Storage isolado para não conflitar com sessão de médico/secretária
+const pacienteStorage = {
+  _prefix: 'ctdmi_pac_',
+  getItem:    (k) => localStorage.getItem('ctdmi_pac_' + k),
+  setItem:    (k, v) => localStorage.setItem('ctdmi_pac_' + k, v),
+  removeItem: (k) => localStorage.removeItem('ctdmi_pac_' + k),
+};
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY, {
+  auth: { storage: pacienteStorage, storageKey: 'ctdmi_pac_auth' }
+});
 let currentUser = null, currentLaudoData = null;
 
 function showErr(el, msg) { if(!el)return; el.textContent=msg; el.style.display=msg?'block':'none'; }
