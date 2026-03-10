@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>C.T.D.M.I. — Portal do Paciente</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=Merriweather:wght@700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><style>
+:root {
+  --green: #1a6b3a;
+  --green-mid: #2d8a50;
+  --green-light: #4caf72;
+  --green-pale: #e8f5ee;
+  --green-dim: rgba(26,107,58,0.08);
+  --white: #ffffff;
+  --off-white: #f7f9f8;
+  --border: #d4e3da;
+  --border-dark: #b0c9bc;
+  --text: #1a2e23;
+  --text-mid: #3d5a47;
+  --text-muted: #7a9986;
+  --red: #c0392b;
+  --amber: #d4850a;
+  --shadow-sm: 0 1px 4px rgba(26,107,58,0.08);
+  --shadow: 0 4px 16px rgba(26,107,58,0.1);
+  --shadow-lg: 0 8px 32px rgba(26,107,58,0.15);
+  --radius: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--off-white); color: var(--text); font-family: 'Lato', sans-serif; font-size: 14px; min-height: 100vh; }
+
+/* ── TOAST ── */
+#toast { position: fixed; bottom: 24px; right: 24px; z-index: 9999; background: var(--white); border: 1px solid var(--border-dark); border-radius: var(--radius); padding: 13px 18px; font-size: 13px; display: none; align-items: center; gap: 10px; box-shadow: var(--shadow-lg); max-width: 320px; color: var(--text); }
+#toast.show { display: flex; }
+#toast.ok { border-left: 4px solid #27ae60; }
+#toast.err { border-left: 4px solid var(--red); }
+#toast.inf { border-left: 4px solid var(--green-mid); }
+
+/* ── OVERLAY ── */
+#overlay { position: fixed; inset: 0; background: rgba(247,249,248,0.85); display: none; align-items: center; justify-content: center; z-index: 9998; flex-direction: column; gap: 14px; }
+#overlay.show { display: flex; }
+.spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--green-mid); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#overlay p { color: var(--text-muted); font-size: 13px; }
+
+/* ── SCREENS ── */
+.screen { display: none !important; }
+.screen.active { display: block !important; }
+#screen-login.active { display: flex !important; min-height: 100vh; align-items: center; justify-content: center; }
+
+/* ══════════ LOGIN ══════════ */
+.login-bg {
+  width: 100vw; min-height: 100vh; position: relative; overflow: hidden;
+  background: linear-gradient(160deg, #030d1a 0%, #051525 50%, #020c18 100%);
+  display: flex; align-items: center; justify-content: center;
+}
+.login-bg::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(160deg, rgba(3,13,26,0.78) 0%, rgba(5,21,37,0.72) 50%, rgba(2,12,24,0.78) 100%);
+}
+.ecg-grid { display: none; }
+.ecg-line {
+  position: absolute; bottom: 25%; left: 0; width: 100%; height: 120px;
+  opacity: 0.5;
+}
+.login-center { position: relative; z-index: 10; width: 100%; display: flex; justify-content: center; padding: 24px; }
+.login-card {
+  background: rgba(3, 15, 32, 0.88);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 16px;
+  width: 100%; max-width: 440px;
+  box-shadow: 0 0 40px rgba(0,180,255,0.15), 0 20px 60px rgba(0,0,0,0.6);
+}
+.lc-header {
+  background: linear-gradient(135deg, rgba(5,30,62,0.95) 0%, rgba(10,45,82,0.95) 50%, rgba(5,30,62,0.95) 100%);
+  border-bottom: 2px solid rgba(0,212,255,0.3);
+  padding: 28px 32px 22px;
+  text-align: center;
+  position: relative;
+}
+.lc-logo-wrap {
+  position: relative; width: 52px; height: 52px; margin: 0 auto 14px;
+  display: flex; align-items: center; justify-content: center;
+}
+.lc-pulse {
+  position: absolute; inset: 0; border: 2px solid rgba(0,212,255,0.5);
+  border-radius: 50%; animation: pulse-ring 2s ease-out infinite;
+}
+@keyframes pulse-ring { 0%{transform:scale(1);opacity:0.8} 100%{transform:scale(1.8);opacity:0} }
+.lc-logo-icon { font-size: 28px; position: relative; z-index: 1; }
+.lc-brand { font-family: 'Merriweather', serif; font-size: 26px; font-weight: 700; color: #ffffff; letter-spacing: 3px; text-shadow: 0 0 20px rgba(0,212,255,0.5); }
+.lc-brand-sub { font-size: 11px; font-weight: 700; color: #f0c040; letter-spacing: 2px; margin-top: 6px; text-transform: uppercase; }
+.lc-brand-detail { font-size: 10px; color: rgba(160,200,220,0.7); margin-top: 5px; letter-spacing: 0.5px; }
+.lc-crm { font-size: 11px; color: rgba(0,212,255,0.8); margin-top: 6px; letter-spacing: 1px; }
+.lc-form { padding: 24px 32px 28px; }
+.lc-toggle { text-align:center; margin-top:16px; padding-bottom:4px; font-size:12px; color:#5a8a9a; }
+.lc-form-title { font-size: 13px; color: #a0c8d8; text-align: center; margin-bottom: 20px; letter-spacing: 1px; text-transform: uppercase; }
+.lc-input {
+  width: 100%; background: rgba(0,30,60,0.8) !important;
+  border: 1px solid rgba(0,150,200,0.3) !important;
+  border-radius: 8px; color: #e0f0f8 !important;
+  font-family: 'Lato', sans-serif; font-size: 14px;
+  padding: 11px 14px; outline: none; transition: all 0.2s;
+  margin-top: 5px; margin-bottom: 14px;
+}
+.lc-input:focus { border-color: rgba(0,212,255,0.7) !important; box-shadow: 0 0 0 3px rgba(0,180,255,0.1); }
+.lc-input::placeholder { color: rgba(100,160,190,0.5); }
+.lc-btn {
+  width: 100%; padding: 13px; border: none; border-radius: 9px;
+  background: linear-gradient(135deg, #0070b8, #00a8e8);
+  color: #fff; font-family: 'Lato', sans-serif; font-size: 13px;
+  font-weight: 700; cursor: pointer; letter-spacing: 2px;
+  box-shadow: 0 4px 20px rgba(0,160,232,0.4);
+  transition: all 0.2s; margin-top: 6px;
+}
+.lc-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(0,160,232,0.55); }
+
+/* ══════════ APP ══════════ */
+.app-header {
+  background: var(--white);
+  border-bottom: 2px solid var(--green-pale);
+  padding: 0 32px; height: 62px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: var(--shadow-sm);
+}
+.hdr-left { display: flex; align-items: center; gap: 14px; }
+.hdr-logo { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, var(--green), var(--green-mid)); display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 2px 8px rgba(26,107,58,0.25); }
+.hdr-title { font-family: 'Merriweather', serif; font-size: 16px; color: var(--green); font-weight: 700; }
+.hdr-sub { font-size: 10px; color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; margin-top: 1px; }
+.hdr-right { display: flex; align-items: center; gap: 10px; }
+.doctor-badge { background: var(--green-pale); border: 1px solid var(--border); border-radius: 8px; padding: 6px 13px; font-size: 12px; color: var(--green); font-weight: 700; }
+.patient-badge { background: #e8f0fe; border: 1px solid #c5d5f8; border-radius: 8px; padding: 6px 13px; font-size: 12px; color: #1a4b8c; font-weight: 700; }
+
+/* TABS */
+nav { background: var(--white); border-bottom: 1px solid var(--border); display: flex; padding: 0 32px; overflow-x: auto; }
+.tab { padding: 14px 20px; cursor: pointer; border-bottom: 3px solid transparent; font-size: 13px; font-weight: 700; color: var(--text-muted); transition: all 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 7px; user-select: none; letter-spacing: 0.3px; }
+.tab:hover { color: var(--green-mid); }
+.tab.active { color: var(--green); border-bottom-color: var(--green); }
+.tab-badge { background: var(--green); color: #fff; border-radius: 10px; padding: 1px 8px; font-size: 10px; }
+
+/* MAIN */
+.app-main { max-width: 1000px; margin: 0 auto; padding: 28px 28px 100px; }
+
+/* CARD */
+.card { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 24px 28px; margin-bottom: 18px; box-shadow: var(--shadow-sm); }
+.card-hdr { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+.card-ico { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; background: var(--green-pale); border: 1px solid var(--border); flex-shrink: 0; }
+.card-title { font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: 0.3px; }
+
+/* GRID */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.s2 { grid-column: 1 / -1; }
+
+/* LAUDO BLOCKS */
+.lb { background: var(--white); border: 1.5px solid var(--border); border-radius: 12px; margin-bottom: 12px; overflow: hidden; transition: all 0.3s; }
+.lb.on { border-color: var(--green-mid); box-shadow: 0 2px 10px rgba(26,107,58,0.08); }
+.lb-hdr { display: flex; align-items: center; justify-content: space-between; padding: 13px 18px; cursor: pointer; user-select: none; background: var(--off-white); gap: 12px; border-bottom: 1px solid transparent; transition: all 0.2s; }
+.lb.on .lb-hdr { background: var(--green-pale); border-bottom-color: var(--border); }
+.lb-title { font-size: 12px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; transition: color 0.2s; }
+.lb.on .lb-title { color: var(--green); }
+.lb-body { padding: 16px 18px; display: none; }
+.lb.on .lb-body { display: block; }
+.lb-body textarea { width: 100%; background: var(--off-white); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Lato', sans-serif; font-size: 13px; line-height: 1.8; padding: 12px 14px; outline: none; resize: vertical; min-height: 170px; transition: all 0.2s; }
+.lb-body textarea:focus { border-color: var(--green-mid); background: var(--white); }
+
+/* TOGGLE */
+.tog { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+.tog input { display: none; }
+.tog-track { position: absolute; inset: 0; background: var(--border-dark); border-radius: 12px; transition: background 0.3s; cursor: pointer; }
+.tog input:checked + .tog-track { background: var(--green-mid); }
+.tog-knob { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: left 0.3s; pointer-events: none; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.tog input:checked ~ .tog-knob { left: 23px; }
+
+/* IMAGES */
+.drop-zone { border: 2px dashed var(--border-dark); border-radius: 12px; padding: 36px 24px; text-align: center; cursor: pointer; transition: all 0.3s; margin-bottom: 20px; background: var(--off-white); }
+.drop-zone:hover, .drop-zone.over { border-color: var(--green-mid); background: var(--green-pale); }
+.dz-icon { font-size: 36px; margin-bottom: 10px; }
+.dz-main { font-size: 15px; color: var(--green-mid); font-weight: 700; margin-bottom: 4px; }
+.dz-sub { font-size: 12px; color: var(--text-muted); }
+.page-lbl { font-size: 11px; color: var(--green); letter-spacing: 2px; text-transform: uppercase; font-weight: 700; margin-bottom: 10px; padding-bottom: 7px; border-bottom: 1px solid var(--border); }
+.img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+.img-item { position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 4/3; background: var(--off-white); border: 1px solid var(--border); }
+.img-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.img-over { position: absolute; inset: 0; background: rgba(0,0,0,0); display: flex; align-items: center; justify-content: center; gap: 5px; transition: background 0.2s; }
+.img-item:hover .img-over { background: rgba(0,0,0,0.6); }
+.img-over button { padding: 5px 9px; border: none; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 700; opacity: 0; transform: translateY(5px); transition: all 0.2s; }
+.img-item:hover .img-over button { opacity: 1; transform: translateY(0); }
+.ib-del { background: #dc2626; color: #fff; }
+.ib-lr { background: rgba(255,255,255,0.9); color: #333; }
+.img-num { position: absolute; top: 6px; left: 7px; background: rgba(0,0,0,0.6); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 6px; font-weight: 700; }
+
+/* BUTTONS */
+.btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 20px; border: none; border-radius: 8px; font-family: 'Lato', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-green { background: linear-gradient(135deg, var(--green), var(--green-mid)); color: #fff; box-shadow: 0 3px 10px rgba(26,107,58,0.25); }
+.btn-green:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(26,107,58,0.35); }
+.btn-outline { background: var(--white); border: 1.5px solid var(--border-dark); color: var(--text-mid); }
+.btn-outline:hover { border-color: var(--green-mid); color: var(--green); background: var(--green-pale); }
+.btn-red { background: #fdf2f2; border: 1.5px solid #f5c6c6; color: var(--red); }
+.btn-red:hover { background: #fce4e4; }
+.btn-print { background: linear-gradient(135deg, #2c5282, #3b82f6); color: #fff; box-shadow: 0 3px 10px rgba(59,130,246,0.25); }
+.btn-print:hover { transform: translateY(-1px); }
+.btn-big { width: 100%; justify-content: center; padding: 14px; font-size: 15px; border-radius: 10px; }
+.abar { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+
+/* SAVED LIST */
+.saved-list { display: flex; flex-direction: column; gap: 6px; }
+.saved-group-hdr { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; padding: 12px 4px 6px; border-bottom: 1px solid var(--border); margin-top: 8px; display: flex; align-items: center; gap: 8px; }
+.saved-row { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; transition: all 0.2s; }
+.saved-row:hover { border-color: var(--green-mid); box-shadow: var(--shadow-sm); }
+.saved-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.saved-meta { font-size: 12px; color: var(--text-muted); }
+.saved-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+/* ADMIN */
+.doc-row { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.doc-name { font-size: 14px; font-weight: 700; color: var(--text); }
+.doc-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+/* MODAL */
+.modal-bg { position: fixed; inset: 0; background: rgba(26,107,58,0.15); backdrop-filter: blur(3px); z-index: 500; display: none; align-items: center; justify-content: center; }
+.modal-bg.show { display: flex; }
+.modal { background: var(--white); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 100%; max-width: 480px; box-shadow: var(--shadow-lg); }
+.modal h3 { font-family: 'Merriweather', serif; font-size: 17px; color: var(--green); margin-bottom: 20px; }
+.modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+
+/* TIP */
+.tip { background: var(--green-pale); border: 1px solid var(--border); border-radius: 10px; padding: 13px 17px; font-size: 13px; color: var(--green); margin-bottom: 18px; line-height: 1.7; border-left: 4px solid var(--green-mid); }
+
+/* PATIENT VIEW */
+.patient-laudo { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 28px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
+.pl-header { text-align: center; border-bottom: 2px solid var(--green); padding-bottom: 14px; margin-bottom: 18px; }
+.pl-clinic { font-family: 'Merriweather', serif; font-size: 18px; font-weight: 700; color: var(--green); }
+.pl-sub { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+.pl-patient { background: var(--green-pale); border-radius: 8px; padding: 14px 16px; margin-bottom: 18px; }
+.pl-section { margin-bottom: 16px; }
+.pl-section h4 { font-size: 12px; font-weight: 700; color: var(--green); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
+.pl-section p { font-size: 13px; line-height: 1.8; color: var(--text); white-space: pre-wrap; }
+
+/* EMPTY */
+.empty { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+.empty .ei { font-size: 48px; margin-bottom: 14px; }
+
+/* RESPONSIVE */
+@media(max-width:700px) {
+  .login-side {
+  flex: 1;
+  background: linear-gradient(160deg, #1a6b3a 0%, #0e4726 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 48px 40px; text-align: center; color: #fff;
+}
+  .g2,.g3 { grid-template-columns: 1fr; }
+  .img-grid { grid-template-columns: repeat(2,1fr); }
+  .app-header { padding: 0 16px; }
+  .app-main { padding: 16px 16px 80px; }
+}
+
+/* ══════════════════════════════════
+   PRINT
+══════════════════════════════════ */
+
+/* ── FLOATING LABEL FIELDS ── */
+.field { position: relative; margin-bottom: 22px; }
+.field label {
+  position: absolute; top: 50%; left: 14px; transform: translateY(-50%);
+  font-size: 13px; color: var(--text-muted); font-weight: 400;
+  transition: all 0.18s ease; pointer-events: none; z-index: 2;
+  white-space: nowrap; background: transparent;
+}
+.field input:not([type="date"]),
+.field select {
+  width: 100%; background: var(--white);
+  border: 1.5px solid var(--border); border-radius: 10px;
+  color: var(--text); font-family: 'Lato', sans-serif; font-size: 14px;
+  padding: 22px 14px 8px 14px; outline: none; transition: all 0.2s;
+  -webkit-appearance: none; appearance: none;
+}
+.field input[type="date"] {
+  width: 100%; background: var(--white);
+  border: 1.5px solid var(--border); border-radius: 10px;
+  color: var(--text); font-family: 'Lato', sans-serif; font-size: 14px;
+  padding: 22px 14px 8px 14px; outline: none; transition: all 0.2s;
+}
+.field input:focus,
+.field select:focus,
+.field input[type="date"]:focus {
+  border-color: var(--green-mid);
+  box-shadow: 0 0 0 3px rgba(45,138,80,0.1);
+}
+.field input:focus ~ label,
+.field input:not([placeholder=" "]):not([readonly]) ~ label,
+.field input[value]:not([value=""]) ~ label,
+.field select:focus ~ label,
+.field input[type="date"] ~ label,
+.field input[readonly] ~ label {
+  top: 8px; transform: none; font-size: 10px;
+  color: var(--green-mid); font-weight: 700;
+  letter-spacing: 0.5px; text-transform: uppercase;
+}
+.field input[readonly] {
+  background: #f4f7f5; color: var(--text-muted);
+}
+.field textarea {
+  width: 100%; background: var(--off-white);
+  border: 1.5px solid var(--border); border-radius: 10px;
+  color: var(--text); font-family: 'Lato', sans-serif; font-size: 13px;
+  padding: 11px 14px; outline: none; resize: vertical; min-height: 150px;
+  line-height: 1.8; transition: all 0.2s;
+}
+.field textarea:focus {
+  border-color: var(--green-mid); background: var(--white);
+  box-shadow: 0 0 0 3px rgba(45,138,80,0.1);
+}
+.field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237a9986' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+/* Fix: move label after input in HTML for CSS ~ selector */
+.field { display: flex; flex-direction: column; }
+.field > input, .field > select { order: 2; }
+.field > label { order: 1; position: static; transform: none; 
+  font-size: 10px; color: var(--green-mid); font-weight: 700;
+  letter-spacing: 0.5px; text-transform: uppercase;
+  margin-bottom: 4px; padding-left: 2px; }
+.field > input, .field > select, .field > textarea {
+  order: 2; padding: 11px 14px;
+}
+
+@media screen and (max-width: 768px) {
+  .app-main { padding: 12px 12px 80px; }
+  .g2 { grid-template-columns: 1fr; }
+  .img-grid { grid-template-columns: repeat(2,1fr); }
+  .abar { flex-direction: column; }
+  .btn-big { font-size: 14px; }
+}
+
+@media print {
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  body > *:not(#print-container) { display: none !important; }
+  body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+  #print-container { display: block !important; }
+
+  @page { size: A4 portrait; margin: 0; }
+
+  /* ── PAGE: exact A4 size, content positioned inside ── */
+  .print-page {
+    width: 210mm;
+    height: 297mm;
+    box-sizing: border-box;
+    padding: 14mm 22mm 0 22mm;
+    font-family: 'Times New Roman', Times, serif;
+    page-break-after: always;
+    break-after: page;
+    background: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+  .print-page:last-child { page-break-after: avoid; break-after: avoid; }
+
+  /* content area - leaves room for footer+signature at bottom */
+  .print-body { display: block; padding-bottom: 52mm; }
+
+  /* ── HEADER ── */
+  .print-header {
+    text-align: center;
+    border-bottom: 2px solid #000;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+  .ph-main { font-size: 14pt; font-weight: bold; }
+  .ph-sub  { font-size: 9.5pt; margin-top: 2px; }
+  .ph-crm  { font-size: 9pt; margin-top: 2px; }
+  .ph-tel  { font-size: 9pt; margin-top: 1px; }
+
+  /* ── PATIENT BOX ── */
+  .print-patient-box {
+    border: 1.5px solid #000;
+    border-radius: 4px;
+    padding: 7px 12px;
+    margin-bottom: 12px;
+    font-size: 9.5pt;
+    font-family: 'Times New Roman', serif;
+    background: #fff;
+    display: grid;
+    grid-template-columns: 3fr 1.2fr 0.8fr;
+    gap: 0;
+  }
+  .ppb-row { display: contents; }
+  .pp-cell { padding: 2px 4px; }
+  .pp-label { font-size: 7.5pt; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+  .pp-value { font-weight: bold; font-size: 10pt; }
+  .ppb-bot-wrap {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 0;
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: none;
+  }
+  .pp-sep { display: none; }
+
+  /* ── SECTION ── */
+  .print-section { display: block; }
+  .print-section h3 { font-size: 10pt; font-weight: bold; text-decoration: underline; text-transform: uppercase; margin-bottom: 5px; }
+  .print-section h4 { font-size: 10pt; font-weight: bold; margin-bottom: 4px; }
+  .print-section p  { font-size: 10.5pt; line-height: 1.85; text-align: justify; white-space: pre-wrap; }
+
+  /* ── IMAGES ── */
+  .print-img-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4mm;
+  }
+  .print-img-cell { width: 100%; aspect-ratio: 4/3; overflow: hidden; }
+  .print-img-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* ── SIGNATURE: anchored above footer ── */
+  .print-signature {
+    position: absolute;
+    bottom: 28mm;
+    right: 22mm;
+    text-align: right;
+    font-family: 'Times New Roman', serif;
+  }
+  .ps-label { font-size: 9pt; }
+  .ps-name  { font-size: 10pt; font-weight: bold; }
+  .ps-date  { font-size: 8.5pt; font-style: italic; }
+
+  /* ── FOOTER: anchored at bottom of each page ── */
+  .print-footer {
+    position: absolute;
+    bottom: 10mm;
+    left: 22mm;
+    right: 22mm;
+    border-top: 1px solid #000;
+    padding-top: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    font-size: 8pt;
+    line-height: 1.5;
+    font-family: 'Times New Roman', serif;
+  }
+  .pf-warn { font-size: 7pt; font-style: italic; color: #444; margin-top: 2px; }
+}
+</style>
+  <style>
+    #screen-patient { display:none; flex-direction:column; min-height:100vh; }
+    .patient-laudos-list .saved-row { cursor:pointer; transition:background .15s; }
+    .patient-laudos-list .saved-row:hover { background:var(--green-pale); }
+    #laudo-viewer-overlay {
+      display:none; position:fixed; inset:0; z-index:1000;
+      background:rgba(0,0,0,0.6); overflow-y:auto;
+      padding:20px 12px; align-items:flex-start; justify-content:center;
+    }
+    #laudo-viewer-overlay.open { display:flex; }
+    #laudo-viewer-box {
+      background:#fff; border-radius:14px; max-width:820px; width:100%;
+      margin:auto; box-shadow:0 20px 60px rgba(0,0,0,0.5); overflow:hidden;
+    }
+    .lv-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 20px; background:var(--green); color:#fff; gap:12px;
+    }
+    .lv-title { font-weight:800; font-size:14px; }
+    .lv-actions { display:flex; gap:8px; flex-shrink:0; }
+    .btn-lv { background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25);
+      color:#fff; padding:7px 14px; border-radius:8px; font-size:12px;
+      font-weight:700; cursor:pointer; font-family:Lato,sans-serif; }
+    .btn-lv:hover { background:rgba(255,255,255,0.2); }
+    .lv-body { padding:24px 28px 32px; }
+    .lv-patient-box {
+      border:1.5px solid var(--border); border-radius:10px; padding:14px 16px;
+      margin-bottom:20px; background:var(--green-pale);
+      display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px;
+    }
+    .lv-label { font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; }
+    .lv-value { font-size:13px; font-weight:700; color:var(--text); margin-top:2px; }
+    .lv-section { margin-bottom:22px; }
+    .lv-section-title {
+      font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.5px;
+      color:var(--green); border-bottom:2px solid var(--border); padding-bottom:6px; margin-bottom:12px;
+    }
+    .lv-section-text { font-size:13px; line-height:1.8; color:var(--text); white-space:pre-wrap; }
+    .lv-images { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px; margin-top:8px; }
+    .lv-img { border-radius:8px; overflow:hidden; border:1.5px solid var(--border); aspect-ratio:4/3; }
+    .lv-img img { width:100%; height:100%; object-fit:cover; }
+    .lv-signature { text-align:right; margin-top:24px; padding-top:14px; border-top:1.5px solid var(--border); }
+    .lv-sig-name { font-weight:800; font-size:13px; }
+    .lv-sig-date { font-size:11px; color:var(--text-muted); margin-top:3px; }
+    #print-container { display:none; }
+    @media print {
+      body > *:not(#print-container) { display:none !important; }
+      #print-container { display:block !important; }
+      @page { size:A4 portrait; margin:0; }
+      .print-page { width:210mm; height:297mm; padding:14mm 22mm 0 22mm; position:relative; overflow:hidden; page-break-after:always; }
+      .print-body { padding-bottom:52mm; }
+      .print-header { text-align:center; border-bottom:2px solid #000; padding-bottom:8px; margin-bottom:10px; }
+      .ph-main { font-size:14pt; font-weight:900; text-transform:uppercase; letter-spacing:1px; }
+      .ph-sub { font-size:9pt; margin-top:2px; }
+      .ph-crm { font-size:8pt; color:#555; margin-top:2px; }
+      .print-patient-box { border:1.5px solid #000; border-radius:4px; padding:8px 12px; margin:10px 0; display:flex; flex-wrap:wrap; gap:8px; }
+      .pp-cell { flex:1; min-width:120px; }
+      .pp-label { font-size:7pt; font-weight:700; text-transform:uppercase; color:#555; }
+      .pp-value { font-size:10pt; font-weight:700; }
+      .ppb-bot-wrap { width:100%; display:flex; gap:8px; }
+      .print-section h3 { font-size:11pt; text-transform:uppercase; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px; }
+      .print-section p { font-size:10pt; line-height:1.7; white-space:pre-wrap; }
+      .print-signature { position:absolute; bottom:28mm; right:22mm; text-align:right; }
+      .ps-label { font-size:8pt; color:#555; }
+      .ps-name { font-size:10pt; font-weight:700; }
+      .ps-date { font-size:8pt; color:#555; margin-top:2px; }
+      .print-footer { position:absolute; bottom:10mm; left:22mm; right:22mm; border-top:1px solid #000; padding-top:6px; display:flex; justify-content:space-between; align-items:flex-start; }
+      .pf-left { font-size:7.5pt; line-height:1.4; }
+      .pf-warn { font-size:6.5pt; color:#666; margin-top:3px; max-width:480px; }
+      .print-img-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:16px; }
+      .print-img-cell { aspect-ratio:4/3; overflow:hidden; border:1px solid #ccc; border-radius:4px; }
+      .print-img-cell img { width:100%; height:100%; object-fit:cover; }
+    }
+    @media (max-width:520px) { .lv-body { padding:16px; } .lv-actions .btn-lv:first-child { display:none; } }
+  </style>
+</head>
+<body>
+
+<div id="print-container"></div>
+
+<!-- LOGIN (mesmo design do sistema) -->
+<div id="screen-login" class="screen active">
+<div class="login-bg">
+    <!-- ECG SVG line -->
+    <svg class="ecg-line" viewBox="0 0 1200 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <polyline points="0,60 80,60 100,60 110,20 120,100 130,60 150,60 160,55 170,60 250,60 260,60 270,15 280,105 290,60 310,60 320,57 330,60 420,60 430,60 440,18 450,102 460,60 480,60 490,56 500,60 580,60 590,60 600,16 610,104 620,60 640,60 650,57 660,60 750,60 760,60 770,17 780,103 790,60 810,60 820,55 830,60 920,60 930,60 940,19 950,101 960,60 980,60 990,56 1000,60 1080,60 1090,60 1100,18 1110,102 1120,60 1140,60 1150,57 1160,60 1200,60"
+        fill="none" stroke="#00d4ff" stroke-width="2.5" opacity="0.7"/>
+    </svg>
+    <!-- Content -->
+    <div class="login-center">
+      <div class="login-card">
+        <div class="lc-header">
+          <div class="lc-logo-wrap">
+            <div class="lc-pulse"></div>
+            <span class="lc-logo-icon">??</span>
+          </div>
+          <div class="lc-brand">C.T.D.M.I.</div>
+          <div class="lc-brand-sub">ANGIOLOGIA E CIRURGIA VASCULAR</div>
+          <div class="lc-brand-detail">CIRURGIA VASCULAR-ANGIOLOGIA-ECOGRAFIA VASCULAR COM DOPPLER</div>
+          <div class="lc-crm">CRM: 11.1260-0</div>
+        </div>
+        <div class="lc-form">
+          <div class="lc-form-title" id="login-subtitle">Acesso ao Sistema</div>
+          <div class="field" id="login-field-email">
+            <label style="color:#a0c8d8;font-size:10px;letter-spacing:1.5px;font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px" id="login-email-label">Email</label>
+            <input type="text" id="login-email" placeholder="seu@email.com" class="lc-input" onkeydown="if(event.key==='Enter')doLogin()">
+          </div>
+          <div class="field" id="login-field-pass">
+            <label style="color:#a0c8d8;font-size:10px;letter-spacing:1.5px;font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px">Senha</label>
+            <input type="password" id="login-pass" placeholder="••••••••" class="lc-input" onkeydown="if(event.key==='Enter')doLogin()">
+          </div>
+          <div id="login-error" style="color:#ff6b6b;font-size:12px;margin:8px 0;display:none;background:rgba(255,50,50,0.1);padding:8px 12px;border-radius:6px;border:1px solid rgba(255,100,100,0.3)"></div>
+          <button class="lc-btn" onclick="doLogin()">ENTRAR</button>
+          <div class="lc-toggle">É paciente? <a onclick="toggleLoginType()" style="color:#00d4ff;cursor:pointer;font-weight:700">Clique aqui</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- PORTAL DO PACIENTE -->
+<div id="screen-patient">
+  <header class="app-header">
+    <div class="hdr-left">
+      <div class="hdr-logo">🩺</div>
+      <div><div class="hdr-title">C.T.D.M.I.</div><div class="hdr-sub">Portal do Paciente</div></div>
+    </div>
+    <div class="hdr-right">
+      <div class="patient-badge" id="patient-badge">👤 Paciente</div>
+      <button class="btn btn-outline" style="padding:7px 14px;font-size:12px;color:#fff;border-color:rgba(255,255,255,0.35)" onclick="doLogout()">Sair</button>
+    </div>
+  </header>
+  <div class="app-main" style="max-width:760px;margin:0 auto;padding:28px 20px 80px">
+    <div class="card">
+      <div class="card-hdr"><div class="card-ico">📋</div><div class="card-title">Meus Laudos</div></div>
+      <div id="patient-laudos-list" class="patient-laudos-list">
+        <div class="empty"><div class="ei">⏳</div><p>Carregando...</p></div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:24px;color:var(--text-muted);font-size:11px;line-height:1.7">
+      C.T.D.M.I. — Angiologia e Cirurgia Vascular<br>
+      Méier — Rua Dias da Cruz, 155 Sala 611 — Tel: 3822-1519
+    </div>
+  </div>
+</div>
+
+<!-- VIEWER DO LAUDO -->
+<div id="laudo-viewer-overlay">
+  <div id="laudo-viewer-box">
+    <div class="lv-header">
+      <div class="lv-title" id="lv-title">📄 Laudo</div>
+      <div class="lv-actions">
+        <button class="btn-lv" onclick="printCurrentLaudo()">🖨️ Imprimir / PDF</button>
+        <button class="btn-lv" onclick="closeLaudo()">✕ Fechar</button>
+      </div>
+    </div>
+    <div class="lv-body" id="lv-body"></div>
+  </div>
+</div>
+
+<script>
+const SUPA_URL = 'https://ncrsgnlyskasdjmjqhpx.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcnNnbmx5c2thc2RqbWpxaHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQ5NjYsImV4cCI6MjA4ODMwMDk2Nn0.xb1EbGvS9bvxbwW-2mqcDJ5bJ3kjAiz2vBlxHRyXB_4';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+let currentUser = null, currentLaudoData = null;
+
+function showErr(el, msg) { if(!el)return; el.textContent=msg; el.style.display=msg?'block':'none'; }
+function fmtDate(iso) { if(!iso) return ''; const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; }
+function todayBR() { return new Date().toLocaleDateString('pt-BR'); }
+function todayBR() { return new Date().toLocaleDateString('pt-BR'); }
+
+// ── LOGIN: override para modo paciente ──
+function toggleLoginType() {
+  const emailInput = document.getElementById('login-email');
+  const emailLabel = document.getElementById('login-email-label');
+  const subtitle   = document.getElementById('login-subtitle');
+  const toggle     = document.querySelector('.lc-toggle');
+  if (emailLabel) emailLabel.textContent = 'Seu CPF (somente números)';
+  if (emailInput) { emailInput.type='tel'; emailInput.placeholder='00000000000'; emailInput.maxLength=11; }
+  if (subtitle) subtitle.textContent = 'Acesso do Paciente';
+  if (toggle) toggle.style.display = 'none';
+}
+
+async function doLogin() {
+  const errEl = document.getElementById('login-error');
+  showErr(errEl,'');
+  const raw = document.getElementById('login-email')?.value || '';
+  const cpf = raw.replace(/\D/g,'').trim();
+  if (!cpf || cpf.length !== 11) { showErr(errEl,'Digite seu CPF com 11 dígitos.'); return; }
+  const { data, error } = await supa.auth.signInWithPassword({ email: cpf+'@ctdmi.pac', password: cpf });
+  if (error || !data?.user) { showErr(errEl,'CPF não encontrado. Verifique com a clínica.'); return; }
+  currentUser = data.user;
+  afterPatientLogin();
+}
+
+async function afterPatientLogin() {
+  document.getElementById('screen-login').style.display = 'none';
+  document.getElementById('screen-login').classList.remove('active');
+  const sp = document.getElementById('screen-patient');
+  sp.style.display = 'flex';
+  await loadPatientLaudos();
+}
+
+async function doLogout() {
+  await supa.auth.signOut();
+  currentUser = null;
+  document.getElementById('screen-patient').style.display = 'none';
+  const sl = document.getElementById('screen-login');
+  sl.style.display = '';
+  sl.classList.add('active');
+  const e = document.getElementById('login-email');
+  if (e) e.value = '';
+}
+
+async function loadPatientLaudos() {
+  const cont = document.getElementById('patient-laudos-list');
+  const { data: pat } = await supa.from('pacientes').select('nome,laudo_ids').eq('user_id', currentUser.id).single();
+  if (!pat) { cont.innerHTML='<div class="empty"><div class="ei">❌</div><p>Paciente não encontrado. Contate a clínica.</p></div>'; return; }
+  document.getElementById('patient-badge').textContent = '👤 ' + pat.nome.split(' ')[0];
+  const ids = pat.laudo_ids || [];
+  if (!ids.length) {
+    cont.innerHTML='<div class="empty"><div class="ei">📋</div><p>Nenhum laudo disponível ainda.<br><small style="color:var(--text-muted)">Aguarde o médico vincular seu laudo.</small></p></div>';
+    return;
+  }
+  const { data: laudos } = await supa.from('laudos').select('*').in('id', ids).is('deleted_at',null).order('data_exame',{ascending:false});
+  if (!laudos?.length) { cont.innerHTML='<div class="empty"><div class="ei">📋</div><p>Nenhum laudo disponível.</p></div>'; return; }
+  const LABELS = { venoso_d:'Doppler Venoso (D)', venoso_e:'Doppler Venoso (E)', arterial:'Doppler Arterial',
+    carotidas:'Carótidas', aorta:'Aorta', cava:'Veia Cava', superiores:'Membros Sup.', ecoca:'Ecocardiograma' };
+  cont.innerHTML = laudos.map(l => {
+    const secs = Object.entries(l.secoes||{}).filter(([,v])=>v.ativo).map(([k])=>LABELS[k]||k).filter(Boolean).join(' · ');
+    return `<div class="saved-row" onclick="openLaudo('${l.id}')">
+      <div style="flex:1">
+        <div class="saved-name">📄 ${l.data_exame ? fmtDate(l.data_exame) : 'Sem data'} — ${l.paciente_nome}</div>
+        <div class="saved-meta">👨‍⚕️ ${l.medico_nome||'—'}${secs?' &nbsp;·&nbsp; '+secs:''}</div>
+      </div>
+      <button class="btn btn-green" style="padding:7px 16px;font-size:12px;flex-shrink:0">Ver →</button>
+    </div>`;
+  }).join('');
+}
+
+async function openLaudo(id) {
+  const overlay = document.getElementById('laudo-viewer-overlay');
+  const body    = document.getElementById('lv-body');
+  overlay.classList.add('open');
+  body.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">⏳ Carregando laudo...</div>';
+  document.body.style.overflow = 'hidden';
+  const { data } = await supa.from('laudos').select('*').eq('id', id).single();
+  if (!data) { body.innerHTML='<div style="padding:40px;text-align:center;color:var(--red)">Erro ao carregar laudo.</div>'; return; }
+  currentLaudoData = data;
+  document.getElementById('lv-title').textContent = '📄 Laudo — ' + fmtDate(data.data_exame);
+  renderLaudo(data, body);
+}
+
+function closeLaudo() {
+  document.getElementById('laudo-viewer-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  currentLaudoData = null;
+}
+document.getElementById('laudo-viewer-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeLaudo();
+});
+
+function renderLaudo(data, container) {
+  const s = data.secoes || {};
+  const TITLES = {
+    venoso_d:'Sistema Venoso — Membro Inferior Direito',
+    venoso_e:'Sistema Venoso — Membro Inferior Esquerdo',
+    arterial:'Ecocolor Doppler Arterial dos Membros Inferiores',
+    carotidas:'Ecocolor Doppler das Carótidas e Vertebrais',
+    aorta:'Ecocolor Doppler de Aorta e Artérias Ilíacas',
+    cava:'Ecocolor Doppler da Veia Cava e Ilíacas',
+    superiores:'Ecocolor Doppler dos Membros Superiores',
+    ecoca:'Ecocardiograma com Doppler'
+  };
+  const secs = ['venoso_d','venoso_e','arterial','carotidas','aorta','cava','superiores','ecoca'].filter(k=>s[k]?.ativo);
+  const imgs = data.imagens || [];
+  let html = `<div class="lv-patient-box">
+    <div><div class="lv-label">Paciente</div><div class="lv-value">${data.paciente_nome||'—'}</div></div>
+    <div><div class="lv-label">Data</div><div class="lv-value">${data.data_exame?fmtDate(data.data_exame):'—'}</div></div>
+    <div><div class="lv-label">Idade</div><div class="lv-value">${data.paciente_idade||'—'}</div></div>
+    <div><div class="lv-label">Convênio</div><div class="lv-value">${data.convenio||'—'}</div></div>
+    ${data.solicitante?`<div><div class="lv-label">Solicitante</div><div class="lv-value">${data.solicitante}</div></div>`:''}
+  </div>`;
+  secs.forEach(k => {
+    html += `<div class="lv-section">
+      <div class="lv-section-title">${TITLES[k]}</div>
+      <div class="lv-section-text">${(s[k].texto||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+    </div>`;
+  });
+  if (imgs.length) {
+    html += `<div class="lv-section"><div class="lv-section-title">Imagens</div><div class="lv-images">`;
+    imgs.forEach(img => { html += `<div class="lv-img"><img src="${img.src}" loading="lazy"></div>`; });
+    html += `</div></div>`;
+  }
+  html += `<div class="lv-signature">
+    <div class="lv-sig-name">${data.medico_nome}</div>
+    <div class="lv-sig-date">CRM: ${data.medico_crm} — Laudo assinado eletronicamente em ${data.data_exame?fmtDate(data.data_exame):todayBR()}</div>
+  </div>`;
+  container.innerHTML = html;
+}
+
+function printCurrentLaudo() {
+  if (!currentLaudoData) return;
+  buildPrint(currentLaudoData);
+}
+function buildPrint(data) {
+  const HEADER = `<div class="print-header"><div class="ph-main">C.T.D.M.I. - Angiologia e Cirurgia Vascular</div><div class="ph-sub">Cirurgia Vascular-Angiologia-Ecografia Vascular com Doppler</div><div class="ph-crm">CRM: 11. 1260-0</div></div>`;
+  
+  const dateEx = data.data_exame ? fmtDate(data.data_exame) : todayBR();
+  const SIGN = `<div class="print-signature"><div class="ps-label">Laudado por:</div><div class="ps-name">${data.medico_nome} CRM: ${data.medico_crm}</div><div class="ps-date">Este laudo foi assinado eletronicamente em ${dateEx}.</div></div>`;
+  
+  const FOOTER = `<div class="print-footer"><div class="pf-left">Méier - Rua Dias da Cruz, 155 Sala 611 Cep: 20720-010 - Ed. Mesbla &nbsp;&nbsp; ctdmi.ecografiavascular@gmail.com<div class="pf-warn">Atenção: Somente seu médico possui o conjunto de informações necessárias para qualquer conclusão diagnóstica ou indicação terapêutica sobre os resultados.</div></div><div style="text-align:right;white-space:nowrap">Tel: 3822-1519<br>Tel: 99614-1313</div></div>`;
+
+  const solicitante = data.solicitante || (data.secoes?.solicitante) || '';
+  const PAT = `<div class="print-patient-box">
+    <div class="pp-cell"><div class="pp-label">PACIENTE</div><div class="pp-value">${(data.paciente_nome||'').toUpperCase()}</div></div>
+    <div class="pp-cell"><div class="pp-label">DT. NASC.</div><div class="pp-value">${data.paciente_nasc?fmtDate(data.paciente_nasc):'—'}</div></div>
+    <div class="pp-cell"><div class="pp-label">IDADE</div><div class="pp-value">${(data.paciente_idade||'').toUpperCase()}</div></div>
+    <div class="ppb-bot-wrap">
+      <div class="pp-cell" style="flex:1"><div class="pp-label">CONVÊNIO</div><div class="pp-value">${(data.convenio||'').toUpperCase()}</div></div>
+      ${solicitante?`<div class="pp-cell" style="flex:2"><div class="pp-label">MÉDICO SOLICITANTE</div><div class="pp-value">${solicitante.toUpperCase()}</div></div>`:''}
+    </div>
+  </div>`;
+
+  const s = data.secoes||{};
+
+  // Build pages in order: Venoso D, Venoso E, Arterial, Carótidas, then others
+  // Each active section = its own page, all with header + patient + section + sign + footer
+  const sections = [
+    { key: 'venoso_d',   title: 'SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES', subtitle: 'MEMBRO INFERIOR DIREITO' },
+    { key: 'venoso_e',   title: 'SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES', subtitle: 'MEMBRO INFERIOR ESQUERDO' },
+    { key: 'arterial',   title: 'ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES', subtitle: null },
+    { key: 'carotidas',  title: 'ECOCOLOR DOPPLER DAS CARÓTIDAS E VERTEBRAIS', subtitle: null },
+    { key: 'aorta',      title: 'ECOCOLOR DOPPLER DE AORTA E ARTÉRIAS ILÍACAS', subtitle: null },
+    { key: 'cava',       title: 'ECOCOLOR DOPPLER DA VEIA CAVA E ILÍACAS', subtitle: null },
+    { key: 'superiores', title: 'ECOCOLOR DOPPLER DOS MEMBROS SUPERIORES', subtitle: null },
+    { key: 'ecoca',      title: 'ECOCARDIOGRAMA COM DOPPLER', subtitle: null },
+  ];
+
+  let pagesHtml = '';
+
+  sections.forEach(sec => {
+    if (!s[sec.key]?.ativo) return;
+    const secHtml = `<div class="print-section">
+      <h3>${sec.title}</h3>
+      ${sec.subtitle ? `<h3 style="font-size:10.5pt;margin-bottom:5px">${sec.subtitle}</h3>` : ''}
+      <p>${s[sec.key].texto||''}</p>
+    </div>`;
+    pagesHtml += `<div class="print-page"><div class="print-body">${HEADER}${PAT}${secHtml}</div>${SIGN}${FOOTER}</div>`;
+  });
+
+  // Image pages — no patient data, just header + images + footer
+  const imgs = data.imagens||[];
+  if (imgs.length) {
+    const pages = Math.ceil(imgs.length/6);
+    for (let p=0; p<pages; p++) {
+      const slice = [...imgs.slice(p*6, p*6+6)];
+      while(slice.length<6) slice.push(null);
+      let grid = '<div class="print-img-grid">';
+      slice.forEach(img => { grid += img ? `<div class="print-img-cell"><img src="${img.src}"></div>` : `<div class="print-img-cell"></div>`; });
+      grid += '</div>';
+      pagesHtml += `<div class="print-page">${HEADER}${grid}${FOOTER}</div>`;
+    }
+  }
+
+  const pc = document.getElementById('print-container');
+  pc.innerHTML = pagesHtml; pc.style.display = 'block';
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => { pc.style.display='none'; pc.innerHTML=''; }, 2000);
+  }, 200);
+}
+
+
+window.onload = async () => {
+  toggleLoginType();
+  const { data: { session } } = await supa.auth.getSession();
+  if (session?.user) { currentUser = session.user; afterPatientLogin(); }
+};
+</script>
+</body>
+</html>
