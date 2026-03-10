@@ -228,6 +228,7 @@ header {
           <div class="section-sub">Visão geral dos dados armazenados</div>
         </div>
         <button class="btn btn-ghost" onclick="loadStatus()">↻ Atualizar</button>
+        <button class="btn btn-ghost" onclick="debugImagens()">🔬 Debug Imagens</button>
       </div>
 
       <div class="stats-row" id="stats-row">
@@ -373,7 +374,7 @@ header {
           <div style="font-weight:800;font-size:14px;margin-bottom:16px">🔑 Credenciais Google OAuth</div>
           <div style="margin-bottom:14px">
             <div class="field-label">Client ID</div>
-            <input class="field-input" id="google-client-id" placeholder="123456789.apps.googleusercontent.com" type="text">
+            <input class="field-input" id="google-client-id" placeholder="123456789.apps.googleusercontent.com" type="text" value="96102621217-f3rjc7lm4sii4guu7fiokiah8vlgcl9f.apps.googleusercontent.com">
           </div>
           <div style="font-size:12px;color:var(--muted);line-height:1.7">
             1. Acesse <a href="https://console.cloud.google.com" target="_blank" style="color:var(--blue)">console.cloud.google.com</a><br>
@@ -432,15 +433,51 @@ function showTab(id, el) {
   if (el) el.classList.add('active');
 }
 
-// ── LOAD STATUS ──
+// ── LOAD STATUS (duas queries separadas para evitar timeout) ──
 async function loadStatus() {
+  document.getElementById('sidebar-conn').innerHTML = '<span style="color:var(--amber)">● Carregando...</span>';
+  document.getElementById('laudos-preview').innerHTML = '<div style="color:var(--muted);font-size:13px">Buscando laudos...</div>';
   try {
-    const { data } = await supa.from('laudos').select('id,paciente_nome,data_exame,medico_nome,imagens,deleted_at').order('criado_em',{ascending:false});
-    allLaudos = data || [];
-    const comImg = allLaudos.filter(l => (l.imagens||[]).length > 0);
-    const base64 = allLaudos.filter(l => (l.imagens||[]).some(i => i.src?.startsWith('data:')));
-    const storage = allLaudos.filter(l => (l.imagens||[]).some(i => i.src?.startsWith('http')));
-    const semImg  = allLaudos.filter(l => !(l.imagens||[]).length);
+    // Passo 1: metadados sem imagens (rápido, sem risco de timeout)
+    allLaudos = [];
+    let from = 0;
+    const PAGE = 500;
+    while (true) {
+      const { data, error } = await supa
+        .from('laudos')
+        .select('id,paciente_nome,data_exame,medico_nome,deleted_at,criado_em')
+        .order('criado_em', {ascending: false})
+        .range(from, from + PAGE - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      allLaudos = allLaudos.concat(data);
+      if (data.length < PAGE) break;
+      from += PAGE;
+    }
+
+    // Passo 2: busca só IDs dos laudos que têm imagens (campo imagens não vazio)
+    // Busca em lotes pequenos para não fazer timeout
+    const imgMap = {};
+    const ids = allLaudos.map(l => l.id);
+    const LOTE = 20;
+    for (let i = 0; i < ids.length; i += LOTE) {
+      const lote = ids.slice(i, i + LOTE);
+      const { data } = await supa
+        .from('laudos')
+        .select('id,imagens')
+        .in('id', lote)
+        .not('imagens', 'is', null);
+      if (data) data.forEach(r => {
+        if (Array.isArray(r.imagens) && r.imagens.length > 0) imgMap[r.id] = r.imagens;
+      });
+    }
+
+    // Injeta imagens e classifica
+    allLaudos.forEach(l => { l.imagens = imgMap[l.id] || []; });
+    const comImg  = allLaudos.filter(l => l.imagens.length > 0);
+    const base64  = allLaudos.filter(l => l.imagens.some(i => typeof i.src === 'string' && i.src.startsWith('data:')));
+    const storage = allLaudos.filter(l => l.imagens.some(i => typeof i.src === 'string' && i.src.startsWith('http')));
+    const semImg  = allLaudos.filter(l => !l.imagens.length);
 
     document.getElementById('stat-laudos').textContent  = allLaudos.length;
     document.getElementById('stat-base64').textContent  = base64.length;
@@ -448,22 +485,37 @@ async function loadStatus() {
     document.getElementById('stat-semimg').textContent  = semImg.length;
     document.getElementById('badge-base64').textContent = base64.length;
     document.getElementById('badge-base64').style.display = base64.length ? 'inline-flex' : 'none';
-    document.getElementById('sidebar-conn').innerHTML = '<span style="color:var(--green)">● Conectado</span>';
+    document.getElementById('sidebar-conn').innerHTML = `<span style="color:var(--green)">● Conectado</span><br><span style="color:var(--dim);font-size:10px">${allLaudos.length} laudos carregados</span>`;
     document.getElementById('mig-count-text').textContent = base64.length + ' laudos com imagens em base64';
     document.getElementById('mig-badge').textContent = base64.length + ' laudos';
 
-    // Preview table
-    const preview = comImg.slice(0,8);
-    if (!preview.length) { document.getElementById('laudos-preview').innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">Nenhum laudo com imagens encontrado.</div>'; return; }
+    // Tabela preview — mostra laudos com qualquer tipo de imagem
+    const preview = comImg.slice(0, 10);
+    if (!preview.length) {
+      // Mostra todos mesmo sem imagem para diagnóstico
+      const todos = allLaudos.slice(0, 6);
+      document.getElementById('laudos-preview').innerHTML =
+        `<div style="color:var(--amber);font-size:12px;margin-bottom:12px">⚠️ Nenhum laudo com imagens detectado. Mostrando todos os laudos:</div>` +
+        `<table class="tbl"><thead><tr><th>Paciente</th><th>Data</th><th>Médico</th><th>imagens (raw)</th></tr></thead><tbody>` +
+        todos.map(l => `<tr>
+          <td style="font-weight:700">${l.paciente_nome||'—'}</td>
+          <td style="font-size:11px;font-family:monospace">${l.data_exame||'—'}</td>
+          <td style="color:var(--muted)">${(l.medico_nome||'').split(' ')[0]||'—'}</td>
+          <td style="font-family:monospace;font-size:10px;color:var(--cyan)">${JSON.stringify(l.imagens).slice(0,60)}</td>
+        </tr>`).join('') + '</tbody></table>';
+      return;
+    }
+
     document.getElementById('laudos-preview').innerHTML = `<table class="tbl">
       <thead><tr><th>Paciente</th><th>Data</th><th>Médico</th><th>Imgs</th><th>Tipo</th></tr></thead>
       <tbody>${preview.map(l => {
-        const imgs = l.imagens||[];
-        const hasB64 = imgs.some(i=>i.src?.startsWith('data:'));
-        const hasUrl = imgs.some(i=>i.src?.startsWith('http'));
+        const imgs = l.imagens || [];
+        const hasB64 = imgs.some(i => typeof i.src === 'string' && i.src.startsWith('data:'));
+        const hasUrl = imgs.some(i => typeof i.src === 'string' && i.src.startsWith('http'));
         const tipo = hasB64 && hasUrl ? '<span class="badge badge-amber">Misto</span>' :
-                     hasB64 ? '<span class="badge badge-red">Base64</span>' :
-                     '<span class="badge badge-green">Storage</span>';
+                     hasB64           ? '<span class="badge badge-red">Base64</span>' :
+                     hasUrl           ? '<span class="badge badge-green">Storage</span>' :
+                                        '<span class="badge badge-blue">Sem src</span>';
         return `<tr>
           <td style="font-weight:700">${l.paciente_nome||'—'}</td>
           <td style="font-family:monospace;font-size:11px">${l.data_exame||'—'}</td>
@@ -474,33 +526,77 @@ async function loadStatus() {
       }).join('')}</tbody>
     </table>`;
   } catch(e) {
-    document.getElementById('sidebar-conn').innerHTML = '<span style="color:var(--red)">● Erro de conexão</span>';
+    document.getElementById('sidebar-conn').innerHTML = '<span style="color:var(--red)">● Erro: ' + e.message + '</span>';
+    document.getElementById('laudos-preview').innerHTML = `<div style="color:var(--red);font-size:12px;font-family:monospace;padding:8px">ERRO: ${e.message}</div>`;
+    console.error('loadStatus error:', e);
   }
 }
 
 // ── ANALISAR BASE64 ──
 async function analisarBase64() {
+  const listEl = document.getElementById('mig-list');
+  listEl.innerHTML = '<span style="color:var(--cyan)">🔍 Analisando banco em lotes (pode levar alguns segundos)...</span>';
+
+  // Recarrega status para ter lista atualizada de IDs
   if (!allLaudos.length) await loadStatus();
-  laudosParaMigrar = allLaudos.filter(l => (l.imagens||[]).some(i => i.src?.startsWith('data:')));
+
+  // Busca imagens em lotes de 10 por vez para não dar timeout
+  laudosParaMigrar = [];
+  const ids = allLaudos.map(l => l.id);
+  const LOTE = 10;
+  let processados = 0;
+
+  for (let i = 0; i < ids.length; i += LOTE) {
+    const lote = ids.slice(i, i + LOTE);
+    const { data, error } = await supa
+      .from('laudos')
+      .select('id,paciente_nome,data_exame,imagens')
+      .in('id', lote)
+      .not('imagens', 'is', null);
+
+    if (data) {
+      data.forEach(r => {
+        if (!Array.isArray(r.imagens)) return;
+        const temBase64 = r.imagens.some(img => typeof img.src === 'string' && img.src.startsWith('data:'));
+        if (temBase64) laudosParaMigrar.push(r);
+      });
+    }
+    processados += lote.length;
+    listEl.innerHTML = `<span style="color:var(--cyan)">🔍 Analisando... ${processados}/${ids.length} laudos verificados, ${laudosParaMigrar.length} com base64</span>`;
+  }
+
   const btn = document.getElementById('btn-migrar');
   btn.disabled = laudosParaMigrar.length === 0;
+
   if (!laudosParaMigrar.length) {
-    document.getElementById('mig-list').innerHTML = '<span style="color:var(--green)">✅ Nenhuma imagem base64 encontrada! Banco já está migrado.</span>';
+    listEl.innerHTML = `
+      <div style="color:var(--green);padding:12px 0;font-weight:700">✅ Nenhuma imagem base64 encontrada!</div>
+      <div style="color:var(--muted);font-size:11px;line-height:1.8">
+        Total de laudos verificados: ${ids.length}<br>
+        Laudos com imagens no Storage: ${allLaudos.filter(l=>l.imagens?.some(i=>i.src?.startsWith('http'))).length}
+      </div>`;
     return;
   }
+
   let totalImgs = 0;
-  laudosParaMigrar.forEach(l => { totalImgs += (l.imagens||[]).filter(i=>i.src?.startsWith('data:')).length; });
+  laudosParaMigrar.forEach(l => { totalImgs += (l.imagens||[]).filter(i => i.src?.startsWith('data:')).length; });
   document.getElementById('mig-count-text').textContent = `${laudosParaMigrar.length} laudos com ${totalImgs} imagens base64`;
   document.getElementById('mig-badge').textContent = laudosParaMigrar.length + ' laudos';
-  document.getElementById('mig-list').innerHTML = `<div style="margin-bottom:10px;color:var(--amber)">⚠️ ${laudosParaMigrar.length} laudos precisam de migração (${totalImgs} imagens):</div>` +
-    laudosParaMigrar.slice(0,20).map(l => {
-      const n = (l.imagens||[]).filter(i=>i.src?.startsWith('data:')).length;
-      return `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)">
-        <span>${l.paciente_nome}</span>
-        <span style="color:var(--amber);font-family:monospace">${n} imagem${n!==1?'s':''}</span>
+  document.getElementById('badge-base64').textContent = laudosParaMigrar.length;
+
+  listEl.innerHTML =
+    `<div style="margin-bottom:10px;color:var(--amber);font-weight:700">⚠️ ${laudosParaMigrar.length} laudos com ${totalImgs} imagens para migrar:</div>` +
+    laudosParaMigrar.slice(0, 30).map(l => {
+      const imgs64 = (l.imagens||[]).filter(i => i.src?.startsWith('data:'));
+      const n = imgs64.length;
+      const kb = Math.round(imgs64.reduce((s,i)=>s+(i.src.length*0.75/1024),0));
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">
+        <span style="font-weight:700">${l.paciente_nome}</span>
+        <span style="color:var(--muted);font-size:11px">${l.data_exame||'s/d'}</span>
+        <span style="color:var(--amber);font-family:monospace;font-size:11px">${n} img · ~${kb}KB</span>
       </div>`;
     }).join('') +
-    (laudosParaMigrar.length > 20 ? `<div style="color:var(--muted);margin-top:6px">... e mais ${laudosParaMigrar.length-20}</div>` : '');
+    (laudosParaMigrar.length > 30 ? `<div style="color:var(--muted);margin-top:6px;font-size:11px">... e mais ${laudosParaMigrar.length-30} laudos</div>` : '');
 }
 
 // ── MIGRAÇÃO ──
@@ -670,19 +766,18 @@ async function downloadImagens() {
 let gapi_loaded = false;
 
 async function autenticarGoogle() {
-  const clientId = document.getElementById('google-client-id').value.trim();
-  if (!clientId) { alert('Cole o Client ID do Google antes.'); return; }
+  // Client ID já configurado
+  const stored = localStorage.getItem('ctdmi_google_client_id');
+  const inputVal = document.getElementById('google-client-id')?.value.trim();
+  const clientId = inputVal || stored || '96102621217-f3rjc7lm4sii4guu7fiokiah8vlgcl9f.apps.googleusercontent.com';
+  if (inputVal) localStorage.setItem('ctdmi_google_client_id', inputVal);
   const scope = 'https://www.googleapis.com/auth/drive.file';
-  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(location.href)}&response_type=token&scope=${encodeURIComponent(scope)}&include_granted_scopes=true`;
-  window.open(url, '_blank', 'width=500,height=600');
-  // Listen for token in URL hash (implicit flow)
-  window._checkGoogleAuth = setInterval(() => {
-    const hash = location.hash;
-    if (hash.includes('access_token=')) {
-      const token = new URLSearchParams(hash.slice(1)).get('access_token');
-      if (token) { googleToken = token; clearInterval(window._checkGoogleAuth); onGoogleAuth(); }
-    }
-  }, 1000);
+  // Salva client_id para recuperar após redirect
+  localStorage.setItem('ctdmi_google_client_id', clientId);
+  // Redirect para OAuth — volta para esta mesma página com token no hash
+  const redirectUri = location.origin + location.pathname;
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}&prompt=select_account`;
+  location.href = url;
 }
 
 async function onGoogleAuth() {
@@ -789,14 +884,62 @@ function hoje() {
   return new Date().toISOString().slice(0,10).replace(/-/g,'');
 }
 
+// ── DEBUG ──
+async function debugImagens() {
+  const el = document.getElementById('laudos-preview');
+  el.innerHTML = '<div style="color:var(--cyan);font-size:12px;font-family:monospace">Executando query direta...</div>';
+
+  // Query mais simples possível - sem filtros
+  const r1 = await supa.from('laudos').select('id, paciente_nome, imagens').limit(3);
+  
+  let html = '<div style="font-family:monospace;font-size:11px">';
+  html += `<div style="color:var(--cyan);margin-bottom:8px">Query: SELECT id, paciente_nome, imagens FROM laudos LIMIT 3</div>`;
+  
+  if (r1.error) {
+    html += `<div style="color:var(--red)">ERRO: ${r1.error.message} (${r1.error.code})</div>`;
+  } else if (!r1.data?.length) {
+    html += `<div style="color:var(--red)">Retornou 0 registros — RLS bloqueando?</div>`;
+  } else {
+    r1.data.forEach(l => {
+      const imgs = l.imagens;
+      const tipo = imgs === null ? 'NULL' :
+                   !Array.isArray(imgs) ? 'NÃO-ARRAY: '+typeof imgs :
+                   imgs.length === 0 ? 'ARRAY VAZIO []' :
+                   imgs[0]?.src?.startsWith('data:') ? `BASE64 (${imgs.length} imgs, ~${Math.round(imgs[0].src.length/1024)}KB cada)` :
+                   imgs[0]?.src?.startsWith('http') ? `STORAGE URL: ${imgs[0].src.slice(0,60)}` :
+                   `OBJETO SEM .src: ${JSON.stringify(imgs[0]).slice(0,80)}`;
+      const cor = tipo.includes('BASE64') ? 'var(--amber)' : tipo.includes('STORAGE') ? 'var(--green)' : 'var(--red)';
+      html += `<div style="border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px">
+        <span style="color:var(--text);font-weight:700">${l.paciente_nome}</span><br>
+        <span style="color:${cor}">${tipo}</span>
+      </div>`;
+    });
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+
 // ── INIT ──
 window.onload = async () => {
-  await loadStatus();
-  // Handle Google OAuth redirect token in hash
+  // Recupera client_id salvo
+  const savedId = localStorage.getItem('ctdmi_google_client_id');
+  const input = document.getElementById('google-client-id');
+  if (savedId && input && !input.value) input.value = savedId;
+
+  // Verifica se voltou do OAuth do Google (token no hash da URL)
   if (location.hash.includes('access_token=')) {
     googleToken = new URLSearchParams(location.hash.slice(1)).get('access_token');
-    if (googleToken) onGoogleAuth();
+    if (googleToken) {
+      // Limpa o hash da URL sem reload
+      history.replaceState(null, '', location.pathname);
+      // Vai direto para aba Drive
+      showTab('tab-drive', document.querySelectorAll('.nav-item')[3]);
+      await onGoogleAuth();
+    }
   }
+
+  await loadStatus();
 };
 </script>
 </body>
