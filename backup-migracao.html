@@ -203,9 +203,7 @@ header {
       <div class="nav-item" onclick="showTab('tab-backup',this)">
         <span class="ni-icon">💾</span> Backup Completo
       </div>
-      <div class="nav-item" onclick="showTab('tab-drive',this)">
-        <span class="ni-icon">📁</span> Google Drive
-      </div>
+
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Info</div>
@@ -422,8 +420,6 @@ const BUCKET = 'laudo-imagens';
 
 let allLaudos = [];
 let laudosParaMigrar = [];
-let googleToken = null;
-let driveFolder = null;
 
 // ── TABS ──
 function showTab(id, el) {
@@ -763,7 +759,439 @@ async function downloadImagens() {
 }
 
 // ── GOOGLE DRIVE ──
-let gapi_loaded = false;
+
+  // Usa Google Identity Services (nova biblioteca do Google)
+  // Carrega a lib dinamicamente se ainda não carregou
+  if (!window.google?.accounts) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://accounts.google.com/gsi/client';
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: scope,
+    callback: async (resp) => {
+      if (resp.error) {
+        document.getElementById('google-status').innerHTML = '<span style="color:var(--red)">Erro: ' + resp.error + '</span>';
+        return;
+      }
+      googleToken = resp.access_token;
+      await onGoogleAuth();
+    },
+  }).requestAccessToken({ prompt: 'select_account' });
+}
+
+// ── HELPERS ──
+function dlBlob(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+function hoje() {
+  return new Date().toISOString().slice(0,10).replace(/-/g,'');
+}
+
+// ── DEBUG ──
+async function debugImagens() {
+  const el = document.getElementById('laudos-preview');
+  el.innerHTML = '<div style="color:var(--cyan);font-size:12px;font-family:monospace">Executando query direta...</div>';
+
+  // Query mais simples possível - sem filtros
+  const r1 = await supa.from('laudos').select('id, paciente_nome, imagens').limit(3);
+  
+  let html = '<div style="font-family:monospace;font-size:11px">';
+  html += `<div style="color:var(--cyan);margin-bottom:8px">Query: SELECT id, paciente_nome, imagens FROM laudos LIMIT 3</div>`;
+  
+  if (r1.error) {
+    html += `<div style="color:var(--red)">ERRO: ${r1.error.message} (${r1.error.code})</div>`;
+  } else if (!r1.data?.length) {
+    html += `<div style="color:var(--red)">Retornou 0 registros — RLS bloqueando?</div>`;
+  } else {
+    r1.data.forEach(l => {
+      const imgs = l.imagens;
+      const tipo = imgs === null ? 'NULL' :
+                   !Array.isArray(imgs) ? 'NÃO-ARRAY: '+typeof imgs :
+                   imgs.length === 0 ? 'ARRAY VAZIO []' :
+                   imgs[0]?.src?.startsWith('data:') ? `BASE64 (${imgs.length} imgs, ~${Math.round(imgs[0].src.length/1024)}KB cada)` :
+                   imgs[0]?.src?.startsWith('http') ? `STORAGE URL: ${imgs[0].src.slice(0,60)}` :
+                   `OBJETO SEM .src: ${JSON.stringify(imgs[0]).slice(0,80)}`;
+      const cor = tipo.includes('BASE64') ? 'var(--amber)' : tipo.includes('STORAGE') ? 'var(--green)' : 'var(--red)';
+      html += `<div style="border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px">
+        <span style="color:var(--text);font-weight:700">${l.paciente_nome}</span><br>
+        <span style="color:${cor}">${tipo}</span>
+      </div>`;
+    });
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+
+// ── INIT ──
+window.onload = async () => {
+  await loadStatus();
+};
+</script>
+</body>
+</html>  </div><!-- /main -->
+</div><!-- /layout -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+const SUPA_URL = 'https://ncrsgnlyskasdjmjqhpx.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcnNnbmx5c2thc2RqbWpxaHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQ5NjYsImV4cCI6MjA4ODMwMDk2Nn0.xb1EbGvS9bvxbwW-2mqcDJ5bJ3kjAiz2vBlxHRyXB_4';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+const BUCKET = 'laudo-imagens';
+
+let allLaudos = [];
+let laudosParaMigrar = [];
+
+// ── TABS ──
+function showTab(id, el) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (el) el.classList.add('active');
+}
+
+// ── LOAD STATUS (duas queries separadas para evitar timeout) ──
+async function loadStatus() {
+  document.getElementById('sidebar-conn').innerHTML = '<span style="color:var(--amber)">● Carregando...</span>';
+  document.getElementById('laudos-preview').innerHTML = '<div style="color:var(--muted);font-size:13px">Buscando laudos...</div>';
+  try {
+    // Passo 1: metadados sem imagens (rápido, sem risco de timeout)
+    allLaudos = [];
+    let from = 0;
+    const PAGE = 500;
+    while (true) {
+      const { data, error } = await supa
+        .from('laudos')
+        .select('id,paciente_nome,data_exame,medico_nome,deleted_at,criado_em')
+        .order('criado_em', {ascending: false})
+        .range(from, from + PAGE - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      allLaudos = allLaudos.concat(data);
+      if (data.length < PAGE) break;
+      from += PAGE;
+    }
+
+    // Passo 2: busca só IDs dos laudos que têm imagens (campo imagens não vazio)
+    // Busca em lotes pequenos para não fazer timeout
+    const imgMap = {};
+    const ids = allLaudos.map(l => l.id);
+    const LOTE = 20;
+    for (let i = 0; i < ids.length; i += LOTE) {
+      const lote = ids.slice(i, i + LOTE);
+      const { data } = await supa
+        .from('laudos')
+        .select('id,imagens')
+        .in('id', lote)
+        .not('imagens', 'is', null);
+      if (data) data.forEach(r => {
+        if (Array.isArray(r.imagens) && r.imagens.length > 0) imgMap[r.id] = r.imagens;
+      });
+    }
+
+    // Injeta imagens e classifica
+    allLaudos.forEach(l => { l.imagens = imgMap[l.id] || []; });
+    const comImg  = allLaudos.filter(l => l.imagens.length > 0);
+    const base64  = allLaudos.filter(l => l.imagens.some(i => typeof i.src === 'string' && i.src.startsWith('data:')));
+    const storage = allLaudos.filter(l => l.imagens.some(i => typeof i.src === 'string' && i.src.startsWith('http')));
+    const semImg  = allLaudos.filter(l => !l.imagens.length);
+
+    document.getElementById('stat-laudos').textContent  = allLaudos.length;
+    document.getElementById('stat-base64').textContent  = base64.length;
+    document.getElementById('stat-storage').textContent = storage.length;
+    document.getElementById('stat-semimg').textContent  = semImg.length;
+    document.getElementById('badge-base64').textContent = base64.length;
+    document.getElementById('badge-base64').style.display = base64.length ? 'inline-flex' : 'none';
+    document.getElementById('sidebar-conn').innerHTML = `<span style="color:var(--green)">● Conectado</span><br><span style="color:var(--dim);font-size:10px">${allLaudos.length} laudos carregados</span>`;
+    document.getElementById('mig-count-text').textContent = base64.length + ' laudos com imagens em base64';
+    document.getElementById('mig-badge').textContent = base64.length + ' laudos';
+
+    // Tabela preview — mostra laudos com qualquer tipo de imagem
+    const preview = comImg.slice(0, 10);
+    if (!preview.length) {
+      // Mostra todos mesmo sem imagem para diagnóstico
+      const todos = allLaudos.slice(0, 6);
+      document.getElementById('laudos-preview').innerHTML =
+        `<div style="color:var(--amber);font-size:12px;margin-bottom:12px">⚠️ Nenhum laudo com imagens detectado. Mostrando todos os laudos:</div>` +
+        `<table class="tbl"><thead><tr><th>Paciente</th><th>Data</th><th>Médico</th><th>imagens (raw)</th></tr></thead><tbody>` +
+        todos.map(l => `<tr>
+          <td style="font-weight:700">${l.paciente_nome||'—'}</td>
+          <td style="font-size:11px;font-family:monospace">${l.data_exame||'—'}</td>
+          <td style="color:var(--muted)">${(l.medico_nome||'').split(' ')[0]||'—'}</td>
+          <td style="font-family:monospace;font-size:10px;color:var(--cyan)">${JSON.stringify(l.imagens).slice(0,60)}</td>
+        </tr>`).join('') + '</tbody></table>';
+      return;
+    }
+
+    document.getElementById('laudos-preview').innerHTML = `<table class="tbl">
+      <thead><tr><th>Paciente</th><th>Data</th><th>Médico</th><th>Imgs</th><th>Tipo</th></tr></thead>
+      <tbody>${preview.map(l => {
+        const imgs = l.imagens || [];
+        const hasB64 = imgs.some(i => typeof i.src === 'string' && i.src.startsWith('data:'));
+        const hasUrl = imgs.some(i => typeof i.src === 'string' && i.src.startsWith('http'));
+        const tipo = hasB64 && hasUrl ? '<span class="badge badge-amber">Misto</span>' :
+                     hasB64           ? '<span class="badge badge-red">Base64</span>' :
+                     hasUrl           ? '<span class="badge badge-green">Storage</span>' :
+                                        '<span class="badge badge-blue">Sem src</span>';
+        return `<tr>
+          <td style="font-weight:700">${l.paciente_nome||'—'}</td>
+          <td style="font-family:monospace;font-size:11px">${l.data_exame||'—'}</td>
+          <td style="color:var(--muted)">${(l.medico_nome||'—').split(' ').slice(0,2).join(' ')}</td>
+          <td style="font-family:monospace">${imgs.length}</td>
+          <td>${tipo}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  } catch(e) {
+    document.getElementById('sidebar-conn').innerHTML = '<span style="color:var(--red)">● Erro: ' + e.message + '</span>';
+    document.getElementById('laudos-preview').innerHTML = `<div style="color:var(--red);font-size:12px;font-family:monospace;padding:8px">ERRO: ${e.message}</div>`;
+    console.error('loadStatus error:', e);
+  }
+}
+
+// ── ANALISAR BASE64 ──
+async function analisarBase64() {
+  const listEl = document.getElementById('mig-list');
+  listEl.innerHTML = '<span style="color:var(--cyan)">🔍 Analisando banco em lotes (pode levar alguns segundos)...</span>';
+
+  // Recarrega status para ter lista atualizada de IDs
+  if (!allLaudos.length) await loadStatus();
+
+  // Busca imagens em lotes de 10 por vez para não dar timeout
+  laudosParaMigrar = [];
+  const ids = allLaudos.map(l => l.id);
+  const LOTE = 10;
+  let processados = 0;
+
+  for (let i = 0; i < ids.length; i += LOTE) {
+    const lote = ids.slice(i, i + LOTE);
+    const { data, error } = await supa
+      .from('laudos')
+      .select('id,paciente_nome,data_exame,imagens')
+      .in('id', lote)
+      .not('imagens', 'is', null);
+
+    if (data) {
+      data.forEach(r => {
+        if (!Array.isArray(r.imagens)) return;
+        const temBase64 = r.imagens.some(img => typeof img.src === 'string' && img.src.startsWith('data:'));
+        if (temBase64) laudosParaMigrar.push(r);
+      });
+    }
+    processados += lote.length;
+    listEl.innerHTML = `<span style="color:var(--cyan)">🔍 Analisando... ${processados}/${ids.length} laudos verificados, ${laudosParaMigrar.length} com base64</span>`;
+  }
+
+  const btn = document.getElementById('btn-migrar');
+  btn.disabled = laudosParaMigrar.length === 0;
+
+  if (!laudosParaMigrar.length) {
+    listEl.innerHTML = `
+      <div style="color:var(--green);padding:12px 0;font-weight:700">✅ Nenhuma imagem base64 encontrada!</div>
+      <div style="color:var(--muted);font-size:11px;line-height:1.8">
+        Total de laudos verificados: ${ids.length}<br>
+        Laudos com imagens no Storage: ${allLaudos.filter(l=>l.imagens?.some(i=>i.src?.startsWith('http'))).length}
+      </div>`;
+    return;
+  }
+
+  let totalImgs = 0;
+  laudosParaMigrar.forEach(l => { totalImgs += (l.imagens||[]).filter(i => i.src?.startsWith('data:')).length; });
+  document.getElementById('mig-count-text').textContent = `${laudosParaMigrar.length} laudos com ${totalImgs} imagens base64`;
+  document.getElementById('mig-badge').textContent = laudosParaMigrar.length + ' laudos';
+  document.getElementById('badge-base64').textContent = laudosParaMigrar.length;
+
+  listEl.innerHTML =
+    `<div style="margin-bottom:10px;color:var(--amber);font-weight:700">⚠️ ${laudosParaMigrar.length} laudos com ${totalImgs} imagens para migrar:</div>` +
+    laudosParaMigrar.slice(0, 30).map(l => {
+      const imgs64 = (l.imagens||[]).filter(i => i.src?.startsWith('data:'));
+      const n = imgs64.length;
+      const kb = Math.round(imgs64.reduce((s,i)=>s+(i.src.length*0.75/1024),0));
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">
+        <span style="font-weight:700">${l.paciente_nome}</span>
+        <span style="color:var(--muted);font-size:11px">${l.data_exame||'s/d'}</span>
+        <span style="color:var(--amber);font-family:monospace;font-size:11px">${n} img · ~${kb}KB</span>
+      </div>`;
+    }).join('') +
+    (laudosParaMigrar.length > 30 ? `<div style="color:var(--muted);margin-top:6px;font-size:11px">... e mais ${laudosParaMigrar.length-30} laudos</div>` : '');
+}
+
+// ── MIGRAÇÃO ──
+function log(msg, type='info') {
+  const box = document.getElementById('mig-log');
+  const line = document.createElement('div');
+  line.className = 'log-' + type;
+  const time = new Date().toLocaleTimeString('pt-BR');
+  line.textContent = `[${time}] ${msg}`;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function iniciarMigracao() {
+  if (!laudosParaMigrar.length) { await analisarBase64(); }
+  if (!laudosParaMigrar.length) return;
+  if (!confirm(`Migrar ${laudosParaMigrar.length} laudos para o Supabase Storage?\n\nEsta operação pode levar alguns minutos.`)) return;
+
+  document.getElementById('mig-progress-card').style.display = 'block';
+  document.getElementById('btn-migrar').disabled = true;
+  document.getElementById('mig-log').innerHTML = '';
+
+  let done = 0, erros = 0;
+  const total = laudosParaMigrar.length;
+
+  for (const laudo of laudosParaMigrar) {
+    log(`Processando: ${laudo.paciente_nome} (${laudo.id.slice(0,8)}...)`, 'info');
+    try {
+      const imgs = laudo.imagens || [];
+      const novasImgs = [];
+      for (const img of imgs) {
+        if (!img.src?.startsWith('data:')) { novasImgs.push(img); continue; }
+        // Upload to storage
+        const res = await fetch(img.src);
+        const blob = await res.blob();
+        const ext  = blob.type.includes('png') ? 'png' : 'jpg';
+        const path = `laudos/${laudo.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: upErr } = await supa.storage.from(BUCKET).upload(path, blob, { contentType: blob.type });
+        if (upErr) { log(`  ✗ Erro no upload: ${upErr.message}`, 'err'); novasImgs.push(img); continue; }
+        const { data: urlData } = supa.storage.from(BUCKET).getPublicUrl(path);
+        novasImgs.push({ src: urlData.publicUrl, name: img.name || '' });
+        log(`  ✓ Imagem → ${path.slice(-30)}`, 'ok');
+      }
+      // Update laudo
+      const { error: updErr } = await supa.from('laudos').update({ imagens: novasImgs }).eq('id', laudo.id);
+      if (updErr) { log(`  ✗ Erro ao atualizar laudo: ${updErr.message}`, 'err'); erros++; }
+      else { log(`✅ Laudo atualizado`, 'ok'); done++; }
+    } catch(e) { log(`✗ Erro: ${e.message}`, 'err'); erros++; }
+
+    const pct = Math.round(((done+erros)/total)*100);
+    document.getElementById('mig-bar').style.width = pct + '%';
+    document.getElementById('mig-pct').textContent = pct + '%';
+    await new Promise(r => setTimeout(r, 100));
+  }
+
+  log(`\n--- Concluído: ${done} migrados, ${erros} erros ---`, done>0?'ok':'warn');
+  document.getElementById('mig-bar').style.background = erros > 0 ? 'var(--amber)' : 'var(--green)';
+  await loadStatus();
+}
+
+// ── DOWNLOAD JSON ──
+async function downloadJSON() {
+  if (!allLaudos.length) await loadStatus();
+  const json = JSON.stringify({ exportado_em: new Date().toISOString(), total: allLaudos.length, laudos: allLaudos }, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  dlBlob(blob, `ctdmi_laudos_${hoje()}.json`);
+}
+
+// ── DOWNLOAD CSV ──
+async function downloadCSV() {
+  if (!allLaudos.length) await loadStatus();
+  const cols = ['id','paciente_nome','paciente_nasc','paciente_idade','data_exame','convenio','solicitante','medico_nome','medico_crm','status','criado_em'];
+  const header = cols.join(';');
+  const rows = allLaudos.map(l => cols.map(c => '"'+(l[c]||'').toString().replace(/"/g,'""')+'"').join(';'));
+  const csv = '\uFEFF' + [header, ...rows].join('\n');
+  dlBlob(new Blob([csv],{type:'text/csv;charset=utf-8'}), `ctdmi_laudos_${hoje()}.csv`);
+}
+
+// ── DOWNLOAD ZIP COMPLETO ──
+async function downloadZIP() {
+  if (!allLaudos.length) await loadStatus();
+  const btn = document.getElementById('btn-zip');
+  const prog = document.getElementById('zip-progress-wrap');
+  const bar  = document.getElementById('zip-bar');
+  const st   = document.getElementById('zip-status');
+  btn.disabled = true;
+  prog.style.display = 'block';
+  st.style.display   = 'block';
+  st.textContent = 'Inicializando...';
+  bar.style.width = '5%';
+
+  const zip = new JSZip();
+  zip.file('laudos.json', JSON.stringify({ exportado_em: new Date().toISOString(), total: allLaudos.length, laudos: allLaudos }, null, 2));
+
+  // CSV
+  const cols = ['id','paciente_nome','data_exame','convenio','medico_nome','medico_crm','status','criado_em'];
+  const csv = '\uFEFF' + [cols.join(';'), ...allLaudos.map(l=>cols.map(c=>'"'+(l[c]||'').toString().replace(/"/g,'""')+'"').join(';'))].join('\n');
+  zip.file('laudos_indice.csv', csv);
+
+  // Images
+  const laudosComImg = allLaudos.filter(l=>(l.imagens||[]).length>0);
+  let imgDone = 0;
+  for (const laudo of laudosComImg) {
+    const folder = zip.folder(`imagens/${laudo.paciente_nome.replace(/[^a-zA-Z0-9]/g,'_')}_${laudo.id.slice(0,8)}`);
+    for (const img of (laudo.imagens||[])) {
+      try {
+        if (img.src?.startsWith('data:')) {
+          const base64 = img.src.split(',')[1];
+          const ext = img.src.includes('png') ? 'png' : 'jpg';
+          folder.file(`img_${Date.now()}.${ext}`, base64, {base64:true});
+        } else if (img.src?.startsWith('http')) {
+          const res = await fetch(img.src);
+          if (res.ok) {
+            const buf = await res.arrayBuffer();
+            const ext = img.src.endsWith('png') ? 'png' : 'jpg';
+            folder.file(`img_${Date.now()}.${ext}`, buf);
+          }
+        }
+      } catch(e) {}
+    }
+    imgDone++;
+    const pct = Math.round(5 + (imgDone/laudosComImg.length)*85);
+    bar.style.width = pct + '%';
+    st.textContent = `Baixando imagens... ${imgDone}/${laudosComImg.length} laudos`;
+    await new Promise(r=>setTimeout(r,10));
+  }
+
+  st.textContent = 'Comprimindo ZIP...';
+  bar.style.width = '95%';
+  const blob = await zip.generateAsync({ type:'blob', compression:'DEFLATE', compressionOptions:{level:6} },
+    meta => { bar.style.width = (95 + meta.percent*0.05) + '%'; });
+  bar.style.width = '100%';
+  dlBlob(blob, `ctdmi_backup_${hoje()}.zip`);
+  st.textContent = '✅ Download iniciado!';
+  btn.disabled = false;
+}
+
+// ── DOWNLOAD IMAGENS ──
+async function downloadImagens() {
+  if (!allLaudos.length) await loadStatus();
+  const laudosComImg = allLaudos.filter(l=>(l.imagens||[]).length>0);
+  if (!laudosComImg.length) { alert('Nenhum laudo com imagens encontrado.'); return; }
+  const zip = new JSZip();
+  for (const laudo of laudosComImg) {
+    const folder = zip.folder(laudo.paciente_nome.replace(/[^a-zA-Z0-9]/g,'_')+'_'+laudo.id.slice(0,8));
+    for (const img of (laudo.imagens||[])) {
+      try {
+        if (img.src?.startsWith('data:')) {
+          const base64 = img.src.split(',')[1];
+          const ext = img.src.includes('png') ? 'png' : 'jpg';
+          folder.file(`img.${ext}`, base64, {base64:true});
+        } else if (img.src?.startsWith('http')) {
+          const res = await fetch(img.src);
+          if (res.ok) {
+            const buf = await res.arrayBuffer();
+            folder.file(`img.jpg`, buf);
+          }
+        }
+      } catch(e) {}
+    }
+  }
+  const blob = await zip.generateAsync({type:'blob'});
+  dlBlob(blob, `ctdmi_imagens_${hoje()}.zip`);
+}
+
+// ── GOOGLE DRIVE ──
 
 async function autenticarGoogle() {
   const CLIENT_ID = '96102621217-ouskrjhpnhmeb5n64nbla7aeubp9geev.apps.googleusercontent.com';
