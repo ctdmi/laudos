@@ -374,7 +374,7 @@ header {
           <div style="font-weight:800;font-size:14px;margin-bottom:16px">🔑 Credenciais Google OAuth</div>
           <div style="margin-bottom:14px">
             <div class="field-label">Client ID</div>
-            <input class="field-input" id="google-client-id" placeholder="123456789.apps.googleusercontent.com" type="text" value="96102621217-f3rjc7lm4sii4guu7fiokiah8vlgcl9f.apps.googleusercontent.com">
+            <input class="field-input" id="google-client-id" placeholder="123456789.apps.googleusercontent.com" type="text" value="96102621217-a9e6p0bdb3e2p6flb58vttpa57ps4m0s.apps.googleusercontent.com">
           </div>
           <div style="font-size:12px;color:var(--muted);line-height:1.7">
             1. Acesse <a href="https://console.cloud.google.com" target="_blank" style="color:var(--blue)">console.cloud.google.com</a><br>
@@ -769,7 +769,7 @@ async function autenticarGoogle() {
   // Client ID já configurado
   const stored = localStorage.getItem('ctdmi_google_client_id');
   const inputVal = document.getElementById('google-client-id')?.value.trim();
-  const clientId = inputVal || stored || '96102621217-f3rjc7lm4sii4guu7fiokiah8vlgcl9f.apps.googleusercontent.com';
+  const clientId = inputVal || stored || '96102621217-a9e6p0bdb3e2p6flb58vttpa57ps4m0s.apps.googleusercontent.com';
   if (inputVal) localStorage.setItem('ctdmi_google_client_id', inputVal);
   const scope = 'https://www.googleapis.com/auth/drive.file';
   // Salva client_id para recuperar após redirect
