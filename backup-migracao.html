@@ -374,7 +374,7 @@ header {
           <div style="font-weight:800;font-size:14px;margin-bottom:16px">🔑 Credenciais Google OAuth</div>
           <div style="margin-bottom:14px">
             <div class="field-label">Client ID</div>
-            <input class="field-input" id="google-client-id" placeholder="123456789.apps.googleusercontent.com" type="text" value="96102621217-a9e6p0bdb3e2p6flb58vttpa57ps4m0s.apps.googleusercontent.com">
+            <input class="field-input" id="google-client-id" placeholder="123456789.apps.googleusercontent.com" type="text" value="96102621217-ouskrjhpnhmeb5n64nbla7aeubp9geev.apps.googleusercontent.com">
           </div>
           <div style="font-size:12px;color:var(--muted);line-height:1.7">
             1. Acesse <a href="https://console.cloud.google.com" target="_blank" style="color:var(--blue)">console.cloud.google.com</a><br>
@@ -766,18 +766,33 @@ async function downloadImagens() {
 let gapi_loaded = false;
 
 async function autenticarGoogle() {
-  // Client ID já configurado
-  const stored = localStorage.getItem('ctdmi_google_client_id');
-  const inputVal = document.getElementById('google-client-id')?.value.trim();
-  const clientId = inputVal || stored || '96102621217-a9e6p0bdb3e2p6flb58vttpa57ps4m0s.apps.googleusercontent.com';
-  if (inputVal) localStorage.setItem('ctdmi_google_client_id', inputVal);
+  const CLIENT_ID = '96102621217-ouskrjhpnhmeb5n64nbla7aeubp9geev.apps.googleusercontent.com';
   const scope = 'https://www.googleapis.com/auth/drive.file';
-  // Salva client_id para recuperar após redirect
-  localStorage.setItem('ctdmi_google_client_id', clientId);
-  // Redirect para OAuth — volta para esta mesma página com token no hash
-  const redirectUri = location.origin + location.pathname;
-  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}&prompt=select_account`;
-  location.href = url;
+
+  // Usa Google Identity Services (nova biblioteca do Google)
+  // Carrega a lib dinamicamente se ainda não carregou
+  if (!window.google?.accounts) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://accounts.google.com/gsi/client';
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: scope,
+    callback: async (resp) => {
+      if (resp.error) {
+        document.getElementById('google-status').innerHTML = '<span style="color:var(--red)">Erro: ' + resp.error + '</span>';
+        return;
+      }
+      googleToken = resp.access_token;
+      await onGoogleAuth();
+    },
+  }).requestAccessToken({ prompt: 'select_account' });
 }
 
 async function onGoogleAuth() {
@@ -922,23 +937,6 @@ async function debugImagens() {
 
 // ── INIT ──
 window.onload = async () => {
-  // Recupera client_id salvo
-  const savedId = localStorage.getItem('ctdmi_google_client_id');
-  const input = document.getElementById('google-client-id');
-  if (savedId && input && !input.value) input.value = savedId;
-
-  // Verifica se voltou do OAuth do Google (token no hash da URL)
-  if (location.hash.includes('access_token=')) {
-    googleToken = new URLSearchParams(location.hash.slice(1)).get('access_token');
-    if (googleToken) {
-      // Limpa o hash da URL sem reload
-      history.replaceState(null, '', location.pathname);
-      // Vai direto para aba Drive
-      showTab('tab-drive', document.querySelectorAll('.nav-item')[3]);
-      await onGoogleAuth();
-    }
-  }
-
   await loadStatus();
 };
 </script>
