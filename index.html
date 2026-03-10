@@ -1129,6 +1129,7 @@ function showTab(name, el) {
   const tab = document.getElementById('tab-'+name);
   if (tab) tab.style.display='block';
   if (el) el.classList.add('active');
+  if (name==='inicio') loadInicio();
   if (name==='salvos') loadSaved();
   if (name==='pendentes') loadPending();
   if (name==='lixeira') loadLixeira();
@@ -1642,17 +1643,23 @@ async function loadInicio() {
 
   const now = new Date();
   const todayISO_ = now.toISOString().slice(0,10);
-  const nomeMedico = currentDoctor?.nome || '';
-  const primeiroNome = nomeMedico.split(' ')[0] || 'Doutor';
+  const nomeUsuario = currentDoctor?.nome || '';
+  const primeiroNome = nomeUsuario.split(' ')[0] || 'Usuário';
+  const papel = currentDoctor?.papel || 'medico';
+  const prefixo = (papel === 'medico') ? 'Dr. ' : '';
   const hora = now.getHours();
   const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
   const dataFormatada = now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const papelLabel = papel === 'secretaria' ? '📋 Secretaria' : papel === 'admin' ? '⚙️ Administrador' : '👨‍⚕️ Médico';
 
   // ── Render greeting immediately (no DB needed) ──
   cont.innerHTML = `
     <div style="padding:4px 0 20px">
-      <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:2px">${saudacao}, Dr. ${primeiroNome}!</div>
-      <div style="font-size:13px;color:var(--text-muted)">${dataFormatada}</div>
+      <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px">${saudacao}, ${prefixo}${primeiroNome}!</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="font-size:13px;color:var(--text-muted)">${dataFormatada}</div>
+        <span style="background:var(--green-pale);color:var(--green);border:1px solid var(--border);padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">${papelLabel}</span>
+      </div>
     </div>
 
     <div id="dash-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:24px">
@@ -1853,8 +1860,10 @@ async function restoreLaudo(id) {
   await supa.from('laudos').update({ deleted_at: null, status: 'concluido' }).eq('id', id);
   loading(false);
   toast('Laudo restaurado para Concluídos!', 'ok');
-  loadLixeira();
-  loadSaved();
+  // Refresh whichever lixeira is visible
+  if (document.getElementById('lixeira-list')) loadLixeira();
+  if (document.getElementById('lixeira-sec-list')) loadLixeiraSec();
+  if (document.getElementById('lixeira-list') || document.getElementById('saved-list')) loadSaved();
 }
 
 async function deleteDefinitivo(id) {
@@ -1863,7 +1872,8 @@ async function deleteDefinitivo(id) {
   await supa.from('laudos').delete().eq('id', id);
   loading(false);
   toast('Laudo excluído permanentemente.', 'ok');
-  loadLixeira();
+  if (document.getElementById('lixeira-list')) loadLixeira();
+  if (document.getElementById('lixeira-sec-list')) loadLixeiraSec();
 }
 
 async function purgeAllLixeira() {
