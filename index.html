@@ -923,6 +923,7 @@ async function afterLogin() {
       // Secretary screen
       document.getElementById('sec-badge').textContent = '📋 ' + doc.nome;
       showScreen('screen-sec');
+      showSecTab('inicio-sec', document.querySelector('#screen-sec nav .tab'));
       loadSecQueue();
       loadDoctorsForSec();
       return;
@@ -935,6 +936,7 @@ async function afterLogin() {
       const adminTab = document.getElementById('sec-admin-tab');
       if (adminTab) adminTab.style.display = 'flex';
       showScreen('screen-sec');
+      showSecTab('inicio-sec', document.querySelector('#screen-sec nav .tab'));
       loadSecQueue();
       loadDoctorsForSec();
       loadDoctors();
@@ -1641,24 +1643,42 @@ async function loadInicio() {
   const cont = document.getElementById('dashboard-content');
   if (!cont) return;
 
-  const now = new Date();
+  const now       = new Date();
   const todayISO_ = now.toISOString().slice(0,10);
-  const nomeUsuario = currentDoctor?.nome || '';
-  const primeiroNome = nomeUsuario.split(' ')[0] || 'Usuário';
-  const papel = currentDoctor?.papel || 'medico';
-  const prefixo = (papel === 'medico') ? 'Dr. ' : '';
-  const hora = now.getHours();
-  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
-  const dataFormatada = now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  const papelLabel = papel === 'secretaria' ? '📋 Secretaria' : papel === 'admin' ? '⚙️ Administrador' : '👨‍⚕️ Médico';
+  const papel      = currentDoctor?.papel || 'medico';
+  const nome       = currentDoctor?.nome  || '';
+  const primeiro   = nome.split(' ')[0]   || 'Usuário';
+  const isMedico   = papel === 'medico';
+  const isAdmin    = papel === 'admin';
+  const isSec      = papel === 'secretaria';
 
-  // ── Render greeting immediately (no DB needed) ──
+  // Pronome de tratamento
+  const prefixo  = isMedico ? 'Dr. ' : '';
+  const hora     = now.getHours();
+  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+  const dataFmt  = now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const badge    = isSec ? '📋 Secretaria' : isAdmin ? '⚙️ Administrador' : '👨‍⚕️ Médico';
+  const escopoLabel = isMedico ? '(seus laudos)' : '(todos os médicos)';
+
+  // Botões de ação conforme papel
+  const botoesAcao = isMedico
+    ? `<button class="btn btn-green btn-big" style="flex:1;min-width:160px" onclick="novoLaudoDireto()">✏️ Novo Laudo</button>
+       <button class="btn btn-outline btn-big" style="flex:1;min-width:160px" onclick="showTab('salvos',document.querySelectorAll('#screen-app nav .tab')[3])">📁 Concluídos</button>`
+    : `<button class="btn btn-green btn-big" style="flex:1;min-width:160px" onclick="showSecTab('fila-sec',document.querySelectorAll('#screen-sec .tab')[1])">⏳ Fila do Dia</button>
+       <button class="btn btn-outline btn-big" style="flex:1;min-width:160px" onclick="showSecTab('concluidos-sec',document.querySelectorAll('#screen-sec .tab')[2])">✅ Concluídos</button>
+       ${isAdmin ? `<button class="btn btn-outline btn-big" style="flex:1;min-width:160px" onclick="showSecTab('admin-sec',document.querySelectorAll('#screen-sec .tab')[4])">⚙️ Administração</button>` : ''}`;
+
+  // Título do card de pendentes
+  const pendTitle = isMedico ? '⏳ Meus pendentes' : '⏳ Todos os pendentes';
+
+  // ── Render saudação imediatamente ──
   cont.innerHTML = `
     <div style="padding:4px 0 20px">
-      <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px">${saudacao}, ${prefixo}${primeiroNome}!</div>
+      <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px">${saudacao}, ${prefixo}${primeiro}!</div>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <div style="font-size:13px;color:var(--text-muted)">${dataFormatada}</div>
-        <span style="background:var(--green-pale);color:var(--green);border:1px solid var(--border);padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">${papelLabel}</span>
+        <div style="font-size:13px;color:var(--text-muted)">${dataFmt}</div>
+        <span style="background:var(--green-pale);color:var(--green);border:1px solid var(--border);padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">${badge}</span>
+        <span style="font-size:11px;color:var(--text-muted);font-style:italic">${escopoLabel}</span>
       </div>
     </div>
 
@@ -1671,42 +1691,48 @@ async function loadInicio() {
     </div>
 
     <div id="dash-pending-card" style="background:#fff;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px">
-      <div style="padding:14px 16px;border-bottom:1.5px solid var(--border);font-weight:800;font-size:14px">⏳ Próximos pendentes</div>
+      <div style="padding:14px 16px;border-bottom:1.5px solid var(--border);font-weight:800;font-size:14px">${pendTitle}</div>
       <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Carregando...</div>
     </div>
 
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn btn-green btn-big" style="flex:1;min-width:160px" onclick="novoLaudoDireto()">✏️ Novo Laudo</button>
-      <button class="btn btn-outline btn-big" style="flex:1;min-width:160px" onclick="showTab('salvos',document.querySelectorAll('#screen-app nav .tab')[3])">📁 Concluídos</button>
-    </div>`;
+    <div style="display:flex;gap:10px;flex-wrap:wrap">${botoesAcao}</div>`;
 
-  // ── Load stats async (update cards when ready) ──
+  // ── Carrega estatísticas ──
   try {
-    const [pendRes, hojRes, mesRes, totalRes] = await Promise.all([
-      supa.from('laudos').select('id,paciente_nome,data_exame,medico_responsavel_id')
-        .eq('status','pendente').is('deleted_at',null),
-      supa.from('laudos').select('id', {count:'exact',head:true})
-        .eq('status','concluido').eq('data_exame', todayISO_).is('deleted_at',null),
-      supa.from('laudos').select('id', {count:'exact',head:true})
-        .eq('status','concluido').gte('data_exame', todayISO_.slice(0,7)+'-01').is('deleted_at',null),
-      supa.from('laudos').select('id', {count:'exact',head:true})
-        .eq('status','concluido').is('deleted_at',null),
-    ]);
+    // Queries base — médico filtra por si, sec/admin vê todos
+    let qPend = supa.from('laudos').select('id,paciente_nome,data_exame,medico_nome,medico_responsavel_id')
+      .eq('status','pendente').is('deleted_at',null);
+    let qHoje = supa.from('laudos').select('id',{count:'exact',head:true})
+      .eq('status','concluido').eq('data_exame',todayISO_).is('deleted_at',null);
+    let qMes  = supa.from('laudos').select('id',{count:'exact',head:true})
+      .eq('status','concluido').gte('data_exame',todayISO_.slice(0,7)+'-01').is('deleted_at',null);
+    let qTot  = supa.from('laudos').select('id',{count:'exact',head:true})
+      .eq('status','concluido').is('deleted_at',null);
 
-    const allPending = pendRes.data || [];
-    const myPending = currentDoctor?.papel === 'admin'
-      ? allPending
-      : allPending.filter(l => l.medico_responsavel_id === currentDoctor?.id);
+    // Médico: filtra apenas os próprios
+    if (isMedico) {
+      qHoje = qHoje.eq('medico_responsavel_id', currentDoctor.id);
+      qMes  = qMes.eq('medico_responsavel_id', currentDoctor.id);
+      qTot  = qTot.eq('medico_responsavel_id', currentDoctor.id);
+    }
 
-    const statPend  = myPending.length;
+    const [pendRes, hojRes, mesRes, totRes] = await Promise.all([qPend, qHoje, qMes, qTot]);
+
+    const allPend = pendRes.data || [];
+    // Médico vê só os seus pendentes
+    const myPend = isMedico
+      ? allPend.filter(l => l.medico_responsavel_id === currentDoctor?.id)
+      : allPend;
+
+    const statPend  = myPend.length;
     const statHoje  = hojRes.count || 0;
     const statMes   = mesRes.count || 0;
-    const statTotal = totalRes.count || 0;
+    const statTotal = totRes.count  || 0;
     const colors    = ['#d97706','var(--green)','#2563eb','#7c3aed'];
     const values    = [statPend, statHoje, statMes, statTotal];
     const labels    = ['Pendentes','Hoje','Este mês','Total'];
 
-    // Update stat cards
+    // Cards de stats
     const statsEl = document.getElementById('dash-stats');
     if (statsEl) statsEl.innerHTML = values.map((v,i) => `
       <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center">
@@ -1714,29 +1740,58 @@ async function loadInicio() {
         <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">${labels[i]}</div>
       </div>`).join('');
 
-    // Update pending card
+    // Card de pendentes
     const pendCard = document.getElementById('dash-pending-card');
     if (pendCard) {
-      const pendList = myPending.slice(0,5).map(l => `
+      const pendList = myPend.slice(0,5).map(l => `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:12px">
           <div>
             <div style="font-weight:700;font-size:13px;color:var(--text)">${l.paciente_nome}</div>
-            <div style="font-size:11px;color:var(--text-muted)">📅 ${l.data_exame ? fmtDate(l.data_exame) : 'Sem data'}</div>
+            <div style="font-size:11px;color:var(--text-muted)">
+              📅 ${l.data_exame ? fmtDate(l.data_exame) : 'Sem data'}
+              ${!isMedico && l.medico_nome ? ` &nbsp;·&nbsp; 👨‍⚕️ ${l.medico_nome.split(' ').slice(0,2).join(' ')}` : ''}
+            </div>
           </div>
-          <button class="btn btn-green" style="padding:6px 14px;font-size:12px;flex-shrink:0" onclick="openPendente('${l.id}')">▶ Laudar</button>
+          ${isMedico
+            ? `<button class="btn btn-green" style="padding:6px 14px;font-size:12px;flex-shrink:0" onclick="openPendente('${l.id}')">▶ Laudar</button>`
+            : `<span style="font-size:11px;color:var(--text-muted);flex-shrink:0">Aguardando médico</span>`}
         </div>`).join('');
+
+      const verTodosBtn = isMedico
+        ? `<button class="btn btn-outline" style="width:100%;font-size:13px" onclick="showTab('pendentes',document.querySelectorAll('#screen-app nav .tab')[2])">Ver todos os pendentes →</button>`
+        : `<button class="btn btn-outline" style="width:100%;font-size:13px" onclick="showSecTab('fila-sec',document.querySelectorAll('#screen-sec .tab')[1])">Ver fila completa →</button>`;
+
       pendCard.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1.5px solid var(--border)">
-          <div style="font-weight:800;font-size:14px">⏳ Próximos pendentes</div>
-          ${statPend > 5 ? `<span style="font-size:12px;color:var(--text-muted)">${statPend-5} mais na fila</span>` : ''}
+          <div style="font-weight:800;font-size:14px">${pendTitle}</div>
+          ${myPend.length > 5 ? `<span style="font-size:12px;color:var(--text-muted)">${myPend.length-5} mais na fila</span>` : ''}
         </div>
-        ${statPend ? pendList : '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">🎉 Nenhum laudo pendente!</div>'}
-        ${statPend ? `<div style="padding:10px 14px"><button class="btn btn-outline" style="width:100%;font-size:13px" onclick="showTab('pendentes',document.querySelectorAll('#screen-app nav .tab')[2])">Ver todos os pendentes →</button></div>` : ''}`;
+        ${myPend.length ? pendList : '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">🎉 Nenhum laudo pendente!</div>'}
+        ${myPend.length ? `<div style="padding:10px 14px">${verTodosBtn}</div>` : ''}`;
     }
   } catch(e) {
     const pendCard = document.getElementById('dash-pending-card');
-    if (pendCard) pendCard.innerHTML = '<div style="padding:16px;color:var(--text-muted);font-size:13px;text-align:center">Não foi possível carregar os dados. Verifique sua conexão.</div>';
+    if (pendCard) pendCard.innerHTML = '<div style="padding:16px;color:var(--text-muted);font-size:13px;text-align:center">Não foi possível carregar os dados.</div>';
+    console.error('loadInicio error:', e);
   }
+}
+
+async function loadInicioSec() {
+  // Redireciona para o dashboard-content-sec
+  const contSec = document.getElementById('dashboard-content-sec');
+  if (!contSec) return;
+  // Temporariamente usa dashboard-content-sec como alvo
+  const contOrig = document.getElementById('dashboard-content');
+  const fakeDiv = document.createElement('div');
+  fakeDiv.id = 'dashboard-content';
+  fakeDiv.style.display = 'none';
+  document.body.appendChild(fakeDiv);
+  // Swap
+  contSec.id = 'dashboard-content';
+  await loadInicio();
+  // Restore
+  contSec.id = 'dashboard-content-sec';
+  fakeDiv.remove();
 }
 
 function novoLaudoDireto() {
@@ -2008,7 +2063,7 @@ async function confirmLinkLaudo() {
 let secImages = [];
 
 function showSecTab(name, el) {
-  ['novo-sec','fila-sec','concluidos-sec','lixeira-sec','admin-sec'].forEach(t => { const e=document.getElementById('tab-'+t); if(e) e.style.display='none'; });
+  ['inicio-sec','novo-sec','fila-sec','concluidos-sec','lixeira-sec','admin-sec'].forEach(t => { const e=document.getElementById('tab-'+t); if(e) e.style.display='none'; });
   document.querySelectorAll('#screen-sec .tab').forEach(t=>t.classList.remove('active'));
   const tab = document.getElementById('tab-'+name);
   if (tab) tab.style.display='block';
@@ -2303,7 +2358,8 @@ async function openPendente(id) {
     </div>
   </header>
   <nav>
-    <div class="tab active" onclick="showSecTab('novo-sec',this)">➕ Novo Paciente</div>
+    <div class="tab active" onclick="showSecTab('inicio-sec',this)">🏠 Início</div>
+    <div class="tab" onclick="showSecTab('novo-sec',this)">➕ Novo Paciente</div>
     <div class="tab" onclick="showSecTab('fila-sec',this)">📋 Fila do Dia <span class="tab-badge" id="sec-queue-count" style="background:#d97706">0</span></div>
     <div class="tab" onclick="showSecTab('concluidos-sec',this)">✅ Concluídos</div>
     <div class="tab" onclick="showSecTab('lixeira-sec',this)">🗑️ Lixeira <span class="tab-badge" id="sec-lixeira-count" style="background:#9ca3af;display:none">0</span></div>
@@ -2311,6 +2367,15 @@ async function openPendente(id) {
   </nav>
 
   <!-- NOVO PACIENTE (Secretaria) -->
+  <div id="tab-inicio-sec" class="app-main" style="display:block">
+    <div class="card">
+      <div class="card-hdr"><div class="card-ico">🏠</div><div class="card-title">Início</div></div>
+      <div class="card-body" id="dashboard-content-sec" style="padding:20px">
+        <div class="empty"><div class="ei">⏳</div><p>Carregando...</p></div>
+      </div>
+    </div>
+  </div>
+
   <div id="tab-novo-sec" class="app-main">
     <div class="card">
       <div class="card-hdr"><div class="card-ico">👤</div><div class="card-title">Cadastrar Paciente para Laudo</div></div>
