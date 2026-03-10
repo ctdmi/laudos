@@ -662,7 +662,21 @@ async function doLogout() {
 
 async function loadPatientLaudos() {
   const cont = document.getElementById('patient-laudos-list');
-  const { data: pat } = await supa.from('pacientes').select('nome,laudo_ids').eq('user_id', currentUser.id).single();
+  cont.innerHTML = '<div class="empty"><div class="ei">⏳</div><p>Carregando...</p></div>';
+
+  // Busca por user_id primeiro, fallback por email (CPF@ctdmi.pac)
+  let pat = null;
+  const { data: d1 } = await supa.from('pacientes').select('nome,laudo_ids,email').eq('user_id', currentUser.id).maybeSingle();
+  if (d1) { pat = d1; }
+  else {
+    // Fallback: busca pelo email da sessão
+    const { data: d2 } = await supa.from('pacientes').select('nome,laudo_ids,email').eq('email', currentUser.email).maybeSingle();
+    if (d2) {
+      pat = d2;
+      // Atualiza user_id para próximas vezes
+      await supa.from('pacientes').update({ user_id: currentUser.id }).eq('email', currentUser.email);
+    }
+  }
   if (!pat) { cont.innerHTML='<div class="empty"><div class="ei">❌</div><p>Paciente não encontrado. Contate a clínica.</p></div>'; return; }
   document.getElementById('patient-badge').textContent = '👤 ' + pat.nome.split(' ')[0];
   const ids = pat.laudo_ids || [];
@@ -823,7 +837,15 @@ function buildPrint(data) {
 window.onload = async () => {
   toggleLoginType();
   const { data: { session } } = await supa.auth.getSession();
-  if (session?.user) { currentUser = session.user; afterPatientLogin(); }
+  // Só aceita sessão de paciente (email termina com @ctdmi.pac)
+  if (session?.user && session.user.email?.endsWith('@ctdmi.pac')) {
+    currentUser = session.user;
+    afterPatientLogin();
+  }
+  // Se há sessão mas NÃO é paciente, faz logout silencioso e mostra login
+  else if (session?.user) {
+    await supa.auth.signOut();
+  }
 };
 </script>
 </body>
