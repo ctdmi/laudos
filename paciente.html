@@ -446,186 +446,256 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 }
 </style>
   <style>
-    /* ── TEMA ESCURO: compatível com o login (azul marinho) ── */
-    #screen-patient {
-      display:none; flex-direction:column; min-height:100vh;
-      background: linear-gradient(160deg, #030d1a 0%, #051525 50%, #020c18 100%);
-    }
+  /* ══════════ PORTAL DO PACIENTE — TEMA CLEAN ══════════ */
 
-    /* Override variáveis para o tema escuro do portal */
-    #screen-patient,
-    #screen-patient .app-header,
-    #screen-patient .card,
-    #screen-patient .saved-row,
-    #laudo-viewer-box {
-      --text: #e2eaf4;
-      --text-mid: #b0c4d8;
-      --text-muted: #6b8aaa;
-      --border: rgba(0,180,220,0.15);
-      --border-dark: rgba(0,180,220,0.25);
-      --white: #0a1628;
-      --off-white: #0d1e35;
-      --green-pale: rgba(0,180,220,0.07);
-      --green: #00b4dc;
-      --green-mid: #0090b8;
-      --shadow-sm: 0 1px 8px rgba(0,0,0,0.4);
-      --shadow: 0 4px 20px rgba(0,0,0,0.5);
-    }
+  /* Fundo: branco puro com linha azul no topo */
+  #screen-patient {
+    display: none;
+    flex-direction: column;
+    min-height: 100vh;
+    background: #f4f7fb;
+  }
 
-    /* Header escuro igual ao login */
-    #screen-patient .app-header {
-      background: rgba(3,13,26,0.92);
-      border-bottom: 1px solid rgba(0,212,255,0.2);
-      backdrop-filter: blur(10px);
-    }
-    #screen-patient .hdr-title { color: #e2eaf4; }
-    #screen-patient .hdr-sub   { color: #6b8aaa; }
-    #screen-patient .hdr-logo  { background: rgba(0,212,255,0.1); border-color: rgba(0,212,255,0.2); }
+  /* Header branco com borda azul sutil */
+  #screen-patient .app-header {
+    background: #ffffff;
+    border-bottom: 2px solid #e2eaf4;
+    box-shadow: 0 1px 8px rgba(0, 120, 200, 0.06);
+  }
+  #screen-patient .hdr-title { color: #0a1628; font-size: 16px; }
+  #screen-patient .hdr-sub   { color: #6b8aaa; font-size: 11px; }
+  #screen-patient .hdr-logo  {
+    background: #e8f0fb;
+    border: 1.5px solid #c5d8f0;
+    color: #1a6b3a;
+  }
 
-    /* Badge do paciente */
-    .patient-badge {
-      background: rgba(0,212,255,0.12);
-      border: 1px solid rgba(0,212,255,0.3);
-      color: #00d4ff;
-      padding: 5px 14px; border-radius: 20px;
-      font-size: 12px; font-weight: 700;
-    }
+  /* Badge do paciente */
+  .patient-badge {
+    background: #e8f0fb;
+    border: 1.5px solid #c5d8f0;
+    color: #1a5fa8;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+  }
 
-    /* Botão Sair — visível no tema escuro */
-    #screen-patient .btn-sair {
-      background: rgba(239,68,68,0.15);
-      border: 1px solid rgba(239,68,68,0.4);
-      color: #f87171;
-      padding: 7px 16px; border-radius: 8px;
-      font-size: 12px; font-weight: 700;
-      cursor: pointer; font-family: Lato, sans-serif;
-      transition: all .15s;
-    }
-    #screen-patient .btn-sair:hover {
-      background: rgba(239,68,68,0.28);
-      border-color: rgba(239,68,68,0.6);
-    }
+  /* Botão Sair — azul outline visível */
+  .btn-sair {
+    background: transparent;
+    border: 1.5px solid #1a5fa8;
+    color: #1a5fa8;
+    padding: 7px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: Lato, sans-serif;
+    transition: all .15s;
+  }
+  .btn-sair:hover {
+    background: #1a5fa8;
+    color: #ffffff;
+  }
 
-    /* Card escuro */
-    #screen-patient .card {
-      background: rgba(5,21,45,0.85);
-      border: 1px solid rgba(0,212,255,0.15);
-      backdrop-filter: blur(8px);
-    }
-    #screen-patient .card-hdr {
-      border-bottom: 1px solid rgba(0,212,255,0.12);
-    }
-    #screen-patient .card-title { color: #e2eaf4; }
-    #screen-patient .card-ico   { color: #00d4ff; }
+  /* Card principal */
+  #screen-patient .card {
+    background: #ffffff;
+    border: 1.5px solid #e2eaf4;
+    border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(0, 80, 180, 0.06);
+    overflow: hidden;
+  }
+  #screen-patient .card-hdr {
+    background: #ffffff;
+    border-bottom: 1.5px solid #e2eaf4;
+    padding: 14px 20px;
+  }
+  #screen-patient .card-title { color: #0a1628; font-size: 15px; font-weight: 800; }
+  #screen-patient .card-ico   { color: #1a5fa8; }
 
-    /* Linhas de laudo */
-    .patient-laudos-list .saved-row {
-      cursor:pointer; transition:background .15s;
-      border-bottom: 1px solid rgba(0,212,255,0.1);
-    }
-    .patient-laudos-list .saved-row:hover {
-      background: rgba(0,212,255,0.07);
-    }
-    .patient-laudos-list .saved-name { color: #e2eaf4; font-weight:700; }
-    .patient-laudos-list .saved-meta { color: #6b8aaa; }
+  /* Linha de laudo */
+  .patient-laudos-list .saved-row {
+    cursor: pointer;
+    transition: background .15s;
+    border-bottom: 1px solid #eef2f8;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .patient-laudos-list .saved-row:hover { background: #f0f5ff; }
+  .patient-laudos-list .saved-row:last-child { border-bottom: none; }
+  .patient-laudos-list .saved-name {
+    font-size: 13px; font-weight: 700; color: #0a1628; margin-bottom: 3px;
+  }
+  .patient-laudos-list .saved-meta {
+    font-size: 11px; color: #6b8aaa;
+  }
 
-    /* Botão Ver → */
-    .patient-laudos-list .btn-green {
-      background: linear-gradient(135deg, #0070b8, #00a8e8);
-      border: none; color: #fff;
-    }
+  /* Botão Ver → */
+  .patient-laudos-list .btn-ver {
+    background: #1a5fa8;
+    color: #ffffff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: Lato, sans-serif;
+    flex-shrink: 0;
+    transition: background .15s;
+    white-space: nowrap;
+  }
+  .patient-laudos-list .btn-ver:hover { background: #155090; }
 
-    /* Empty state */
-    #screen-patient .empty .ei { color: #00d4ff; opacity:.5; }
-    #screen-patient .empty p   { color: #6b8aaa; }
+  /* Empty state */
+  #screen-patient .empty .ei { color: #1a5fa8; opacity: .35; }
+  #screen-patient .empty p   { color: #6b8aaa; }
 
-    /* ── VIEWER DO LAUDO ── */
-    #laudo-viewer-overlay {
-      display:none; position:fixed; inset:0; z-index:1000;
-      background:rgba(0,0,0,0.75); overflow-y:auto;
-      padding:20px 12px; align-items:flex-start; justify-content:center;
-    }
-    #laudo-viewer-overlay.open { display:flex; }
-    #laudo-viewer-box {
-      background: #0a1e38;
-      border: 1px solid rgba(0,212,255,0.2);
-      border-radius:14px; max-width:820px; width:100%;
-      margin:auto; box-shadow:0 20px 60px rgba(0,0,0,0.7); overflow:hidden;
-    }
-    .lv-header {
-      display:flex; align-items:center; justify-content:space-between;
-      padding:14px 20px;
-      background: linear-gradient(90deg, #0d2444, #0a3060);
-      border-bottom: 1px solid rgba(0,212,255,0.2);
-      color:#fff; gap:12px;
-    }
-    .lv-title { font-weight:800; font-size:14px; color:#e2eaf4; }
-    .lv-actions { display:flex; gap:8px; flex-shrink:0; }
-    .btn-lv {
-      background:rgba(0,212,255,0.1); border:1px solid rgba(0,212,255,0.3);
-      color:#00d4ff; padding:7px 14px; border-radius:8px; font-size:12px;
-      font-weight:700; cursor:pointer; font-family:Lato,sans-serif;
-      transition: all .15s;
-    }
-    .btn-lv:hover { background:rgba(0,212,255,0.2); }
-    .lv-body { padding:24px 28px 32px; background:#0a1e38; }
-    .lv-patient-box {
-      border:1px solid rgba(0,212,255,0.2); border-radius:10px;
-      padding:14px 16px; margin-bottom:20px;
-      background:rgba(0,212,255,0.05);
-      display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px;
-    }
-    .lv-label { font-size:10px; font-weight:800; color:#6b8aaa; text-transform:uppercase; letter-spacing:.5px; }
-    .lv-value { font-size:13px; font-weight:700; color:#e2eaf4; margin-top:2px; }
-    .lv-section { margin-bottom:22px; }
-    .lv-section-title {
-      font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.5px;
-      color:#00d4ff; border-bottom:1px solid rgba(0,212,255,0.2);
-      padding-bottom:6px; margin-bottom:12px;
-    }
-    .lv-section-text { font-size:13px; line-height:1.85; color:#c8daea; white-space:pre-wrap; }
-    .lv-images { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px; margin-top:8px; }
-    .lv-img { border-radius:8px; overflow:hidden; border:1px solid rgba(0,212,255,0.15); aspect-ratio:4/3; }
-    .lv-img img { width:100%; height:100%; object-fit:cover; }
-    .lv-signature {
-      text-align:right; margin-top:24px; padding-top:14px;
-      border-top:1px solid rgba(0,212,255,0.15);
-    }
-    .lv-sig-name { font-weight:800; font-size:13px; color:#e2eaf4; }
-    .lv-sig-date { font-size:11px; color:#6b8aaa; margin-top:3px; }
+  /* ── VIEWER DO LAUDO ── */
+  #laudo-viewer-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(10, 22, 40, 0.55);
+    overflow-y: auto;
+    padding: 20px 12px;
+    align-items: flex-start;
+    justify-content: center;
+    backdrop-filter: blur(3px);
+  }
+  #laudo-viewer-overlay.open { display: flex; }
 
-    /* PRINT — não muda com o tema */
-    #print-container { display:none; }
-    @media print {
-      body > *:not(#print-container) { display:none !important; }
-      #print-container { display:block !important; }
-      @page { size:A4 portrait; margin:0; }
-      .print-page { width:210mm; height:297mm; padding:14mm 22mm 0 22mm; position:relative; overflow:hidden; page-break-after:always; }
-      .print-body { padding-bottom:52mm; }
-      .print-header { text-align:center; border-bottom:2px solid #000; padding-bottom:8px; margin-bottom:10px; }
-      .ph-main { font-size:14pt; font-weight:900; text-transform:uppercase; letter-spacing:1px; }
-      .ph-sub { font-size:9pt; margin-top:2px; }
-      .ph-crm { font-size:8pt; color:#555; margin-top:2px; }
-      .print-patient-box { border:1.5px solid #000; border-radius:4px; padding:8px 12px; margin:10px 0; display:flex; flex-wrap:wrap; gap:8px; }
-      .pp-cell { flex:1; min-width:120px; }
-      .pp-label { font-size:7pt; font-weight:700; text-transform:uppercase; color:#555; }
-      .pp-value { font-size:10pt; font-weight:700; }
-      .ppb-bot-wrap { width:100%; display:flex; gap:8px; }
-      .print-section h3 { font-size:11pt; text-transform:uppercase; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px; }
-      .print-section p { font-size:10pt; line-height:1.7; white-space:pre-wrap; }
-      .print-signature { position:absolute; bottom:28mm; right:22mm; text-align:right; }
-      .ps-label { font-size:8pt; color:#555; }
-      .ps-name { font-size:10pt; font-weight:700; }
-      .ps-date { font-size:8pt; color:#555; margin-top:2px; }
-      .print-footer { position:absolute; bottom:10mm; left:22mm; right:22mm; border-top:1px solid #000; padding-top:6px; display:flex; justify-content:space-between; align-items:flex-start; }
-      .pf-left { font-size:7.5pt; line-height:1.4; }
-      .pf-warn { font-size:6.5pt; color:#666; margin-top:3px; max-width:480px; }
-      .print-img-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:16px; }
-      .print-img-cell { aspect-ratio:4/3; overflow:hidden; border:1px solid #ccc; border-radius:4px; }
-      .print-img-cell img { width:100%; height:100%; object-fit:cover; }
-    }
-    @media (max-width:520px) { .lv-body { padding:16px; } }
-  </style>
+  #laudo-viewer-box {
+    background: #ffffff;
+    border: 1.5px solid #e2eaf4;
+    border-radius: 16px;
+    max-width: 820px; width: 100%;
+    margin: auto;
+    box-shadow: 0 20px 60px rgba(0, 40, 120, 0.15);
+    overflow: hidden;
+  }
+
+  /* Header do viewer — azul sólido */
+  .lv-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px;
+    background: #1a5fa8;
+    gap: 12px;
+  }
+  .lv-title { font-weight: 800; font-size: 14px; color: #ffffff; }
+  .lv-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+  /* Botão imprimir — branco outline */
+  .btn-lv-print {
+    background: rgba(255,255,255,0.15);
+    border: 1.5px solid rgba(255,255,255,0.5);
+    color: #ffffff;
+    padding: 7px 16px; border-radius: 8px;
+    font-size: 12px; font-weight: 700;
+    cursor: pointer; font-family: Lato, sans-serif;
+    transition: all .15s;
+  }
+  .btn-lv-print:hover { background: rgba(255,255,255,0.28); }
+
+  /* Botão fechar — vermelho sutil */
+  .btn-lv-close {
+    background: rgba(239,68,68,0.15);
+    border: 1.5px solid rgba(239,68,68,0.4);
+    color: #fca5a5;
+    padding: 7px 14px; border-radius: 8px;
+    font-size: 13px; font-weight: 700;
+    cursor: pointer; font-family: Lato, sans-serif;
+    transition: all .15s;
+  }
+  .btn-lv-close:hover { background: rgba(239,68,68,0.28); color: #fff; }
+
+  /* Corpo do viewer */
+  .lv-body { padding: 24px 28px 32px; background: #ffffff; }
+
+  .lv-patient-box {
+    border: 1.5px solid #e2eaf4;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    background: #f4f7fb;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+  }
+  .lv-label {
+    font-size: 10px; font-weight: 800;
+    color: #6b8aaa; text-transform: uppercase; letter-spacing: .5px;
+  }
+  .lv-value { font-size: 13px; font-weight: 700; color: #0a1628; margin-top: 2px; }
+
+  .lv-section { margin-bottom: 22px; }
+  .lv-section-title {
+    font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .5px;
+    color: #1a5fa8;
+    border-bottom: 2px solid #e2eaf4;
+    padding-bottom: 6px; margin-bottom: 12px;
+  }
+  .lv-section-text {
+    font-size: 13px; line-height: 1.85; color: #1e2e40; white-space: pre-wrap;
+  }
+
+  .lv-images {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 8px; margin-top: 8px;
+  }
+  .lv-img {
+    border-radius: 8px; overflow: hidden;
+    border: 1.5px solid #e2eaf4; aspect-ratio: 4/3;
+  }
+  .lv-img img { width: 100%; height: 100%; object-fit: cover; }
+
+  .lv-signature {
+    text-align: right; margin-top: 24px;
+    padding-top: 14px; border-top: 1.5px solid #e2eaf4;
+  }
+  .lv-sig-name  { font-weight: 800; font-size: 13px; color: #0a1628; }
+  .lv-sig-date  { font-size: 11px; color: #6b8aaa; margin-top: 3px; }
+
+  /* PRINT — sem tema */
+  #print-container { display: none; }
+  @media print {
+    body > *:not(#print-container) { display: none !important; }
+    #print-container { display: block !important; }
+    @page { size: A4 portrait; margin: 0; }
+    .print-page { width:210mm; height:297mm; padding:14mm 22mm 0 22mm; position:relative; overflow:hidden; page-break-after:always; }
+    .print-body { padding-bottom:52mm; }
+    .print-header { text-align:center; border-bottom:2px solid #000; padding-bottom:8px; margin-bottom:10px; }
+    .ph-main { font-size:14pt; font-weight:900; text-transform:uppercase; letter-spacing:1px; }
+    .ph-sub  { font-size:9pt; margin-top:2px; }
+    .ph-crm  { font-size:8pt; color:#555; margin-top:2px; }
+    .print-patient-box { border:1.5px solid #000; border-radius:4px; padding:8px 12px; margin:10px 0; display:flex; flex-wrap:wrap; gap:8px; }
+    .pp-cell { flex:1; min-width:120px; }
+    .pp-label { font-size:7pt; font-weight:700; text-transform:uppercase; color:#555; }
+    .pp-value { font-size:10pt; font-weight:700; }
+    .ppb-bot-wrap { width:100%; display:flex; gap:8px; }
+    .print-section h3 { font-size:11pt; text-transform:uppercase; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px; }
+    .print-section p { font-size:10pt; line-height:1.7; white-space:pre-wrap; }
+    .print-signature { position:absolute; bottom:28mm; right:22mm; text-align:right; }
+    .ps-label { font-size:8pt; color:#555; }
+    .ps-name  { font-size:10pt; font-weight:700; }
+    .ps-date  { font-size:8pt; color:#555; margin-top:2px; }
+    .print-footer { position:absolute; bottom:10mm; left:22mm; right:22mm; border-top:1px solid #000; padding-top:6px; display:flex; justify-content:space-between; align-items:flex-start; }
+    .pf-left  { font-size:7.5pt; line-height:1.4; }
+    .pf-warn  { font-size:6.5pt; color:#666; margin-top:3px; max-width:480px; }
+    .print-img-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:16px; }
+    .print-img-cell { aspect-ratio:4/3; overflow:hidden; border:1px solid #ccc; border-radius:4px; }
+    .print-img-cell img { width:100%; height:100%; object-fit:cover; }
+  }
+  @media (max-width: 520px) {
+    .lv-body { padding: 16px; }
+    #laudo-viewer-overlay { padding: 0; align-items: flex-end; }
+    #laudo-viewer-box { border-radius: 16px 16px 0 0; max-height: 92vh; overflow-y: auto; }
+  }
+</style>
 </head>
 <body>
 
@@ -705,7 +775,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
       <div class="lv-title" id="lv-title">📄 Laudo</div>
       <div class="lv-actions">
         <button class="btn-lv" id="btn-imprimir" onclick="printCurrentLaudo()">🖨️ Imprimir / PDF</button>
-        <button class="btn-lv" onclick="closeLaudo()">✕ Fechar</button>
+        <button class="btn-lv-close" onclick="closeLaudo()">✕ Fechar</button>
       </div>
     </div>
     <div class="lv-body" id="lv-body"></div>
@@ -810,7 +880,7 @@ async function loadPatientLaudos() {
         <div class="saved-name">📄 ${l.data_exame ? fmtDate(l.data_exame) : 'Sem data'} — ${l.paciente_nome}</div>
         <div class="saved-meta">👨‍⚕️ ${l.medico_nome||'—'}${secs?' &nbsp;·&nbsp; '+secs:''}</div>
       </div>
-      <button class="btn btn-green" style="padding:7px 16px;font-size:12px;flex-shrink:0">Ver →</button>
+      <button class="btn-ver">Ver →</button>
     </div>`;
   }).join('');
 }
