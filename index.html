@@ -1643,81 +1643,93 @@ async function loadInicio() {
   const now = new Date();
   const todayISO_ = now.toISOString().slice(0,10);
   const nomeMedico = currentDoctor?.nome || '';
+  const primeiroNome = nomeMedico.split(' ')[0] || 'Doutor';
   const hora = now.getHours();
   const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+  const dataFormatada = now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
-  // Load stats in parallel
-  const [pendRes, hojRes, mesRes, totalRes] = await Promise.all([
-    supa.from('laudos').select('id,paciente_nome,data_exame,medico_responsavel_id', {count:'exact'})
-      .eq('status','pendente').is('deleted_at',null),
-    supa.from('laudos').select('id', {count:'exact',head:true})
-      .eq('status','concluido').eq('data_exame', todayISO_).is('deleted_at',null),
-    supa.from('laudos').select('id', {count:'exact',head:true})
-      .eq('status','concluido').gte('data_exame', todayISO_.slice(0,7)+'-01').is('deleted_at',null),
-    supa.from('laudos').select('id', {count:'exact',head:true})
-      .eq('status','concluido').is('deleted_at',null),
-  ]);
-
-  // Filter pending for this doctor (or all if admin)
-  const allPending = pendRes.data || [];
-  const myPending = currentDoctor?.papel === 'admin'
-    ? allPending
-    : allPending.filter(l => l.medico_responsavel_id === currentDoctor?.id);
-
-  const statPend  = myPending.length;
-  const statHoje  = hojRes.count || 0;
-  const statMes   = mesRes.count || 0;
-  const statTotal = totalRes.count || 0;
-
-  const pendList = myPending.slice(0,5).map(l => `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:12px">
-      <div>
-        <div style="font-weight:700;font-size:13px;color:var(--text)">${l.paciente_nome}</div>
-        <div style="font-size:11px;color:var(--text-muted)">📅 ${l.data_exame ? fmtDate(l.data_exame) : 'Sem data'}</div>
-      </div>
-      <button class="btn btn-green" style="padding:6px 14px;font-size:12px;flex-shrink:0" onclick="openPendente('${l.id}')">▶ Laudar</button>
-    </div>`).join('');
-
-  const emptyPend = `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">🎉 Nenhum laudo pendente!</div>`;
-
+  // ── Render greeting immediately (no DB needed) ──
   cont.innerHTML = `
     <div style="padding:4px 0 20px">
-      <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:2px">${saudacao}, Dr. ${nomeMedico.split(' ')[0]}!</div>
-      <div style="font-size:13px;color:var(--text-muted)">${now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+      <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:2px">${saudacao}, Dr. ${primeiroNome}!</div>
+      <div style="font-size:13px;color:var(--text-muted)">${dataFormatada}</div>
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:24px">
-      <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center">
-        <div style="font-size:28px;font-weight:900;color:#d97706">${statPend}</div>
-        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Pendentes</div>
-      </div>
-      <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center">
-        <div style="font-size:28px;font-weight:900;color:var(--green)">${statHoje}</div>
-        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Hoje</div>
-      </div>
-      <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center">
-        <div style="font-size:28px;font-weight:900;color:#2563eb">${statMes}</div>
-        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Este mês</div>
-      </div>
-      <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center">
-        <div style="font-size:28px;font-weight:900;color:#7c3aed">${statTotal}</div>
-        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Total</div>
-      </div>
+    <div id="dash-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:24px">
+      ${['Pendentes','Hoje','Este mês','Total'].map(l=>`
+        <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+          <div style="font-size:28px;font-weight:900;color:#d1d5db">—</div>
+          <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">${l}</div>
+        </div>`).join('')}
     </div>
 
-    <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1.5px solid var(--border)">
-        <div style="font-weight:800;font-size:14px">⏳ Próximos pendentes</div>
-        ${statPend > 5 ? `<span style="font-size:12px;color:var(--text-muted)">${statPend - 5} mais na fila</span>` : ''}
-      </div>
-      ${statPend ? pendList : emptyPend}
-      ${statPend ? `<div style="padding:10px 14px"><button class="btn btn-outline" style="width:100%;font-size:13px" onclick="showTab('pendentes',document.querySelectorAll('#screen-app nav .tab')[2])">Ver todos os pendentes →</button></div>` : ''}
+    <div id="dash-pending-card" style="background:#fff;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px">
+      <div style="padding:14px 16px;border-bottom:1.5px solid var(--border);font-weight:800;font-size:14px">⏳ Próximos pendentes</div>
+      <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Carregando...</div>
     </div>
 
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn btn-green btn-big" style="flex:1;min-width:160px" onclick="novoLaudoDireto()">✏️ Novo Laudo</button>
       <button class="btn btn-outline btn-big" style="flex:1;min-width:160px" onclick="showTab('salvos',document.querySelectorAll('#screen-app nav .tab')[3])">📁 Concluídos</button>
     </div>`;
+
+  // ── Load stats async (update cards when ready) ──
+  try {
+    const [pendRes, hojRes, mesRes, totalRes] = await Promise.all([
+      supa.from('laudos').select('id,paciente_nome,data_exame,medico_responsavel_id')
+        .eq('status','pendente').is('deleted_at',null),
+      supa.from('laudos').select('id', {count:'exact',head:true})
+        .eq('status','concluido').eq('data_exame', todayISO_).is('deleted_at',null),
+      supa.from('laudos').select('id', {count:'exact',head:true})
+        .eq('status','concluido').gte('data_exame', todayISO_.slice(0,7)+'-01').is('deleted_at',null),
+      supa.from('laudos').select('id', {count:'exact',head:true})
+        .eq('status','concluido').is('deleted_at',null),
+    ]);
+
+    const allPending = pendRes.data || [];
+    const myPending = currentDoctor?.papel === 'admin'
+      ? allPending
+      : allPending.filter(l => l.medico_responsavel_id === currentDoctor?.id);
+
+    const statPend  = myPending.length;
+    const statHoje  = hojRes.count || 0;
+    const statMes   = mesRes.count || 0;
+    const statTotal = totalRes.count || 0;
+    const colors    = ['#d97706','var(--green)','#2563eb','#7c3aed'];
+    const values    = [statPend, statHoje, statMes, statTotal];
+    const labels    = ['Pendentes','Hoje','Este mês','Total'];
+
+    // Update stat cards
+    const statsEl = document.getElementById('dash-stats');
+    if (statsEl) statsEl.innerHTML = values.map((v,i) => `
+      <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:${colors[i]}">${v}</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">${labels[i]}</div>
+      </div>`).join('');
+
+    // Update pending card
+    const pendCard = document.getElementById('dash-pending-card');
+    if (pendCard) {
+      const pendList = myPending.slice(0,5).map(l => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:12px">
+          <div>
+            <div style="font-weight:700;font-size:13px;color:var(--text)">${l.paciente_nome}</div>
+            <div style="font-size:11px;color:var(--text-muted)">📅 ${l.data_exame ? fmtDate(l.data_exame) : 'Sem data'}</div>
+          </div>
+          <button class="btn btn-green" style="padding:6px 14px;font-size:12px;flex-shrink:0" onclick="openPendente('${l.id}')">▶ Laudar</button>
+        </div>`).join('');
+      pendCard.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1.5px solid var(--border)">
+          <div style="font-weight:800;font-size:14px">⏳ Próximos pendentes</div>
+          ${statPend > 5 ? `<span style="font-size:12px;color:var(--text-muted)">${statPend-5} mais na fila</span>` : ''}
+        </div>
+        ${statPend ? pendList : '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">🎉 Nenhum laudo pendente!</div>'}
+        ${statPend ? `<div style="padding:10px 14px"><button class="btn btn-outline" style="width:100%;font-size:13px" onclick="showTab('pendentes',document.querySelectorAll('#screen-app nav .tab')[2])">Ver todos os pendentes →</button></div>` : ''}`;
+    }
+  } catch(e) {
+    const pendCard = document.getElementById('dash-pending-card');
+    if (pendCard) pendCard.innerHTML = '<div style="padding:16px;color:var(--text-muted);font-size:13px;text-align:center">Não foi possível carregar os dados. Verifique sua conexão.</div>';
+  }
 }
 
 function novoLaudoDireto() {
