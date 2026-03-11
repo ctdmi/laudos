@@ -937,7 +937,9 @@ async function afterLogin() {
   const err = document.getElementById('login-error');
   try {
   // Check if doctor/secretary
+  console.log('[afterLogin] buscando medico...');
   const { data: doc, error: docErr } = await supa.from('medicos').select('*').eq('user_id', currentUser.id).single();
+  console.log('[afterLogin] medico result:', doc?.papel, docErr?.message);
   if (docErr && docErr.code !== 'PGRST116') { showErr(err, 'Erro ao buscar usuário: ' + docErr.message); const b=document.querySelector('.lc-btn'); if(b){b.textContent='ENTRAR';b.disabled=false;} return; }
   if (doc) {
     currentDoctor = doc;
@@ -947,7 +949,7 @@ async function afterLogin() {
       const btnSec = document.querySelector('.lc-btn');
       if (btnSec) { btnSec.textContent = 'ENTRAR'; btnSec.disabled = false; }
       showScreen('screen-sec');
-      showSecTab('inicio-sec', document.querySelector('#screen-sec nav .tab'));
+      showSecTab('inicio-sec', document.querySelector('#screen-sec nav .tab'), true);
       startSessionTimeout();
       setTimeout(() => loadInicioSec(), 100);
       setTimeout(() => loadSecQueue(), 600);
@@ -963,7 +965,7 @@ async function afterLogin() {
       const btnAdm = document.querySelector('.lc-btn');
       if (btnAdm) { btnAdm.textContent = 'ENTRAR'; btnAdm.disabled = false; }
       showScreen('screen-sec');
-      showSecTab('inicio-sec', document.querySelector('#screen-sec nav .tab'));
+      showSecTab('inicio-sec', document.querySelector('#screen-sec nav .tab'), true);
       startSessionTimeout();
       setTimeout(() => loadInicioSec(), 100);
       setTimeout(() => loadSecQueue(), 600);
@@ -2142,12 +2144,13 @@ async function confirmLinkLaudo() {
 // ══════════════════════════════
 let secImages = [];
 
-function showSecTab(name, el) {
+function showSecTab(name, el, skipLoad) {
   ['inicio-sec','novo-sec','fila-sec','concluidos-sec','lixeira-sec','admin-sec'].forEach(t => { const e=document.getElementById('tab-'+t); if(e) e.style.display='none'; });
   document.querySelectorAll('#screen-sec .tab').forEach(t=>t.classList.remove('active'));
   const tab = document.getElementById('tab-'+name);
   if (tab) tab.style.display='block';
   if (el) el.classList.add('active');
+  if (skipLoad) return;
   if (name==='inicio-sec') loadInicioSec();
   if (name==='fila-sec') loadSecQueue();
   if (name==='concluidos-sec') loadSecConcluidos();
