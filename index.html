@@ -1007,38 +1007,60 @@ let secEditImages = [];
 // ── SUPABASE STORAGE UPLOAD ──
 const STORAGE_BUCKET = 'laudo-imagens';
 
-async function uploadImageToStorage(base64DataUrl, fileName) {
-  // Convert base64 data URL to blob
-  const res = await fetch(base64DataUrl);
-  const blob = await res.blob();
-  const ext = blob.type.includes('png') ? 'png' : 'jpg';
-  const path = `laudos/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-  const { data, error } = await supa.storage.from(STORAGE_BUCKET).upload(path, blob, {
-    contentType: blob.type,
-    upsert: false
+// Comprime imagem base64 para max 1200px e qualidade 0.75
+async function compressImage(base64DataUrl, maxSize = 1200, quality = 0.75) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > maxSize || h > maxSize) {
+        if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+        else       { w = Math.round(w * maxSize / h); h = maxSize; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(base64DataUrl); // fallback sem compressão
+    img.src = base64DataUrl;
   });
-  if (error) {
-    console.warn('Storage upload failed, using base64 fallback:', error.message);
-    return base64DataUrl; // fallback to base64
+}
+
+async function uploadImageToStorage(base64DataUrl, fileName) {
+  try {
+    // Comprime antes de enviar
+    const compressed = await compressImage(base64DataUrl);
+    const res = await fetch(compressed);
+    const blob = await res.blob();
+    const path = `laudos/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+    const { data, error } = await supa.storage.from(STORAGE_BUCKET).upload(path, blob, {
+      contentType: 'image/jpeg',
+      upsert: false
+    });
+    if (error) {
+      console.warn('Storage upload failed:', error.message);
+      return null; // retorna null — não salva base64 gigante
+    }
+    const { data: urlData } = supa.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+    return urlData.publicUrl;
+  } catch(e) {
+    console.warn('Upload exception:', e.message);
+    return null;
   }
-  const { data: urlData } = supa.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-  return urlData.publicUrl;
 }
 
 async function processImagesForStorage(imageObjects) {
-  // imageObjects: [{id, src, name}] where src may be base64 or already a URL
-  const results = [];
-  for (const img of imageObjects) {
+  // Upload paralelo de todas as imagens base64
+  const promises = imageObjects.map(async (img) => {
     if (img.src && img.src.startsWith('data:')) {
-      // Upload to storage
       const url = await uploadImageToStorage(img.src, img.name || 'imagem');
-      results.push({ src: url, name: img.name || '' });
-    } else {
-      // Already a URL, keep as-is
-      results.push({ src: img.src, name: img.name || '' });
+      return url ? { src: url, name: img.name || '' } : null; // null = falhou
     }
-  }
-  return results;
+    return { src: img.src, name: img.name || '' }; // já é URL
+  });
+  const results = await Promise.all(promises);
+  return results.filter(r => r !== null); // remove falhas
 }
 
 async function secAddImages(id, nome) {
@@ -1219,14 +1241,16 @@ async function buildSecoesObj() {
 async function saveLaudo() {
   if (!get('p-nome')) { toast('Informe o nome do paciente.','err'); return; }
   const secoes = buildSecoesObj();
-  loading(true,'Enviando imagens...');
-  // Upload base64 images to Storage first to avoid payload timeout
+  // Upload imagens para Storage (paralelo com compressão)
+  const totalImgs = images.filter(i => i.src?.startsWith('data:')).length;
+  loading(true, totalImgs > 0 ? `Enviando ${totalImgs} imagem(ns)...` : 'Salvando...');
   let imagensFinais = [];
   try {
     imagensFinais = await processImagesForStorage(images);
   } catch(e) {
-    // fallback: save base64 (may timeout on large images)
-    imagensFinais = images.map(i=>({src:i.src, name:i.name||''}));
+    console.warn('processImages failed:', e.message);
+    // fallback: mantém só URLs já salvas, descarta base64
+    imagensFinais = images.filter(i => i.src && !i.src.startsWith('data:')).map(i => ({src:i.src, name:i.name||''}));
   }
   const payload = {
     paciente_nome:  get('p-nome'),
