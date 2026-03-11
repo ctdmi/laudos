@@ -944,39 +944,44 @@ async function afterLogin() {
     if (doc.papel === 'secretaria') {
       // Secretary screen
       document.getElementById('sec-badge').textContent = '📋 ' + doc.nome;
+      const btnSec = document.querySelector('.lc-btn');
+      if (btnSec) { btnSec.textContent = 'ENTRAR'; btnSec.disabled = false; }
       showScreen('screen-sec');
-      startSessionTimeout();
       showSecTab('inicio-sec', document.querySelector('#screen-sec nav .tab'));
-      loadInicioSec();
-      loadSecQueue();
-      loadDoctorsForSec();
+      startSessionTimeout();
+      setTimeout(() => loadInicioSec(), 100);
+      setTimeout(() => loadSecQueue(), 600);
+      setTimeout(() => loadDoctorsForSec(), 1100);
       return;
     }
     if (doc.papel === 'admin') {
       // Admin gets secretary screen + full edit powers
       document.getElementById('sec-badge').textContent = '⚙️ ' + doc.nome;
       document.getElementById('sec-screen-title').textContent = 'Administrador';
-      // Show admin extras tab
       const adminTab = document.getElementById('sec-admin-tab');
       if (adminTab) adminTab.style.display = 'flex';
+      const btnAdm = document.querySelector('.lc-btn');
+      if (btnAdm) { btnAdm.textContent = 'ENTRAR'; btnAdm.disabled = false; }
       showScreen('screen-sec');
-      startSessionTimeout();
       showSecTab('inicio-sec', document.querySelector('#screen-sec nav .tab'));
-      loadInicioSec();
-      loadSecQueue();
-      loadDoctorsForSec();
-      loadDoctors();
-      loadPatients();
+      startSessionTimeout();
+      setTimeout(() => loadInicioSec(), 100);
+      setTimeout(() => loadSecQueue(), 600);
+      setTimeout(() => { loadDoctorsForSec(); loadDoctors(); loadPatients(); }, 1100);
       return;
     }
     document.getElementById('doctor-badge').textContent = '👨‍⚕️ ' + doc.nome;
+    const btnDone = document.querySelector('.lc-btn');
+    if (btnDone) { btnDone.textContent = 'ENTRAR'; btnDone.disabled = false; }
     showScreen('screen-app');
+    showTab('inicio', document.querySelector('#screen-app nav .tab'), true); // skipLoad=true
     startSessionTimeout();
-    loadPending();
-    loadSaved();
-    updateLixeiraBadge();
     setInterval(autosaveLaudo, 10000);
-    showTab('inicio', document.querySelector('#screen-app nav .tab'));
+    // Escalonado para não sobrecarregar o Supabase no login
+    setTimeout(() => loadInicio('dashboard-content'), 100);
+    setTimeout(() => loadPending(), 700);
+    setTimeout(() => loadSaved(), 1300);
+    setTimeout(() => updateLixeiraBadge(), 1800);
     return;
   }
   // Check if patient
@@ -1181,12 +1186,13 @@ function calcIdade() {
   document.getElementById('p-idade').value=idade+' anos';
 }
 
-function showTab(name, el) {
+function showTab(name, el, skipLoad) {
   ['inicio','novo','pendentes','salvos','lixeira','admin'].forEach(t => { const e=document.getElementById('tab-'+t); if(e) e.style.display='none'; });
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   const tab = document.getElementById('tab-'+name);
   if (tab) tab.style.display='block';
   if (el) el.classList.add('active');
+  if (skipLoad) return;
   if (name==='inicio') loadInicio('dashboard-content');
   if (name==='salvos') loadSaved();
   if (name==='pendentes') loadPending();
