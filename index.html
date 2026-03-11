@@ -925,6 +925,7 @@ async function afterLogin() {
       showScreen('screen-sec');
       startSessionTimeout();
       showSecTab('inicio-sec', document.querySelector('#screen-sec nav .tab'));
+      loadInicioSec();
       loadSecQueue();
       loadDoctorsForSec();
       return;
@@ -938,6 +939,7 @@ async function afterLogin() {
       if (adminTab) adminTab.style.display = 'flex';
       showScreen('screen-sec');
       showSecTab('inicio-sec', document.querySelector('#screen-sec nav .tab'));
+      loadInicioSec();
       loadSecQueue();
       loadDoctorsForSec();
       loadDoctors();
@@ -2057,6 +2059,7 @@ function showSecTab(name, el) {
   const tab = document.getElementById('tab-'+name);
   if (tab) tab.style.display='block';
   if (el) el.classList.add('active');
+  if (name==='inicio-sec') loadInicioSec();
   if (name==='fila-sec') loadSecQueue();
   if (name==='concluidos-sec') loadSecConcluidos();
   if (name==='lixeira-sec') loadLixeiraSec();
