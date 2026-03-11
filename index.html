@@ -1174,11 +1174,10 @@ function renderImages() {
 }
 
 // ── SAVE ──
-async function saveLaudo() {
-  if (!get('p-nome')) { toast('Informe o nome do paciente.','err'); return; }
-  const secoes = {
-    venoso_d: { ativo: document.getElementById('chk-venoso').checked, texto: get('txt-venoso-d') },
-    venoso_e: { ativo: document.getElementById('chk-venoso').checked, texto: get('txt-venoso-e') },
+async function buildSecoesObj() {
+  return {
+    venoso_d:   { ativo: document.getElementById('chk-venoso').checked,     texto: get('txt-venoso-d') },
+    venoso_e:   { ativo: document.getElementById('chk-venoso').checked,     texto: get('txt-venoso-e') },
     arterial:   { ativo: document.getElementById('chk-arterial').checked,   texto: get('txt-arterial') },
     carotidas:  { ativo: document.getElementById('chk-carotidas').checked,  texto: get('txt-carotidas') },
     aorta:      { ativo: document.getElementById('chk-aorta').checked,      texto: get('txt-aorta') },
@@ -1186,6 +1185,11 @@ async function saveLaudo() {
     superiores: { ativo: document.getElementById('chk-superiores').checked, texto: get('txt-superiores') },
     ecoca:      { ativo: document.getElementById('chk-ecoca').checked,      texto: get('txt-ecoca') },
   };
+}
+
+function saveLaudo() {
+  if (!get('p-nome')) { toast('Informe o nome do paciente.','err'); return; }
+    const secoes = buildSecoesObj();
   const payload = {
     paciente_nome:  get('p-nome'),
     paciente_nasc:  get('p-nasc'),
@@ -1370,7 +1374,7 @@ async function retornarPendente() {
   if (retBtn) retBtn.style.display = 'none';
   loadPending();
   loadSaved();
-  showTab('pendentes', document.querySelectorAll('#screen-app .tab')[1]);
+  showTab('pendentes', document.querySelectorAll('#screen-app nav .tab')[2]);
 }
 
 // ── AUTOSAVE ──
@@ -1418,6 +1422,7 @@ async function loadSaved() {
   const { data } = await supa.from('laudos')
     .select('id,paciente_nome,data_exame,medico_nome,convenio,status,criado_em')
     .or('status.eq.concluido,status.is.null')
+    .is('deleted_at', null)
     .order('data_exame',{ascending:false});
   savedAll = data || [];
   document.getElementById('saved-count').textContent = savedAll.length;
@@ -1903,13 +1908,15 @@ async function loadLixeira() {
 async function restoreLaudo(id) {
   if (!confirm('Restaurar este laudo para Concluídos?')) return;
   loading(true, 'Restaurando...');
-  await supa.from('laudos').update({ deleted_at: null, status: 'concluido' }).eq('id', id);
+  const { error } = await supa.from('laudos').update({ deleted_at: null, status: 'concluido' }).eq('id', id);
   loading(false);
+  if (error) { toast('Erro ao restaurar: ' + error.message, 'err'); return; }
   toast('Laudo restaurado para Concluídos!', 'ok');
-  // Refresh whichever lixeira is visible
-  if (document.getElementById('lixeira-list')) loadLixeira();
-  if (document.getElementById('lixeira-sec-list')) loadLixeiraSec();
-  if (document.getElementById('lixeira-list') || document.getElementById('saved-list')) loadSaved();
+  // Recarrega lixeira e concluídos em ambas as telas
+  loadLixeira();
+  loadLixeiraSec();
+  loadSaved();
+  loadSecConcluidos();
 }
 
 async function deleteDefinitivo(id) {
@@ -2227,7 +2234,7 @@ async function deleteSecPendente(id) {
 let secConcluidosAll = [];
 async function loadSecConcluidos() {
   const { data } = await supa.from('laudos').select('id,paciente_nome,data_exame,medico_nome,convenio')
-    .eq('status','concluido').order('data_exame',{ascending:false});
+    .eq('status','concluido').is('deleted_at',null).order('data_exame',{ascending:false});
   secConcluidosAll = data||[];
   renderSecConcluidos(secConcluidosAll);
 }
