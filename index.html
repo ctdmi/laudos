@@ -1231,7 +1231,7 @@ function renderImages() {
 }
 
 // ── SAVE ──
-async function buildSecoesObj() {
+function buildSecoesObj() {
   return {
     venoso_d:   { ativo: document.getElementById('chk-venoso').checked,     texto: get('txt-venoso-d') },
     venoso_e:   { ativo: document.getElementById('chk-venoso').checked,     texto: get('txt-venoso-e') },
@@ -1259,16 +1259,18 @@ async function saveLaudo() {
     imagensFinais = images.filter(i => i.src && !i.src.startsWith('data:')).map(i => ({src:i.src, name:i.name||''}));
   }
   const payload = {
-    paciente_nome:  get('p-nome'),
-    paciente_nasc:  get('p-nasc'),
-    paciente_idade: get('p-idade'),
-    data_exame:     get('p-data'),
-    convenio:       get('p-convenio'),
-    solicitante:    get('p-solicitante'),
-    medico_nome:    (editingLaudoMedico?.nome || currentDoctor?.nome || ''),
-    medico_crm:     (editingLaudoMedico?.crm  || currentDoctor?.crm  || ''),
-    status:         'concluido',
-    criado_por:     currentDoctor?.papel || 'medico',
+    paciente_nome:           get('p-nome'),
+    paciente_nasc:           get('p-nasc'),
+    paciente_idade:          get('p-idade'),
+    data_exame:              get('p-data'),
+    convenio:                get('p-convenio'),
+    solicitante:             get('p-solicitante'),
+    medico_nome:             (editingLaudoMedico?.nome || currentDoctor?.nome || ''),
+    medico_crm:              (editingLaudoMedico?.crm  || currentDoctor?.crm  || ''),
+    medico_responsavel_id:   currentDoctor?.id   || null,
+    medico_responsavel_nome: currentDoctor?.nome || '',
+    status:                  'concluido',
+    criado_por:              currentDoctor?.papel || 'medico',
     secoes,
     imagens: imagensFinais,
   };
