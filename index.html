@@ -884,23 +884,37 @@ async function doLogin() {
   const emailOrCpf = document.getElementById('login-email').value.trim();
   const err = document.getElementById('login-error');
   err.style.display = 'none';
-  loading(true,'Entrando...');
+
   let email, pass;
   if (isPatientLogin) {
     const cpf = emailOrCpf.replace(/\D/g,'');
-    if (cpf.length !== 11) { loading(false); showErr(err,'Digite o CPF com 11 dígitos.'); return; }
+    if (cpf.length !== 11) { showErr(err,'Digite o CPF com 11 dígitos.'); return; }
     email = cpf + '@ctdmi.pac';
     pass = cpf;
   } else {
     email = emailOrCpf;
     pass = document.getElementById('login-pass').value;
-    if (!email || !pass) { loading(false); showErr(err,'Preencha email e senha.'); return; }
+    if (!email || !pass) { showErr(err,'Preencha email e senha.'); return; }
   }
-  const { data, error } = await supa.auth.signInWithPassword({ email, password: pass });
-  loading(false);
-  if (error) { showErr(err, isPatientLogin ? 'CPF não encontrado.' : 'Email ou senha incorretos.'); return; }
-  currentUser = data.user;
-  await afterLogin();
+
+  showErr(err, '');
+  const btnEl = document.querySelector('.lc-btn');
+  if (btnEl) { btnEl.textContent = 'Entrando...'; btnEl.disabled = true; }
+
+  try {
+    const { data, error } = await supa.auth.signInWithPassword({ email, password: pass });
+    if (error) {
+      showErr(err, isPatientLogin ? 'CPF não encontrado.' : 'Email ou senha incorretos. (' + error.message + ')');
+      if (btnEl) { btnEl.textContent = 'ENTRAR'; btnEl.disabled = false; }
+      return;
+    }
+    currentUser = data.user;
+    if (btnEl) { btnEl.textContent = 'Carregando...'; }
+    await afterLogin();
+  } catch(e) {
+    showErr(err, 'Erro inesperado: ' + e.message);
+    if (btnEl) { btnEl.textContent = 'ENTRAR'; btnEl.disabled = false; }
+  }
 }
 
 let doctorsList = [];
@@ -915,8 +929,11 @@ async function loadDoctorsForSec() {
 }
 
 async function afterLogin() {
+  const err = document.getElementById('login-error');
+  try {
   // Check if doctor/secretary
-  const { data: doc } = await supa.from('medicos').select('*').eq('user_id', currentUser.id).single();
+  const { data: doc, error: docErr } = await supa.from('medicos').select('*').eq('user_id', currentUser.id).single();
+  if (docErr && docErr.code !== 'PGRST116') { showErr(err, 'Erro ao buscar usuário: ' + docErr.message); const b=document.querySelector('.lc-btn'); if(b){b.textContent='ENTRAR';b.disabled=false;} return; }
   if (doc) {
     currentDoctor = doc;
     if (doc.papel === 'secretaria') {
@@ -969,6 +986,12 @@ async function afterLogin() {
   // Unknown user
   showErr(document.getElementById('login-error'), 'Usuário não encontrado no sistema.');
   await supa.auth.signOut();
+  const b=document.querySelector('.lc-btn'); if(b){b.textContent='ENTRAR';b.disabled=false;}
+  } catch(e) {
+    showErr(document.getElementById('login-error'), 'Erro interno: ' + e.message);
+    const b=document.querySelector('.lc-btn'); if(b){b.textContent='ENTRAR';b.disabled=false;}
+    console.error('afterLogin error:', e);
+  }
 }
 
 
