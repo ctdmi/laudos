@@ -937,9 +937,28 @@ async function afterLogin() {
   const err = document.getElementById('login-error');
   try {
   // Check if doctor/secretary
+  // Teste rápido: tabela medicos responde?
+  console.log('[afterLogin] teste ping medicos...');
+  const pingTest = await Promise.race([
+    supa.from('medicos').select('count').limit(1),
+    new Promise(resolve => setTimeout(() => resolve({error:{message:'ping timeout'}}), 5000))
+  ]);
+  console.log('[afterLogin] ping result:', pingTest.error?.message || 'OK count=' + pingTest.data?.length);
+
   console.log('[afterLogin] buscando medico...');
-  const { data: doc, error: docErr } = await supa.from('medicos').select('*').eq('user_id', currentUser.id).single();
+  // Race: query vs 10s timeout
+  const docResult = await Promise.race([
+    supa.from('medicos').select('*').eq('user_id', currentUser.id).single(),
+    new Promise(resolve => setTimeout(() => resolve({ data: null, error: { message: 'Timeout — tente novamente.', code: 'TIMEOUT' } }), 10000))
+  ]);
+  const doc = docResult.data;
+  const docErr = docResult.error;
   console.log('[afterLogin] medico result:', doc?.papel, docErr?.message);
+  if (docErr?.code === 'TIMEOUT') {
+    showErr(err, 'Conexão lenta. Recarregue a página e tente novamente.');
+    const b = document.querySelector('.lc-btn'); if(b){b.textContent='ENTRAR';b.disabled=false;}
+    return;
+  }
   if (docErr && docErr.code !== 'PGRST116') { showErr(err, 'Erro ao buscar usuário: ' + docErr.message); const b=document.querySelector('.lc-btn'); if(b){b.textContent='ENTRAR';b.disabled=false;} return; }
   if (doc) {
     currentDoctor = doc;
