@@ -1401,13 +1401,27 @@ async function retornarPendente() {
   if (!editingLaudoId) return;
   if (!confirm('Retornar este laudo para a fila de Pendentes? O médico precisará reabrir e salvar novamente.')) return;
   loading(true, 'Retornando...');
-  const { error } = await supa.from('laudos').update({ status: 'pendente' }).eq('id', editingLaudoId);
+
+  // Busca o laudo para garantir medico_responsavel_id
+  const { data: laudo } = await supa.from('laudos').select('medico_responsavel_id, medico_responsavel_nome').eq('id', editingLaudoId).single();
+
+  // Se não tem medico_responsavel_id, usa o médico atual
+  const medId   = laudo?.medico_responsavel_id   || currentDoctor?.id   || null;
+  const medNome = laudo?.medico_responsavel_nome  || currentDoctor?.nome || '';
+
+  const { error } = await supa.from('laudos').update({
+    status: 'pendente',
+    medico_responsavel_id:   medId,
+    medico_responsavel_nome: medNome,
+  }).eq('id', editingLaudoId);
+
   loading(false);
   if (error) { toast('Erro: ' + error.message, 'err'); return; }
   toast('Laudo retornado aos pendentes!', 'ok');
-  // Reset form state
+
   editingLaudoId = null;
   editingLaudoMedico = null;
+  laudoConcluido = false;
   const retBtn = document.getElementById('btn-retornar-pendente');
   if (retBtn) retBtn.style.display = 'none';
   loadPending();
