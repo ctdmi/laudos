@@ -1216,7 +1216,7 @@ async function buildSecoesObj() {
   };
 }
 
-function saveLaudo() {
+async function saveLaudo() {
   if (!get('p-nome')) { toast('Informe o nome do paciente.','err'); return; }
     const secoes = buildSecoesObj();
   const payload = {
