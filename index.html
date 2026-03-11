@@ -938,6 +938,7 @@ async function afterLogin() {
       const adminTab = document.getElementById('sec-admin-tab');
       if (adminTab) adminTab.style.display = 'flex';
       showScreen('screen-sec');
+      startSessionTimeout();
       showSecTab('inicio-sec', document.querySelector('#screen-sec nav .tab'));
       loadInicioSec();
       loadSecQueue();
@@ -1140,7 +1141,7 @@ function showTab(name, el) {
   if (name==='salvos') loadSaved();
   if (name==='pendentes') loadPending();
   if (name==='lixeira') loadLixeira();
-  if (name==='admin') { loadDoctors(); loadPatients(); loadAdminModelos(); }
+  if (name==='admin') { loadDoctors(); loadPatients(); }
 }
 
 function toggleLb(name) {
