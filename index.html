@@ -923,6 +923,7 @@ async function afterLogin() {
       // Secretary screen
       document.getElementById('sec-badge').textContent = '📋 ' + doc.nome;
       showScreen('screen-sec');
+      startSessionTimeout();
       showSecTab('inicio-sec', document.querySelector('#screen-sec nav .tab'));
       loadSecQueue();
       loadDoctorsForSec();
@@ -945,6 +946,7 @@ async function afterLogin() {
     }
     document.getElementById('doctor-badge').textContent = '👨‍⚕️ ' + doc.nome;
     showScreen('screen-app');
+    startSessionTimeout();
     loadPending();
     loadSaved();
     updateLixeiraBadge();
@@ -1097,6 +1099,7 @@ async function saveChangePwd() {
 }
 
 async function doLogout() {
+  stopSessionTimeout();
   await supa.auth.signOut();
   currentUser = null; currentDoctor = null; currentPatient = null;
   showScreen('screen-login');
@@ -1131,7 +1134,7 @@ function showTab(name, el) {
   const tab = document.getElementById('tab-'+name);
   if (tab) tab.style.display='block';
   if (el) el.classList.add('active');
-  if (name==='inicio') loadInicio();
+  if (name==='inicio') loadInicio('dashboard-content');
   if (name==='salvos') loadSaved();
   if (name==='pendentes') loadPending();
   if (name==='lixeira') loadLixeira();
@@ -1639,8 +1642,8 @@ async function loadPatientLaudos() {
 }
 
 // ── DASHBOARD ──
-async function loadInicio() {
-  const cont = document.getElementById('dashboard-content');
+async function loadInicio(contId) {
+  const cont = document.getElementById(contId || 'dashboard-content');
   if (!cont) return;
 
   const now       = new Date();
@@ -1777,21 +1780,7 @@ async function loadInicio() {
 }
 
 async function loadInicioSec() {
-  // Redireciona para o dashboard-content-sec
-  const contSec = document.getElementById('dashboard-content-sec');
-  if (!contSec) return;
-  // Temporariamente usa dashboard-content-sec como alvo
-  const contOrig = document.getElementById('dashboard-content');
-  const fakeDiv = document.createElement('div');
-  fakeDiv.id = 'dashboard-content';
-  fakeDiv.style.display = 'none';
-  document.body.appendChild(fakeDiv);
-  // Swap
-  contSec.id = 'dashboard-content';
-  await loadInicio();
-  // Restore
-  contSec.id = 'dashboard-content-sec';
-  fakeDiv.remove();
+  await loadInicio('dashboard-content-sec');
 }
 
 function novoLaudoDireto() {
@@ -2324,6 +2313,39 @@ async function openPendente(id) {
   const retBtn = document.getElementById('btn-retornar-pendente');
   if (retBtn) retBtn.style.display = 'none';
   showTab('novo', document.querySelectorAll('#screen-app .tab')[1]); // tab[1] = Novo Laudo
+}
+
+
+// ══════════ SESSÃO: TIMEOUT 30 MIN ══════════
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutos
+let sessionTimer = null;
+let sessionWarningTimer = null;
+
+function resetSessionTimer() {
+  clearTimeout(sessionTimer);
+  clearTimeout(sessionWarningTimer);
+  // Aviso 2 min antes do timeout
+  sessionWarningTimer = setTimeout(() => {
+    toast('⚠️ Sessão será encerrada em 2 minutos por inatividade.', 'warn');
+  }, SESSION_TIMEOUT_MS - 2 * 60 * 1000);
+  // Logout automático
+  sessionTimer = setTimeout(async () => {
+    toast('Sessão encerrada por inatividade.', 'ok');
+    await doLogout();
+  }, SESSION_TIMEOUT_MS);
+}
+
+function startSessionTimeout() {
+  const eventos = ['mousemove','keydown','click','touchstart','scroll'];
+  eventos.forEach(ev => document.addEventListener(ev, resetSessionTimer, { passive: true }));
+  resetSessionTimer();
+}
+
+function stopSessionTimeout() {
+  clearTimeout(sessionTimer);
+  clearTimeout(sessionWarningTimer);
+  const eventos = ['mousemove','keydown','click','touchstart','scroll'];
+  eventos.forEach(ev => document.removeEventListener(ev, resetSessionTimer));
 }
 
 </script>
