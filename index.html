@@ -1584,7 +1584,8 @@ async function loadLaudo(id) {
   const vOn = s.venoso_d?.ativo||false;
   document.getElementById('chk-venoso').checked=vOn;
   document.getElementById('lb-venoso').classList.toggle('on',vOn);
-  images=(data.imagens||[]).map(i=>({id:Math.random(),src:i.src,name:i.name}));
+  images=(data.imagens||[]).filter(i=>i&&i.src).map(i=>({id:Math.random(),src:i.src,name:i.name||''}));
+  console.log('[loadLaudo] imagens:', images.length, images.map(i=>i.src?.slice(0,80)));
   renderImages();
   editingLaudoId=id;
   // Store the responsible doctor from the laudo (not currentDoctor)
