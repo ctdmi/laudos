@@ -1034,38 +1034,43 @@ async function compressImage(base64DataUrl, maxSize = 1200, quality = 0.75) {
 
 async function uploadImageToStorage(base64DataUrl, fileName) {
   try {
-    // Comprime antes de enviar
+    // Comprime antes de enviar (max 1200px, 75% qualidade)
     const compressed = await compressImage(base64DataUrl);
     const res = await fetch(compressed);
     const blob = await res.blob();
     const path = `laudos/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+    console.log('[upload] tentando storage, blob size:', blob.size, 'path:', path);
     const { data, error } = await supa.storage.from(STORAGE_BUCKET).upload(path, blob, {
       contentType: 'image/jpeg',
       upsert: false
     });
     if (error) {
-      console.warn('Storage upload failed:', error.message);
-      return null; // retorna null — não salva base64 gigante
+      console.warn('[upload] storage falhou:', error.message, '— usando base64 comprimido');
+      return compressed; // fallback: base64 JÁ comprimido (pequeno)
     }
     const { data: urlData } = supa.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+    console.log('[upload] ok:', urlData.publicUrl);
     return urlData.publicUrl;
   } catch(e) {
-    console.warn('Upload exception:', e.message);
-    return null;
+    console.warn('[upload] exceção:', e.message);
+    // último recurso: retorna base64 comprimido
+    try { return await compressImage(base64DataUrl); } catch { return base64DataUrl; }
   }
 }
 
 async function processImagesForStorage(imageObjects) {
   // Upload paralelo de todas as imagens base64
   const promises = imageObjects.map(async (img) => {
-    if (img.src && img.src.startsWith('data:')) {
+    if (!img.src) return null;
+    if (img.src.startsWith('data:')) {
       const url = await uploadImageToStorage(img.src, img.name || 'imagem');
-      return url ? { src: url, name: img.name || '' } : null; // null = falhou
+      // uploadImageToStorage agora sempre retorna algo (URL ou base64 comprimido)
+      return { src: url || img.src, name: img.name || '' };
     }
-    return { src: img.src, name: img.name || '' }; // já é URL
+    return { src: img.src, name: img.name || '' }; // já é URL do storage
   });
   const results = await Promise.all(promises);
-  return results.filter(r => r !== null); // remove falhas
+  return results.filter(r => r !== null && r.src);
 }
 
 async function secAddImages(id, nome) {
