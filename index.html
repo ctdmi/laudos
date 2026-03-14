@@ -412,11 +412,6 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
   .print-section h4 { font-size: 10pt; font-weight: bold; margin-bottom: 4px; }
   .print-section p  { font-size: 10pt; line-height: 1.55; text-align: justify; white-space: pre-wrap; word-break: break-word; }
 
-/* ── FORMATAÇÃO DE TEXTO (aplicado no print) ── */
-.print-section p b, .print-section p strong { font-weight: bold; }
-.print-section p i, .print-section p em { font-style: italic; }
-.print-section p u { text-decoration: underline; }
-
   /* ── IMAGES ── */
   .print-img-grid {
     display: grid;
@@ -454,6 +449,47 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
     font-family: 'Times New Roman', serif;
   }
   .pf-warn { font-size: 7pt; font-style: italic; color: #444; margin-top: 2px; }
+}
+
+/* ══════════ TOOLBAR FORMATAÇÃO (estilo Word) ══════════ */
+.fmt-wrap { display: flex; flex-direction: column; margin-bottom: 16px; }
+.fmt-bar {
+  display: flex; align-items: center; gap: 1px; padding: 3px 6px;
+  background: linear-gradient(to bottom, #f3f4f6, #eaecef);
+  border: 1.5px solid #c9cdd4; border-bottom: 1px solid #d8dce2;
+  border-radius: 6px 6px 0 0; user-select: none; flex-wrap: wrap;
+}
+.fmt-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 28px; height: 26px; padding: 0 6px;
+  border: 1px solid transparent; border-radius: 3px;
+  background: transparent; cursor: pointer;
+  font-size: 13px; color: #1e293b;
+  font-family: 'Segoe UI', Calibri, Arial, sans-serif;
+  transition: all 0.1s; position: relative; line-height: 1;
+}
+.fmt-btn:hover { background: #dce8f5; border-color: #a8c4e0; }
+.fmt-btn:active { background: #c5d9ef; border-color: #7aaed4; box-shadow: inset 0 1px 2px rgba(0,0,0,.12); }
+.fmt-btn-b  { font-weight: 900; font-size: 14px; font-family: 'Times New Roman', serif; }
+.fmt-btn-i  { font-style: italic; font-weight: 700; font-size: 14px; font-family: 'Times New Roman', serif; }
+.fmt-btn-u  { font-weight: 700; font-size: 13px; }
+.fmt-btn-u span { text-decoration: underline; }
+.fmt-btn-aa { font-size: 11px; font-weight: 800; letter-spacing: -0.3px; }
+.fmt-btn-clr svg { width: 12px; height: 12px; }
+.fmt-sep { width: 1px; height: 16px; background: #b0b8c4; margin: 0 3px; flex-shrink: 0; }
+.fmt-btn::after {
+  content: attr(title); position: absolute; bottom: calc(100% + 5px); left: 50%;
+  transform: translateX(-50%); background: #1e293b; color: #fff;
+  font-size: 10px; font-weight: 500; white-space: nowrap; font-style: normal; font-family: inherit;
+  padding: 3px 7px; border-radius: 4px; pointer-events: none;
+  opacity: 0; transition: opacity 0.15s; z-index: 9999;
+}
+.fmt-btn:hover::after { opacity: 1; }
+textarea.fmt-textarea {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  border-top: 1px solid #d8dce2 !important;
+  margin-bottom: 0 !important;
 }
 </style>
 </head>
@@ -548,9 +584,9 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
       </div>
     </div>
 
-    <div class="card" style="padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap">📄 Modelo:</div>
-      <select id="medico-modelo-sel" style="flex:1;min-width:200px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:#fff" onchange="aplicarModelo('medico-modelo-sel')">
+    <div class="card" style="padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#f8fafc">
+      <span style="font-size:12px;font-weight:700;color:var(--text-muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.5px">📄 Modelo</span>
+      <select id="medico-modelo-sel" style="flex:1;min-width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;background:#fff" onchange="aplicarModelo('medico-modelo-sel')">
         <option value="">— escolher modelo —</option>
       </select>
     </div>
@@ -565,7 +601,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
         </div>
         <div class="lb-body">
           <div style="margin-bottom:10px;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">🦵 Membro Inferior Direito</div>
-          <div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('txt-venoso-d')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('txt-venoso-d')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('txt-venoso-d')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-venoso-d')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('txt-venoso-d')" style="color:#e11d48">✕ fmt</button></div><textarea oninput="scheduleAutosave()" id="txt-venoso-d" class="fmt-textarea" style="margin-bottom:16px">PERVIEDADE:
+          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-venoso-d')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-venoso-d')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-venoso-d')"><span>S</span></button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO / minúsculo" onclick="fmtMaiusculo('txt-venoso-d')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-venoso-d')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><textarea oninput="scheduleAutosave()" id="txt-venoso-d" class="fmt-textarea" style="margin-bottom:16px">PERVIEDADE:
 
 Veias do sistema superficial e profundo encontram-se pérvias, calibres normais, compressíveis, sem trombos visíveis ao mapeamento a cores, com fluxos fásicos com a respiração, sendo suas paredes lisas sem irregularidades parietais.
 
@@ -579,9 +615,9 @@ Veia Safena Parva apresenta calibre normal, sem tortuosidades e ou refluxos sign
 
 Não foram visualizadas veias perfurantes incompetentes.
 
-Há varicosidades conforme ectoscopia. Telangiectasias e varizes reticulares subcutâneas, visualizadas veias extra-faciais insuficientes na face anterior e lateral e posterior da coxa e perna.</textarea>
+Há varicosidades conforme ectoscopia. Telangiectasias e varizes reticulares subcutâneas, visualizadas veias extra-faciais insuficientes na face anterior e lateral e posterior da coxa e perna.</textarea></div>
           <div style="margin-bottom:10px;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">🦵 Membro Inferior Esquerdo</div>
-          <div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('txt-venoso-e')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('txt-venoso-e')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('txt-venoso-e')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-venoso-e')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('txt-venoso-e')" style="color:#e11d48">✕ fmt</button></div><textarea oninput="scheduleAutosave()" id="txt-venoso-e" class="fmt-textarea">PERVIEDADE:
+          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-venoso-e')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-venoso-e')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-venoso-e')"><span>S</span></button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO / minúsculo" onclick="fmtMaiusculo('txt-venoso-e')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-venoso-e')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><textarea oninput="scheduleAutosave()" id="txt-venoso-e" class="fmt-textarea">PERVIEDADE:
 
 Veias do sistema superficial e profundo encontram-se pérvias, calibres normais, compressíveis, sem trombos visíveis ao mapeamento a cores, com fluxos fásicos com a respiração, sendo suas paredes lisas sem irregularidades parietais.
 
@@ -595,7 +631,7 @@ Veia Safena Parva apresenta calibre normal, sem tortuosidades e ou refluxos sign
 
 Não foram visualizadas veias perfurantes incompetentes.
 
-Há varicosidades conforme ectoscopia. Telangiectasias e varizes reticulares subcutâneas, visualizadas veias extra-faciais insuficientes na face anterior e lateral e posterior da coxa e perna.</textarea>
+Há varicosidades conforme ectoscopia. Telangiectasias e varizes reticulares subcutâneas, visualizadas veias extra-faciais insuficientes na face anterior e lateral e posterior da coxa e perna.</textarea></div>
         </div>
       </div>
 
@@ -604,7 +640,7 @@ Há varicosidades conforme ectoscopia. Telangiectasias e varizes reticulares sub
           <span class="lb-title">ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-arterial" checked onchange="toggleLb('arterial')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
-        <div class="lb-body"><div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('txt-arterial')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('txt-arterial')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('txt-arterial')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-arterial')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('txt-arterial')" style="color:#e11d48">✕ fmt</button></div><textarea oninput="scheduleAutosave()" id="txt-arterial" class="fmt-textarea">O exame com Doppler espectral e colorido revela:
+        <div class="lb-body"><div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-arterial')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-arterial')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-arterial')"><span>S</span></button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO / minúsculo" onclick="fmtMaiusculo('txt-arterial')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-arterial')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><textarea oninput="scheduleAutosave()" id="txt-arterial" class="fmt-textarea">O exame com Doppler espectral e colorido revela:
 
 MEMBRO INFERIOR DIREITO
 
@@ -624,7 +660,7 @@ Ao Doppler detectamos fluxos trifásicos com velocidades normais.
 
 IMPRESSÃO:
 
-Não foi evidenciado redução no deságue arterial dos membros inferiores.</textarea></div>
+Não foi evidenciado redução no deságue arterial dos membros inferiores.</textarea></div></div>
       </div>
 
       <div class="lb on" id="lb-carotidas">
@@ -632,7 +668,7 @@ Não foi evidenciado redução no deságue arterial dos membros inferiores.</tex
           <span class="lb-title">ECOCOLOR DOPPLER DAS CARÓTIDAS E VERTEBRAIS</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-carotidas" checked onchange="toggleLb('carotidas')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
-        <div class="lb-body"><div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('txt-carotidas')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('txt-carotidas')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('txt-carotidas')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-carotidas')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('txt-carotidas')" style="color:#e11d48">✕ fmt</button></div><textarea oninput="scheduleAutosave()" id="txt-carotidas" class="fmt-textarea">O exame com mapeamento a cores e espectral, revela:
+        <div class="lb-body"><div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-carotidas')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-carotidas')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-carotidas')"><span>S</span></button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO / minúsculo" onclick="fmtMaiusculo('txt-carotidas')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-carotidas')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><textarea oninput="scheduleAutosave()" id="txt-carotidas" class="fmt-textarea">O exame com mapeamento a cores e espectral, revela:
 
 Artérias carótidas e vertebrais apresentam calibres e pulsatilidades normais, sem tortuosidades destes vasos.
 
@@ -642,7 +678,7 @@ Ao Doppler, foram detectados fluxos ascendentes e laminares, com morfologia e ve
 
 IMPRESSÃO:
 
-Ausências de lesões hemodinamicamente significativas.</textarea></div>
+Ausências de lesões hemodinamicamente significativas.</textarea></div></div>
       </div>
 
       <div class="lb" id="lb-aorta">
@@ -650,7 +686,7 @@ Ausências de lesões hemodinamicamente significativas.</textarea></div>
           <span class="lb-title">ECOCOLOR DOPPLER DE AORTA E ARTÉRIAS ILÍACAS</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-aorta" onchange="toggleLb('aorta')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
-        <div class="lb-body"><div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('txt-aorta')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('txt-aorta')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('txt-aorta')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-aorta')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('txt-aorta')" style="color:#e11d48">✕ fmt</button></div><textarea oninput="scheduleAutosave()" id="txt-aorta" class="fmt-textarea">O exame com Doppler espectral e colorido, revela:
+        <div class="lb-body"><div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-aorta')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-aorta')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-aorta')"><span>S</span></button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO / minúsculo" onclick="fmtMaiusculo('txt-aorta')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-aorta')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><textarea oninput="scheduleAutosave()" id="txt-aorta" class="fmt-textarea">O exame com Doppler espectral e colorido, revela:
 
 Aorta abdominal e artérias ilíacas estão com calibres e pulsatilidades normais. Espessamento da camada médio intimal compatível com a faixa etária, sem lesões obstrutivas.
 
@@ -658,7 +694,7 @@ Ao Doppler detectamos fluxos com velocidades e morfologia característica.
 
 IMPRESSÃO:
 
-Ausência de lesões hemodinamicamente significativas.</textarea></div>
+Ausência de lesões hemodinamicamente significativas.</textarea></div></div>
       </div>
 
       <div class="lb" id="lb-cava">
@@ -666,13 +702,13 @@ Ausência de lesões hemodinamicamente significativas.</textarea></div>
           <span class="lb-title">ECOCOLOR DOPPLER DA VEIA CAVA E ILÍACAS</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-cava" onchange="toggleLb('cava')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
-        <div class="lb-body"><div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('txt-cava')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('txt-cava')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('txt-cava')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-cava')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('txt-cava')" style="color:#e11d48">✕ fmt</button></div><textarea oninput="scheduleAutosave()" id="txt-cava" class="fmt-textarea">Veia Cava apresenta calibres e pulsatilidades normais, sem tortuosidades e ausência de dilatações.
+        <div class="lb-body"><div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-cava')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-cava')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-cava')"><span>S</span></button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO / minúsculo" onclick="fmtMaiusculo('txt-cava')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-cava')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><textarea oninput="scheduleAutosave()" id="txt-cava" class="fmt-textarea">Veia Cava apresenta calibres e pulsatilidades normais, sem tortuosidades e ausência de dilatações.
 
 Veia Ilíacas apresenta calibres e pulsatilidades normais, sem tortuosidades e ausência de dilatações. Ao Doppler, foram detectados fluxos ascendentes e laminares, com morfologia e velocidades características.
 
 IMPRESSÃO:
 
-Ausência de placas ateromatosas, sem alterações importantes de fluxo ao Doppler em cores. Exame dentro dos padrões de normalidade.</textarea></div>
+Ausência de placas ateromatosas, sem alterações importantes de fluxo ao Doppler em cores. Exame dentro dos padrões de normalidade.</textarea></div></div>
       </div>
 
       <div class="lb" id="lb-superiores">
@@ -680,7 +716,7 @@ Ausência de placas ateromatosas, sem alterações importantes de fluxo ao Doppl
           <span class="lb-title">ECOCOLOR DOPPLER DOS MEMBROS SUPERIORES</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-superiores" onchange="toggleLb('superiores')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
-        <div class="lb-body"><div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('txt-superiores')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('txt-superiores')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('txt-superiores')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-superiores')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('txt-superiores')" style="color:#e11d48">✕ fmt</button></div><textarea oninput="scheduleAutosave()" id="txt-superiores" class="fmt-textarea">Veias do sistema venoso dos membros superiores superficial e profundo encontram-se pérvias, calibres normais, compressíveis, sem trombos visíveis ao mapeamento a cores.
+        <div class="lb-body"><div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-superiores')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-superiores')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-superiores')"><span>S</span></button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO / minúsculo" onclick="fmtMaiusculo('txt-superiores')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-superiores')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><textarea oninput="scheduleAutosave()" id="txt-superiores" class="fmt-textarea">Veias do sistema venoso dos membros superiores superficial e profundo encontram-se pérvias, calibres normais, compressíveis, sem trombos visíveis ao mapeamento a cores.
 
 Artérias axilar, braquial, radial e ulnar pérvias, com calibres e pulsatilidades normais. Espessamento da camada médio intimal compatível com a faixa etária, sem lesões obstrutivas.
 
@@ -688,7 +724,7 @@ Ao Doppler detectamos fluxos trifásicos com velocidades normais em todos os seg
 
 IMPRESSÃO:
 
-Não foi evidenciado redução no deságue arterial dos membros superiores.</textarea></div>
+Não foi evidenciado redução no deságue arterial dos membros superiores.</textarea></div></div>
       </div>
     </div>
 
@@ -697,7 +733,7 @@ Não foi evidenciado redução no deságue arterial dos membros superiores.</tex
           <span class="lb-title">ECOCARDIOGRAMA COM DOPPLER</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-ecoca" onchange="toggleLb('ecoca')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
-        <div class="lb-body"><div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('txt-ecoca')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('txt-ecoca')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('txt-ecoca')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-ecoca')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('txt-ecoca')" style="color:#e11d48">✕ fmt</button></div><textarea oninput="scheduleAutosave()" id="txt-ecoca" class="fmt-textarea">ECOCARDIOGRAMA TRANSTORÁCICO COM DOPPLER
+        <div class="lb-body"><div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-ecoca')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-ecoca')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-ecoca')"><span>S</span></button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO / minúsculo" onclick="fmtMaiusculo('txt-ecoca')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-ecoca')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><textarea oninput="scheduleAutosave()" id="txt-ecoca" class="fmt-textarea">ECOCARDIOGRAMA TRANSTORÁCICO COM DOPPLER
 
 Exame realizado em decúbito lateral esquerdo com transdutor de 2,5 MHz.
 
@@ -729,7 +765,7 @@ PERICÁRDIO: Sem derrame pericárdico.
 
 IMPRESSÃO:
 
-Ecocardiograma dentro dos limites da normalidade.</textarea></div>
+Ecocardiograma dentro dos limites da normalidade.</textarea></div></div>
       </div>
     <div class="card">
       <div class="card-hdr"><div class="card-ico">🖼️</div><div class="card-title">Imagens do Exame (2 colunas × 3 linhas por página)</div></div>
@@ -945,7 +981,7 @@ async function loadDoctorsForSec() {
   if (sel) sel.innerHTML = opts;
 }
 
-// ── MODELOS ──
+// ══════════ MODELOS DE LAUDO ══════════
 let modelosList = [];
 
 async function loadModelosForMedico(medicoId, targetSelectId) {
@@ -955,10 +991,7 @@ async function loadModelosForMedico(medicoId, targetSelectId) {
   sel.innerHTML = '<option value="">Carregando...</option>';
   const { data } = await supa.from('modelos').select('id,nome,secoes').eq('medico_id', medicoId).order('nome');
   modelosList = data || [];
-  if (!modelosList.length) {
-    sel.innerHTML = '<option value="">— nenhum modelo cadastrado —</option>';
-    return;
-  }
+  if (!modelosList.length) { sel.innerHTML = '<option value="">— nenhum modelo —</option>'; return; }
   sel.innerHTML = '<option value="">— escolher modelo —</option>' +
     modelosList.map(m => `<option value="${m.id}">${m.nome}</option>`).join('');
 }
@@ -967,20 +1000,19 @@ function aplicarModelo(selectId) {
   const sel = document.getElementById(selectId);
   if (!sel || !sel.value) return;
   const modelo = modelosList.find(m => m.id === sel.value);
-  if (!modelo || !modelo.secoes) return;
+  if (!modelo?.secoes) return;
   const s = modelo.secoes;
   const secMap = {
-    venoso_d: 'txt-venoso-d', venoso_e: 'txt-venoso-e',
-    arterial: 'txt-arterial', carotidas: 'txt-carotidas',
-    aorta: 'txt-aorta', cava: 'txt-cava',
-    superiores: 'txt-superiores', ecoca: 'txt-ecoca'
+    venoso_d:'txt-venoso-d', venoso_e:'txt-venoso-e',
+    arterial:'txt-arterial', carotidas:'txt-carotidas',
+    aorta:'txt-aorta', cava:'txt-cava', superiores:'txt-superiores', ecoca:'txt-ecoca'
   };
   Object.entries(secMap).forEach(([key, txtId]) => {
     if (!s[key]) return;
     const txt = document.getElementById(txtId);
-    const chkKey = (key === 'venoso_d' || key === 'venoso_e') ? 'venoso' : key;
-    const chk = document.getElementById('chk-' + chkKey);
-    const lbl = document.getElementById('lb-' + chkKey);
+    const chkKey = (key==='venoso_d'||key==='venoso_e') ? 'venoso' : key;
+    const chk = document.getElementById('chk-'+chkKey);
+    const lbl = document.getElementById('lb-'+chkKey);
     if (chk && s[key].ativo !== undefined) { chk.checked = s[key].ativo; if (lbl) lbl.classList.toggle('on', s[key].ativo); }
     if (txt && s[key].texto) txt.value = s[key].texto;
   });
@@ -992,34 +1024,30 @@ async function loadModelosAdmin() {
   const cont = document.getElementById('admin-modelos-cont');
   if (!cont) return;
   cont.innerHTML = '<p style="color:var(--text-muted);font-size:13px">Carregando...</p>';
-
   const { data: medicos, error: medErr } = await supa.from('medicos').select('id,nome').eq('papel','medico').order('nome');
-  if (medErr) { cont.innerHTML = '<p style="color:red;font-size:13px">Erro ao carregar médicos: ' + medErr.message + '</p>'; return; }
-  if (!medicos?.length) { cont.innerHTML = '<p style="color:var(--text-muted)">Nenhum médico cadastrado.</p>'; return; }
-
-  // Tenta carregar modelos — tabela pode não existir ainda
-  let modelos = [];
+  if (medErr) { cont.innerHTML = '<p style="color:red;font-size:13px">Erro: '+medErr.message+'</p>'; return; }
+  if (!medicos?.length) { cont.innerHTML = '<p style="color:var(--text-muted)">Nenhum médico.</p>'; return; }
   const { data: modData, error: modErr } = await supa.from('modelos').select('*').order('nome');
   if (modErr) {
-    cont.innerHTML = '<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px;font-size:13px;color:#856404">' +
-      '⚠️ Tabela <b>modelos</b> não encontrada. Execute o SQL abaixo no Supabase SQL Editor:<br><br>' +
-      '<code style="background:#f8f9fa;padding:4px 8px;border-radius:4px;display:block;margin-top:6px;white-space:pre">' +
-      'create table modelos (\n  id uuid primary key default gen_random_uuid(),\n  medico_id uuid references medicos(id) on delete cascade,\n  nome text not null,\n  secoes jsonb default \'{}\',\n  criado_em timestamptz default now()\n);\nalter table modelos enable row level security;\ncreate policy \"modelos_all\" on modelos for all to authenticated using (true) with check (true);</code>' +
+    cont.innerHTML = '<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px;font-size:13px;color:#856404">'+
+      '⚠️ Tabela <b>modelos</b> não encontrada. Execute no Supabase SQL Editor:<br><br>'+
+      '<code style="background:#f8f9fa;padding:6px 10px;border-radius:4px;display:block;margin-top:6px;font-size:11px">'+
+      'create table modelos (id uuid primary key default gen_random_uuid(), medico_id uuid references medicos(id) on delete cascade, nome text not null, secoes jsonb default \'{}\',' +
+      ' criado_em timestamptz default now());\nalter table modelos enable row level security;\ncreate policy \"modelos_all\" on modelos for all to authenticated using (true) with check (true);'+
+      '</code>'+
       '<button class="btn btn-green" style="margin-top:10px;font-size:12px" onclick="loadModelosAdmin()">🔄 Tentar novamente</button></div>';
     return;
   }
-  modelos = modData || [];
-
+  const modelos = modData || [];
   let html = '';
   medicos.forEach(med => {
     const meus = modelos.filter(m => m.medico_id === med.id);
-    // Use data attributes to avoid quote issues with doctor names
     html += `<div style="margin-bottom:16px;border:1.5px solid var(--border);border-radius:10px;overflow:hidden">
       <div style="background:var(--green-pale);padding:10px 14px;font-weight:800;font-size:13px;display:flex;justify-content:space-between;align-items:center">
         👨‍⚕️ ${med.nome}
         <button class="btn btn-green" style="padding:5px 12px;font-size:12px"
           data-med-id="${med.id}" data-med-nome="${med.nome.replace(/"/g,'&quot;')}"
-          onclick="novoModelo(this.dataset.medId, this.dataset.medNome)">+ Novo modelo</button>
+          onclick="novoModelo(this.dataset.medId,this.dataset.medNome)">+ Novo modelo</button>
       </div><div style="padding:10px 14px">`;
     if (!meus.length) {
       html += '<p style="color:var(--text-muted);font-size:13px;margin:4px 0">Nenhum modelo cadastrado.</p>';
@@ -1028,10 +1056,8 @@ async function loadModelosAdmin() {
         html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
           <span style="font-size:13px;font-weight:600">📄 ${mo.nome}</span>
           <div style="display:flex;gap:6px">
-            <button class="btn btn-outline" style="padding:4px 10px;font-size:11px"
-              data-id="${mo.id}" onclick="editarModelo(this.dataset.id)">✏️ Editar</button>
-            <button class="btn btn-red" style="padding:4px 10px;font-size:11px"
-              data-id="${mo.id}" onclick="deletarModelo(this.dataset.id)">🗑️</button>
+            <button class="btn btn-outline" style="padding:4px 10px;font-size:11px" data-id="${mo.id}" onclick="editarModelo(this.dataset.id)">✏️ Editar</button>
+            <button class="btn btn-red" style="padding:4px 10px;font-size:11px" data-id="${mo.id}" onclick="deletarModelo(this.dataset.id)">🗑️</button>
           </div></div>`;
       });
     }
@@ -1042,8 +1068,8 @@ async function loadModelosAdmin() {
 
 let editingModeloId = null, editingModeloMedicoId = null;
 const MODELO_KEY_MAP = {
-  'venoso_d':'venoso_d','venoso_e':'venoso_e','arterial':'arterial',
-  'carotidas':'carotidas','aorta':'aorta','cava':'cava','superiores':'superiores','ecoca':'ecoca'
+  venoso_d:'venoso_d', venoso_e:'venoso_e', arterial:'arterial',
+  carotidas:'carotidas', aorta:'aorta', cava:'cava', superiores:'superiores', ecoca:'ecoca'
 };
 
 function novoModelo(medicoId, medicoNome) {
@@ -1103,6 +1129,62 @@ async function deletarModelo(id) {
   loadModelosAdmin();
 }
 
+// ══════════ FORMATAÇÃO DE TEXTO ══════════
+function fmtInserir(textareaId, abre, fecha) {
+  const ta = document.getElementById(textareaId);
+  if (!ta) return;
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  const sel = ta.value.substring(s, e);
+  let novo, cursorStart, cursorEnd;
+  if (sel.startsWith(abre) && sel.endsWith(fecha)) {
+    const inner = sel.slice(abre.length, sel.length - fecha.length);
+    novo = ta.value.substring(0, s) + inner + ta.value.substring(e);
+    cursorStart = s; cursorEnd = s + inner.length;
+  } else {
+    const placeholder = sel || 'texto';
+    novo = ta.value.substring(0, s) + abre + placeholder + fecha + ta.value.substring(e);
+    cursorStart = s + abre.length; cursorEnd = cursorStart + placeholder.length;
+  }
+  ta.value = novo;
+  ta.setSelectionRange(cursorStart, cursorEnd);
+  ta.focus();
+  ta.dispatchEvent(new Event('input'));
+}
+function fmtNegrito(id)    { fmtInserir(id, '**', '**'); }
+function fmtItalico(id)    { fmtInserir(id, '_', '_'); }
+function fmtSublinhado(id) { fmtInserir(id, '__', '__'); }
+function fmtMaiusculo(id) {
+  const ta = document.getElementById(id);
+  if (!ta) return;
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  if (s === e) return;
+  const sel = ta.value.substring(s, e);
+  const conv = sel === sel.toUpperCase() ? sel.toLowerCase() : sel.toUpperCase();
+  ta.value = ta.value.substring(0, s) + conv + ta.value.substring(e);
+  ta.setSelectionRange(s, s + conv.length);
+  ta.focus();
+}
+function fmtLimpar(id) {
+  const ta = document.getElementById(id);
+  if (!ta) return;
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  const trecho = s !== e ? ta.value.substring(s, e) : ta.value;
+  const limpo = trecho.replace(/\*\*/g,'').replace(/__/g,'').replace(/_/g,'');
+  if (s !== e) {
+    ta.value = ta.value.substring(0, s) + limpo + ta.value.substring(e);
+    ta.setSelectionRange(s, s + limpo.length);
+  } else { ta.value = limpo; }
+  ta.focus();
+}
+function marcadoresParaHtml(texto) {
+  if (!texto) return '';
+  let h = texto.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  h = h.replace(/\*\*(.+?)\*\*/gs, '<strong>$1</strong>');
+  h = h.replace(/__(.+?)__/gs, '<u>$1</u>');
+  h = h.replace(/_(.+?)_/gs, '<em>$1</em>');
+  return h;
+}
+
 async function afterLogin() {
   const err = document.getElementById('login-error');
   try {
@@ -1114,40 +1196,38 @@ async function afterLogin() {
     if (doc.papel === 'secretaria') {
       // Secretary screen
       document.getElementById('sec-badge').textContent = '📋 ' + doc.nome;
-      const btnSec = document.querySelector('.lc-btn');
-      if (btnSec) { btnSec.textContent = 'ENTRAR'; btnSec.disabled = false; }
       showScreen('screen-sec');
-      showSecTab('inicio-sec', document.querySelector('#screen-sec nav .tab'), true);
       startSessionTimeout();
-      setTimeout(() => loadInicioSec(), 100);
-      setTimeout(() => loadSecQueue(), 600);
-      setTimeout(() => loadDoctorsForSec(), 1100);
+      showSecTab('inicio-sec', document.querySelector('#screen-sec nav .tab'));
+      loadInicioSec();
+      loadSecQueue();
+      loadDoctorsForSec();
       return;
     }
     if (doc.papel === 'admin') {
       // Admin gets secretary screen + full edit powers
       document.getElementById('sec-badge').textContent = '⚙️ ' + doc.nome;
       document.getElementById('sec-screen-title').textContent = 'Administrador';
+      // Show admin extras tab
       const adminTab = document.getElementById('sec-admin-tab');
       if (adminTab) adminTab.style.display = 'flex';
-      const btnAdm = document.querySelector('.lc-btn');
-      if (btnAdm) { btnAdm.textContent = 'ENTRAR'; btnAdm.disabled = false; }
       showScreen('screen-sec');
-      showSecTab('inicio-sec', document.querySelector('#screen-sec nav .tab'), true);
       startSessionTimeout();
-      setTimeout(() => loadInicioSec(), 100);
-      setTimeout(() => loadSecQueue(), 600);
-      setTimeout(() => { loadDoctorsForSec(); loadDoctors(); loadPatients(); }, 1100);
+      showSecTab('inicio-sec', document.querySelector('#screen-sec nav .tab'));
+      loadInicioSec();
+      loadSecQueue();
+      loadDoctorsForSec();
+      loadDoctors();
+      loadPatients();
       return;
     }
     document.getElementById('doctor-badge').textContent = '👨‍⚕️ ' + doc.nome;
     const btnDone = document.querySelector('.lc-btn');
     if (btnDone) { btnDone.textContent = 'ENTRAR'; btnDone.disabled = false; }
     showScreen('screen-app');
-    showTab('inicio', document.querySelector('#screen-app nav .tab'), true); // skipLoad=true
+    showTab('inicio', document.querySelector('#screen-app nav .tab'), true);
     startSessionTimeout();
     setInterval(autosaveLaudo, 10000);
-    // Escalonado para não sobrecarregar o Supabase no login
     setTimeout(() => loadInicio('dashboard-content'), 100);
     setTimeout(() => loadPending(), 700);
     setTimeout(() => loadSaved(), 1300);
@@ -1197,47 +1277,38 @@ async function compressImage(base64DataUrl, maxSize = 1200, quality = 0.75) {
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
       resolve(canvas.toDataURL('image/jpeg', quality));
     };
-    img.onerror = () => resolve(base64DataUrl); // fallback sem compressão
+    img.onerror = () => resolve(base64DataUrl);
     img.src = base64DataUrl;
   });
 }
 
 async function uploadImageToStorage(base64DataUrl, fileName) {
   try {
-    // Comprime antes de enviar (max 1200px, 75% qualidade)
     const compressed = await compressImage(base64DataUrl);
     const res = await fetch(compressed);
     const blob = await res.blob();
     const path = `laudos/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
-    console.log('[upload] tentando storage, blob size:', blob.size, 'path:', path);
-    const { data, error } = await supa.storage.from(STORAGE_BUCKET).upload(path, blob, {
-      contentType: 'image/jpeg',
-      upsert: false
-    });
+    const { data, error } = await supa.storage.from(STORAGE_BUCKET).upload(path, blob, { contentType: 'image/jpeg', upsert: false });
     if (error) {
       console.warn('[upload] storage falhou:', error.message, '— usando base64 comprimido');
-      return compressed; // fallback: base64 JÁ comprimido (pequeno)
+      return compressed;
     }
     const { data: urlData } = supa.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-    console.log('[upload] ok:', urlData.publicUrl);
     return urlData.publicUrl;
   } catch(e) {
     console.warn('[upload] exceção:', e.message);
-    // último recurso: retorna base64 comprimido
     try { return await compressImage(base64DataUrl); } catch { return base64DataUrl; }
   }
 }
 
 async function processImagesForStorage(imageObjects) {
-  // Upload paralelo de todas as imagens base64
   const promises = imageObjects.map(async (img) => {
     if (!img.src) return null;
     if (img.src.startsWith('data:')) {
       const url = await uploadImageToStorage(img.src, img.name || 'imagem');
-      // uploadImageToStorage agora sempre retorna algo (URL ou base64 comprimido)
       return { src: url || img.src, name: img.name || '' };
     }
-    return { src: img.src, name: img.name || '' }; // já é URL do storage
+    return { src: img.src, name: img.name || '' };
   });
   const results = await Promise.all(promises);
   return results.filter(r => r !== null && r.src);
@@ -1422,7 +1493,7 @@ function buildSecoesObj() {
 
 async function saveLaudo() {
   if (!get('p-nome')) { toast('Informe o nome do paciente.','err'); return; }
-  // Captura TUDO antes do upload para não perder dados se o form mudar
+  // Captura TUDO antes do upload — evita perda de dados durante o envio
   const secoes = buildSecoesObj();
   const snapNome    = get('p-nome');
   const snapNasc    = get('p-nasc');
@@ -1435,9 +1506,8 @@ async function saveLaudo() {
   const snapMedId   = currentDoctor?.id   || null;
   const snapMedResp = currentDoctor?.nome || '';
   const snapPapel   = currentDoctor?.papel || 'medico';
-  const snapImages  = [...images]; // cópia do array antes do upload
+  const snapImages  = [...images];
 
-  // Upload imagens para Storage (paralelo com compressão)
   const totalImgs = snapImages.filter(i => i.src?.startsWith('data:')).length;
   loading(true, totalImgs > 0 ? `Enviando ${totalImgs} imagem(ns)...` : 'Salvando...');
   let imagensFinais = [];
@@ -1472,26 +1542,14 @@ async function saveLaudo() {
   }
   loading(false);
   if (result.error) { toast('Erro ao salvar: '+result.error.message,'err'); return; }
-  
-  // After INSERT, capture the new id so re-saves use UPDATE not INSERT
   if (!editingLaudoId && result.data?.[0]?.id) {
-    editingLaudoId = result.data?.[0]?.id;
+    editingLaudoId = result.data[0].id;
   }
-  
-  // Mark as concluded so autosave never reverts it
   laudoConcluido = true;
-  clearTimeout(autosaveTimer);
-  autosaveTimer = null;
-
+  clearTimeout(autosaveTimer); autosaveTimer = null;
   toast('Laudo salvo com sucesso! ✓','ok');
-  loadSaved();
-  loadPending();
-  updateLixeiraBadge();
-
-  // Go to dashboard so doctor doesn't accidentally edit again
-  setTimeout(() => {
-    showTab('inicio', document.querySelector('#screen-app nav .tab'));
-  }, 400);
+  loadSaved(); loadPending(); updateLixeiraBadge();
+  setTimeout(() => { showTab('inicio', document.querySelector('#screen-app nav .tab')); }, 400);
 }
 
 // Default texts for each section — used when creating new laudo or if DB has empty text
@@ -1622,31 +1680,17 @@ async function retornarPendente() {
   if (!editingLaudoId) return;
   if (!confirm('Retornar este laudo para a fila de Pendentes? O médico precisará reabrir e salvar novamente.')) return;
   loading(true, 'Retornando...');
-
-  // Busca o laudo para garantir medico_responsavel_id
   const { data: laudo } = await supa.from('laudos').select('medico_responsavel_id, medico_responsavel_nome').eq('id', editingLaudoId).single();
-
-  // Se não tem medico_responsavel_id, usa o médico atual
   const medId   = laudo?.medico_responsavel_id   || currentDoctor?.id   || null;
   const medNome = laudo?.medico_responsavel_nome  || currentDoctor?.nome || '';
-
-  const { error } = await supa.from('laudos').update({
-    status: 'pendente',
-    medico_responsavel_id:   medId,
-    medico_responsavel_nome: medNome,
-  }).eq('id', editingLaudoId);
-
+  const { error } = await supa.from('laudos').update({ status: 'pendente', medico_responsavel_id: medId, medico_responsavel_nome: medNome }).eq('id', editingLaudoId);
   loading(false);
   if (error) { toast('Erro: ' + error.message, 'err'); return; }
   toast('Laudo retornado aos pendentes!', 'ok');
-
-  editingLaudoId = null;
-  editingLaudoMedico = null;
-  laudoConcluido = false;
+  editingLaudoId = null; editingLaudoMedico = null; laudoConcluido = false;
   const retBtn = document.getElementById('btn-retornar-pendente');
   if (retBtn) retBtn.style.display = 'none';
-  loadPending();
-  loadSaved();
+  loadPending(); loadSaved();
   showTab('pendentes', document.querySelectorAll('#screen-app nav .tab')[2]);
 }
 
@@ -1774,7 +1818,6 @@ async function loadLaudo(id) {
   document.getElementById('chk-venoso').checked=vOn;
   document.getElementById('lb-venoso').classList.toggle('on',vOn);
   images=(data.imagens||[]).filter(i=>i&&i.src).map(i=>({id:Math.random(),src:i.src,name:i.name||''}));
-  console.log('[loadLaudo] imagens:', images.length, images.map(i=>i.src?.slice(0,80)));
   renderImages();
   editingLaudoId=id;
   // Store the responsible doctor from the laudo (not currentDoctor)
@@ -1834,69 +1877,6 @@ function printLaudo() {
     imagens: images.map(i=>({src:i.src})),
   };
   buildPrint(data);
-}
-
-// ── FORMATAÇÃO DE TEXTO ──
-function fmtInserirMarcador(textareaId, abre, fecha) {
-  const ta = document.getElementById(textareaId);
-  if (!ta) return;
-  const start = ta.selectionStart, end = ta.selectionEnd;
-  const sel = ta.value.substring(start, end);
-  // Toggle: se já tem o marcador, remove; senão, adiciona
-  if (sel.startsWith(abre) && sel.endsWith(fecha)) {
-    const inner = sel.slice(abre.length, sel.length - fecha.length);
-    ta.value = ta.value.substring(0, start) + inner + ta.value.substring(end);
-    ta.setSelectionRange(start, start + inner.length);
-  } else {
-    const novo = abre + (sel || 'texto') + fecha;
-    ta.value = ta.value.substring(0, start) + novo + ta.value.substring(end);
-    ta.setSelectionRange(start + abre.length, start + abre.length + (sel || 'texto').length);
-  }
-  ta.focus();
-  ta.dispatchEvent(new Event('input'));
-}
-function fmtNegrito(id)    { fmtInserirMarcador(id, '**', '**'); }
-function fmtItalico(id)    { fmtInserirMarcador(id, '_', '_'); }
-function fmtSublinhado(id) { fmtInserirMarcador(id, '__', '__'); }
-function fmtMaiusculo(id) {
-  const ta = document.getElementById(id);
-  if (!ta) return;
-  const s = ta.selectionStart, e = ta.selectionEnd;
-  if (s === e) return;
-  const sel = ta.value.substring(s, e);
-  const conv = sel === sel.toUpperCase() ? sel.toLowerCase() : sel.toUpperCase();
-  ta.value = ta.value.substring(0, s) + conv + ta.value.substring(e);
-  ta.setSelectionRange(s, s + conv.length);
-  ta.focus();
-}
-function fmtLimpar(id) {
-  const ta = document.getElementById(id);
-  if (!ta) return;
-  const s = ta.selectionStart, e = ta.selectionEnd;
-  const trecho = s !== e ? ta.value.substring(s, e) : ta.value;
-  const limpo = trecho.replace(/\*\*|__|_/g, '');
-  if (s !== e) {
-    ta.value = ta.value.substring(0, s) + limpo + ta.value.substring(e);
-    ta.setSelectionRange(s, s + limpo.length);
-  } else {
-    ta.value = limpo;
-  }
-  ta.focus();
-}
-
-// Converte marcadores para HTML no print
-function marcadoresParaHtml(texto) {
-  if (!texto) return '';
-  // Escapa HTML primeiro
-  let html = texto
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-  // Aplica marcadores (ordem importa: negrito antes de itálico)
-  html = html.replace(/\*\*(.+?)\*\*/gs, '<strong>$1</strong>');
-  html = html.replace(/__(.+?)__/gs, '<u>$1</u>');
-  html = html.replace(/_(.+?)_/gs, '<em>$1</em>');
-  return html;
 }
 
 function buildPrint(data) {
@@ -2397,13 +2377,12 @@ async function confirmLinkLaudo() {
 // ══════════════════════════════
 let secImages = [];
 
-function showSecTab(name, el, skipLoad) {
+function showSecTab(name, el) {
   ['inicio-sec','novo-sec','fila-sec','concluidos-sec','lixeira-sec','admin-sec'].forEach(t => { const e=document.getElementById('tab-'+t); if(e) e.style.display='none'; });
   document.querySelectorAll('#screen-sec .tab').forEach(t=>t.classList.remove('active'));
   const tab = document.getElementById('tab-'+name);
   if (tab) tab.style.display='block';
   if (el) el.classList.add('active');
-  if (skipLoad) return;
   if (name==='inicio-sec') loadInicioSec();
   if (name==='fila-sec') loadSecQueue();
   if (name==='concluidos-sec') loadSecConcluidos();
@@ -2458,39 +2437,34 @@ function removeSecImg(id) { secImages=secImages.filter(i=>i.id!==id); renderSecI
 async function savePendente() {
   const nome = document.getElementById('sec-nome')?.value?.trim();
   if (!nome) { toast('Informe o nome do paciente.','err'); return; }
-
-  // Monta seções — usa modelo selecionado se houver, senão texto vazio
-  const modeloSel = document.getElementById('sec-modelo-sel');
-  const modeloEscolhido = modeloSel?.value
-    ? modelosList.find(m => m.id === modeloSel.value)
-    : null;
-
-  const secoes = {};
-  document.querySelectorAll('.sec-exame-chk').forEach(chk => {
-    const ativo = chk.checked;
-    const textoModelo = modeloEscolhido?.secoes?.[chk.value]?.texto || '';
-    secoes[chk.value] = { ativo, texto: textoModelo };
-    if (chk.value === 'venoso') {
-      secoes['venoso_d'] = { ativo, texto: modeloEscolhido?.secoes?.venoso_d?.texto || '' };
-      secoes['venoso_e'] = { ativo, texto: modeloEscolhido?.secoes?.venoso_e?.texto || '' };
-    }
-  });
-
   const payload = {
-    paciente_nome:           nome,
-    paciente_nasc:           document.getElementById('sec-nasc')?.value || '',
-    paciente_idade:          document.getElementById('sec-idade')?.value || '',
-    data_exame:              document.getElementById('sec-data')?.value || todayISO(),
-    convenio:                document.getElementById('sec-convenio')?.value?.trim() || '',
-    solicitante:             document.getElementById('sec-solicitante')?.value?.trim() || '',
-    medico_nome:             '',
-    medico_crm:              '',
-    status:                  'pendente',
-    medico_responsavel_id:   document.getElementById('sec-medico-id')?.value || null,
+    paciente_nome:  nome,
+    paciente_nasc:  document.getElementById('sec-nasc')?.value || '',
+    paciente_idade: document.getElementById('sec-idade')?.value || '',
+    data_exame:     document.getElementById('sec-data')?.value || todayISO(),
+    convenio:       document.getElementById('sec-convenio')?.value?.trim() || '',
+    solicitante:    document.getElementById('sec-solicitante')?.value?.trim() || '',
+    medico_nome:    '',
+    medico_crm:     '',
+    status:         'pendente',
+    medico_responsavel_id: document.getElementById('sec-medico-id')?.value || null,
     medico_responsavel_nome: document.getElementById('sec-medico-nome')?.value || '',
-    criado_por:              'secretaria',
-    secoes,
-    imagens: [],
+    criado_por:     'secretaria',
+    secoes:         (() => {
+      const modeloSel = document.getElementById('sec-modelo-sel');
+      const mod = modeloSel?.value ? modelosList.find(m => m.id === modeloSel.value) : null;
+      const s = {};
+      document.querySelectorAll('.sec-exame-chk').forEach(chk => {
+        const ativo = chk.checked;
+        s[chk.value] = { ativo, texto: mod?.secoes?.[chk.value]?.texto || '' };
+        if (chk.value === 'venoso') {
+          s['venoso_d'] = { ativo, texto: mod?.secoes?.venoso_d?.texto || '' };
+          s['venoso_e'] = { ativo, texto: mod?.secoes?.venoso_e?.texto || '' };
+        }
+      });
+      return s;
+    })(),
+    imagens:        [],
   };
   loading(true,'Enviando imagens...');
   payload.imagens = await processImagesForStorage(secImages.map(i=>({src:i.src,name:i.name||'',id:i.id})));
@@ -2498,7 +2472,7 @@ async function savePendente() {
   const { error } = await supa.from('laudos').insert(payload);
   loading(false);
   if (error) { toast('Erro: '+error.message,'err'); return; }
-  toast('Paciente adicionado à fila' + (modeloEscolhido ? ' com modelo "' + modeloEscolhido.nome + '"' : '') + '!', 'ok');
+  toast('Paciente adicionado à fila do médico!','ok');
   resetSecForm();
   loadSecQueue();
 }
@@ -2768,12 +2742,11 @@ function stopSessionTimeout() {
       </div>
     </div>
 
-    <div class="card" style="padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap" id="sec-modelo-card" style="display:none">
-      <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap">📄 Modelo preferido:</div>
-      <select id="sec-modelo-sel" style="flex:1;min-width:200px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:#fff">
+    <div class="card" style="padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#f8fafc">
+      <span style="font-size:12px;font-weight:700;color:var(--text-muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.5px">📄 Modelo preferido</span>
+      <select id="sec-modelo-sel" style="flex:1;min-width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;background:#fff">
         <option value="">— selecione o médico primeiro —</option>
       </select>
-      <button class="btn btn-green" style="padding:7px 14px;font-size:12px;white-space:nowrap" onclick="aplicarModeloSecForm()">✅ Aplicar ao laudo</button>
     </div>
 
     <div class="card">
@@ -2943,85 +2916,119 @@ Ecocardiograma dentro dos limites da normalidade.</textarea></div>
   </div>
 </div>
 <div id="modal-modelo" class="modal" style="display:none">
-  <div class="modal-box" style="max-width:720px;max-height:90vh;overflow-y:auto">
+  <div class="modal-box" style="max-width:700px;max-height:90vh;overflow-y:auto">
     <div class="modal-hdr">
-      <span id="modal-modelo-titulo">Modelo de Laudo</span>
+      <span id="modal-modelo-titulo" style="font-size:15px;font-weight:800">Modelo de Laudo</span>
       <button class="modal-close" onclick="closeModal('modal-modelo')">✕</button>
     </div>
-    <div style="padding:16px 20px">
-      <div class="field" style="margin-bottom:16px">
-        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px">Nome do modelo *</label>
-        <input type="text" id="modal-modelo-nome" placeholder="Ex: Padrão Venoso, Carotidas Completo..." style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;margin-top:4px;box-sizing:border-box">
+    <div style="padding:16px 20px 20px">
+      <div style="margin-bottom:16px">
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);display:block;margin-bottom:5px">Nome do modelo *</label>
+        <input type="text" id="modal-modelo-nome"
+          placeholder="Ex: Padrão Venoso, Completo, Carótidas..."
+          style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;box-sizing:border-box;font-family:inherit">
       </div>
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;color:var(--text-muted)">Seções do modelo</div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:10px">Seções do modelo</div>
       
-        <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
-          <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer">
-              <input type="checkbox" id="modal-modelo-chk-venoso_d" checked> Sistema Venoso — Membro Inferior DIREITO
+        <div style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#374151;cursor:pointer;user-select:none">
+              <input type="checkbox" id="modal-modelo-chk-venoso_d" checked
+                style="width:14px;height:14px;accent-color:var(--green);cursor:pointer"> Sistema Venoso — Membro Inferior DIREITO
             </label>
           </div>
-          <div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-venoso_d')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('modal-modelo-txt-venoso_d')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-venoso_d')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-venoso_d')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-venoso_d')" style="color:#e11d48">✕</button></div><textarea id="modal-modelo-txt-venoso_d" class="fmt-textarea" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+          <div class="fmt-bar" style="border-radius:5px 5px 0 0"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-venoso_d')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('modal-modelo-txt-venoso_d')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-venoso_d')"><span>S</span></button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO / minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-venoso_d')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-venoso_d')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
+          <textarea id="modal-modelo-txt-venoso_d" class="fmt-textarea"
+            style="width:100%;min-height:90px;padding:8px 10px;border:1.5px solid #c9cdd4;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;border-radius:0 0 5px 5px;line-height:1.5"
+            placeholder="Texto padrão para esta seção..."></textarea>
         </div>
-        <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
-          <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer">
-              <input type="checkbox" id="modal-modelo-chk-venoso_e" checked> Sistema Venoso — Membro Inferior ESQUERDO
+        <div style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#374151;cursor:pointer;user-select:none">
+              <input type="checkbox" id="modal-modelo-chk-venoso_e" checked
+                style="width:14px;height:14px;accent-color:var(--green);cursor:pointer"> Sistema Venoso — Membro Inferior ESQUERDO
             </label>
           </div>
-          <div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-venoso_e')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('modal-modelo-txt-venoso_e')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-venoso_e')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-venoso_e')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-venoso_e')" style="color:#e11d48">✕</button></div><textarea id="modal-modelo-txt-venoso_e" class="fmt-textarea" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+          <div class="fmt-bar" style="border-radius:5px 5px 0 0"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-venoso_e')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('modal-modelo-txt-venoso_e')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-venoso_e')"><span>S</span></button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO / minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-venoso_e')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-venoso_e')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
+          <textarea id="modal-modelo-txt-venoso_e" class="fmt-textarea"
+            style="width:100%;min-height:90px;padding:8px 10px;border:1.5px solid #c9cdd4;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;border-radius:0 0 5px 5px;line-height:1.5"
+            placeholder="Texto padrão para esta seção..."></textarea>
         </div>
-        <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
-          <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer">
-              <input type="checkbox" id="modal-modelo-chk-arterial" checked> Eco Doppler Arterial
+        <div style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#374151;cursor:pointer;user-select:none">
+              <input type="checkbox" id="modal-modelo-chk-arterial" checked
+                style="width:14px;height:14px;accent-color:var(--green);cursor:pointer"> Eco Doppler Arterial
             </label>
           </div>
-          <div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-arterial')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('modal-modelo-txt-arterial')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-arterial')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-arterial')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-arterial')" style="color:#e11d48">✕</button></div><textarea id="modal-modelo-txt-arterial" class="fmt-textarea" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+          <div class="fmt-bar" style="border-radius:5px 5px 0 0"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-arterial')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('modal-modelo-txt-arterial')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-arterial')"><span>S</span></button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO / minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-arterial')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-arterial')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
+          <textarea id="modal-modelo-txt-arterial" class="fmt-textarea"
+            style="width:100%;min-height:90px;padding:8px 10px;border:1.5px solid #c9cdd4;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;border-radius:0 0 5px 5px;line-height:1.5"
+            placeholder="Texto padrão para esta seção..."></textarea>
         </div>
-        <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
-          <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer">
-              <input type="checkbox" id="modal-modelo-chk-carotidas" checked> Eco Doppler Carótidas
+        <div style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#374151;cursor:pointer;user-select:none">
+              <input type="checkbox" id="modal-modelo-chk-carotidas" checked
+                style="width:14px;height:14px;accent-color:var(--green);cursor:pointer"> Eco Doppler Carótidas
             </label>
           </div>
-          <div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-carotidas')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('modal-modelo-txt-carotidas')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-carotidas')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-carotidas')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-carotidas')" style="color:#e11d48">✕</button></div><textarea id="modal-modelo-txt-carotidas" class="fmt-textarea" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+          <div class="fmt-bar" style="border-radius:5px 5px 0 0"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-carotidas')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('modal-modelo-txt-carotidas')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-carotidas')"><span>S</span></button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO / minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-carotidas')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-carotidas')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
+          <textarea id="modal-modelo-txt-carotidas" class="fmt-textarea"
+            style="width:100%;min-height:90px;padding:8px 10px;border:1.5px solid #c9cdd4;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;border-radius:0 0 5px 5px;line-height:1.5"
+            placeholder="Texto padrão para esta seção..."></textarea>
         </div>
-        <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
-          <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer">
-              <input type="checkbox" id="modal-modelo-chk-aorta" checked> Eco Doppler Aorta
+        <div style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#374151;cursor:pointer;user-select:none">
+              <input type="checkbox" id="modal-modelo-chk-aorta" checked
+                style="width:14px;height:14px;accent-color:var(--green);cursor:pointer"> Eco Doppler Aorta Abdominal
             </label>
           </div>
-          <div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-aorta')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('modal-modelo-txt-aorta')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-aorta')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-aorta')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-aorta')" style="color:#e11d48">✕</button></div><textarea id="modal-modelo-txt-aorta" class="fmt-textarea" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+          <div class="fmt-bar" style="border-radius:5px 5px 0 0"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-aorta')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('modal-modelo-txt-aorta')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-aorta')"><span>S</span></button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO / minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-aorta')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-aorta')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
+          <textarea id="modal-modelo-txt-aorta" class="fmt-textarea"
+            style="width:100%;min-height:90px;padding:8px 10px;border:1.5px solid #c9cdd4;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;border-radius:0 0 5px 5px;line-height:1.5"
+            placeholder="Texto padrão para esta seção..."></textarea>
         </div>
-        <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
-          <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer">
-              <input type="checkbox" id="modal-modelo-chk-cava" checked> Eco Doppler Veia Cava
+        <div style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#374151;cursor:pointer;user-select:none">
+              <input type="checkbox" id="modal-modelo-chk-cava" checked
+                style="width:14px;height:14px;accent-color:var(--green);cursor:pointer"> Eco Doppler Veia Cava
             </label>
           </div>
-          <div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-cava')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('modal-modelo-txt-cava')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-cava')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-cava')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-cava')" style="color:#e11d48">✕</button></div><textarea id="modal-modelo-txt-cava" class="fmt-textarea" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+          <div class="fmt-bar" style="border-radius:5px 5px 0 0"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-cava')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('modal-modelo-txt-cava')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-cava')"><span>S</span></button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO / minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-cava')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-cava')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
+          <textarea id="modal-modelo-txt-cava" class="fmt-textarea"
+            style="width:100%;min-height:90px;padding:8px 10px;border:1.5px solid #c9cdd4;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;border-radius:0 0 5px 5px;line-height:1.5"
+            placeholder="Texto padrão para esta seção..."></textarea>
         </div>
-        <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
-          <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer">
-              <input type="checkbox" id="modal-modelo-chk-superiores" checked> Sistema Venoso Membros Superiores
+        <div style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#374151;cursor:pointer;user-select:none">
+              <input type="checkbox" id="modal-modelo-chk-superiores" checked
+                style="width:14px;height:14px;accent-color:var(--green);cursor:pointer"> Sistema Venoso Membros Superiores
             </label>
           </div>
-          <div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-superiores')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('modal-modelo-txt-superiores')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-superiores')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-superiores')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-superiores')" style="color:#e11d48">✕</button></div><textarea id="modal-modelo-txt-superiores" class="fmt-textarea" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+          <div class="fmt-bar" style="border-radius:5px 5px 0 0"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-superiores')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('modal-modelo-txt-superiores')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-superiores')"><span>S</span></button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO / minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-superiores')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-superiores')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
+          <textarea id="modal-modelo-txt-superiores" class="fmt-textarea"
+            style="width:100%;min-height:90px;padding:8px 10px;border:1.5px solid #c9cdd4;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;border-radius:0 0 5px 5px;line-height:1.5"
+            placeholder="Texto padrão para esta seção..."></textarea>
         </div>
-        <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
-          <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer">
-              <input type="checkbox" id="modal-modelo-chk-ecoca" checked> Ecocardiograma
+        <div style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#374151;cursor:pointer;user-select:none">
+              <input type="checkbox" id="modal-modelo-chk-ecoca" checked
+                style="width:14px;height:14px;accent-color:var(--green);cursor:pointer"> Ecocardiograma com Doppler
             </label>
           </div>
-          <div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-ecoca')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('modal-modelo-txt-ecoca')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-ecoca')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-ecoca')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-ecoca')" style="color:#e11d48">✕</button></div><textarea id="modal-modelo-txt-ecoca" class="fmt-textarea" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+          <div class="fmt-bar" style="border-radius:5px 5px 0 0"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-ecoca')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('modal-modelo-txt-ecoca')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-ecoca')"><span>S</span></button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO / minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-ecoca')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-ecoca')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
+          <textarea id="modal-modelo-txt-ecoca" class="fmt-textarea"
+            style="width:100%;min-height:90px;padding:8px 10px;border:1.5px solid #c9cdd4;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;border-radius:0 0 5px 5px;line-height:1.5"
+            placeholder="Texto padrão para esta seção..."></textarea>
         </div>
-      <div style="display:flex;gap:10px;margin-top:16px">
-        <button class="btn btn-green" style="flex:1;padding:12px" onclick="salvarModelo()">💾 Salvar modelo</button>
-        <button class="btn btn-outline" style="padding:12px 20px" onclick="closeModal('modal-modelo')">Cancelar</button>
+      <div style="display:flex;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+        <button class="btn btn-green" style="flex:1;padding:11px" onclick="salvarModelo()">💾 Salvar modelo</button>
+        <button class="btn btn-outline" style="padding:11px 20px" onclick="closeModal('modal-modelo')">Cancelar</button>
       </div>
     </div>
   </div>
