@@ -544,11 +544,10 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
     </div>
 
     <div class="card" style="padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap">📄 Aplicar modelo:</div>
+      <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap">📄 Modelo:</div>
       <select id="medico-modelo-sel" style="flex:1;min-width:200px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:#fff" onchange="aplicarModelo('medico-modelo-sel')">
         <option value="">— escolher modelo —</option>
       </select>
-      <button class="btn btn-outline" style="padding:7px 14px;font-size:12px;white-space:nowrap" onclick="loadModelosForMedico(currentDoctor?.id,'medico-modelo-sel')">🔄 Carregar modelos</button>
     </div>
 
     <div class="card">
@@ -985,28 +984,49 @@ function aplicarModelo(selectId) {
 }
 
 async function loadModelosAdmin() {
-  const { data: medicos } = await supa.from('medicos').select('id,nome').eq('papel','medico').order('nome');
-  const { data: modelos } = await supa.from('modelos').select('*').order('nome');
   const cont = document.getElementById('admin-modelos-cont');
   if (!cont) return;
+  cont.innerHTML = '<p style="color:var(--text-muted);font-size:13px">Carregando...</p>';
+
+  const { data: medicos, error: medErr } = await supa.from('medicos').select('id,nome').eq('papel','medico').order('nome');
+  if (medErr) { cont.innerHTML = '<p style="color:red;font-size:13px">Erro ao carregar médicos: ' + medErr.message + '</p>'; return; }
   if (!medicos?.length) { cont.innerHTML = '<p style="color:var(--text-muted)">Nenhum médico cadastrado.</p>'; return; }
+
+  // Tenta carregar modelos — tabela pode não existir ainda
+  let modelos = [];
+  const { data: modData, error: modErr } = await supa.from('modelos').select('*').order('nome');
+  if (modErr) {
+    cont.innerHTML = '<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px;font-size:13px;color:#856404">' +
+      '⚠️ Tabela <b>modelos</b> não encontrada. Execute o SQL abaixo no Supabase SQL Editor:<br><br>' +
+      '<code style="background:#f8f9fa;padding:4px 8px;border-radius:4px;display:block;margin-top:6px;white-space:pre">' +
+      'create table modelos (\n  id uuid primary key default gen_random_uuid(),\n  medico_id uuid references medicos(id) on delete cascade,\n  nome text not null,\n  secoes jsonb default \'{}\',\n  criado_em timestamptz default now()\n);\nalter table modelos enable row level security;\ncreate policy \"modelos_all\" on modelos for all to authenticated using (true) with check (true);</code>' +
+      '<button class="btn btn-green" style="margin-top:10px;font-size:12px" onclick="loadModelosAdmin()">🔄 Tentar novamente</button></div>';
+    return;
+  }
+  modelos = modData || [];
+
   let html = '';
   medicos.forEach(med => {
-    const meus = (modelos||[]).filter(m => m.medico_id === med.id);
+    const meus = modelos.filter(m => m.medico_id === med.id);
+    // Use data attributes to avoid quote issues with doctor names
     html += `<div style="margin-bottom:16px;border:1.5px solid var(--border);border-radius:10px;overflow:hidden">
       <div style="background:var(--green-pale);padding:10px 14px;font-weight:800;font-size:13px;display:flex;justify-content:space-between;align-items:center">
         👨‍⚕️ ${med.nome}
-        <button class="btn btn-green" style="padding:5px 12px;font-size:12px" onclick="novoModelo('${med.id}','${med.nome}')">+ Novo modelo</button>
+        <button class="btn btn-green" style="padding:5px 12px;font-size:12px"
+          data-med-id="${med.id}" data-med-nome="${med.nome.replace(/"/g,'&quot;')}"
+          onclick="novoModelo(this.dataset.medId, this.dataset.medNome)">+ Novo modelo</button>
       </div><div style="padding:10px 14px">`;
     if (!meus.length) {
       html += '<p style="color:var(--text-muted);font-size:13px;margin:4px 0">Nenhum modelo cadastrado.</p>';
     } else {
-      meus.forEach(m => {
+      meus.forEach(mo => {
         html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-          <span style="font-size:13px;font-weight:600">📄 ${m.nome}</span>
+          <span style="font-size:13px;font-weight:600">📄 ${mo.nome}</span>
           <div style="display:flex;gap:6px">
-            <button class="btn btn-outline" style="padding:4px 10px;font-size:11px" onclick="editarModelo('${m.id}')">✏️ Editar</button>
-            <button class="btn btn-red" style="padding:4px 10px;font-size:11px" onclick="deletarModelo('${m.id}')">🗑️</button>
+            <button class="btn btn-outline" style="padding:4px 10px;font-size:11px"
+              data-id="${mo.id}" onclick="editarModelo(this.dataset.id)">✏️ Editar</button>
+            <button class="btn btn-red" style="padding:4px 10px;font-size:11px"
+              data-id="${mo.id}" onclick="deletarModelo(this.dataset.id)">🗑️</button>
           </div></div>`;
       });
     }
@@ -1344,6 +1364,7 @@ function showTab(name, el, skipLoad) {
   if (el) el.classList.add('active');
   if (skipLoad) return;
   if (name==='inicio') loadInicio('dashboard-content');
+  if (name==='novo') loadModelosForMedico(currentDoctor?.id, 'medico-modelo-sel');
   if (name==='salvos') loadSaved();
   if (name==='pendentes') loadPending();
   if (name==='lixeira') loadLixeira();
@@ -2369,31 +2390,39 @@ function removeSecImg(id) { secImages=secImages.filter(i=>i.id!==id); renderSecI
 async function savePendente() {
   const nome = document.getElementById('sec-nome')?.value?.trim();
   if (!nome) { toast('Informe o nome do paciente.','err'); return; }
+
+  // Monta seções — usa modelo selecionado se houver, senão texto vazio
+  const modeloSel = document.getElementById('sec-modelo-sel');
+  const modeloEscolhido = modeloSel?.value
+    ? modelosList.find(m => m.id === modeloSel.value)
+    : null;
+
+  const secoes = {};
+  document.querySelectorAll('.sec-exame-chk').forEach(chk => {
+    const ativo = chk.checked;
+    const textoModelo = modeloEscolhido?.secoes?.[chk.value]?.texto || '';
+    secoes[chk.value] = { ativo, texto: textoModelo };
+    if (chk.value === 'venoso') {
+      secoes['venoso_d'] = { ativo, texto: modeloEscolhido?.secoes?.venoso_d?.texto || '' };
+      secoes['venoso_e'] = { ativo, texto: modeloEscolhido?.secoes?.venoso_e?.texto || '' };
+    }
+  });
+
   const payload = {
-    paciente_nome:  nome,
-    paciente_nasc:  document.getElementById('sec-nasc')?.value || '',
-    paciente_idade: document.getElementById('sec-idade')?.value || '',
-    data_exame:     document.getElementById('sec-data')?.value || todayISO(),
-    convenio:       document.getElementById('sec-convenio')?.value?.trim() || '',
-    solicitante:    document.getElementById('sec-solicitante')?.value?.trim() || '',
-    medico_nome:    '',
-    medico_crm:     '',
-    status:         'pendente',
-    medico_responsavel_id: document.getElementById('sec-medico-id')?.value || null,
+    paciente_nome:           nome,
+    paciente_nasc:           document.getElementById('sec-nasc')?.value || '',
+    paciente_idade:          document.getElementById('sec-idade')?.value || '',
+    data_exame:              document.getElementById('sec-data')?.value || todayISO(),
+    convenio:                document.getElementById('sec-convenio')?.value?.trim() || '',
+    solicitante:             document.getElementById('sec-solicitante')?.value?.trim() || '',
+    medico_nome:             '',
+    medico_crm:              '',
+    status:                  'pendente',
+    medico_responsavel_id:   document.getElementById('sec-medico-id')?.value || null,
     medico_responsavel_nome: document.getElementById('sec-medico-nome')?.value || '',
-    criado_por:     'secretaria',
-    secoes:         (() => {
-      const s = {};
-      document.querySelectorAll('.sec-exame-chk').forEach(chk => {
-        s[chk.value] = { ativo: chk.checked, texto: '' };
-        if (chk.value === 'venoso') {
-          s['venoso_d'] = { ativo: chk.checked, texto: '' };
-          s['venoso_e'] = { ativo: chk.checked, texto: '' };
-        }
-      });
-      return s;
-    })(),
-    imagens:        [],
+    criado_por:              'secretaria',
+    secoes,
+    imagens: [],
   };
   loading(true,'Enviando imagens...');
   payload.imagens = await processImagesForStorage(secImages.map(i=>({src:i.src,name:i.name||'',id:i.id})));
@@ -2401,7 +2430,7 @@ async function savePendente() {
   const { error } = await supa.from('laudos').insert(payload);
   loading(false);
   if (error) { toast('Erro: '+error.message,'err'); return; }
-  toast('Paciente adicionado à fila do médico!','ok');
+  toast('Paciente adicionado à fila' + (modeloEscolhido ? ' com modelo "' + modeloEscolhido.nome + '"' : '') + '!', 'ok');
   resetSecForm();
   loadSecQueue();
 }
