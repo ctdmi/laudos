@@ -543,6 +543,14 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
       </div>
     </div>
 
+    <div class="card" style="padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap">📄 Aplicar modelo:</div>
+      <select id="medico-modelo-sel" style="flex:1;min-width:200px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:#fff" onchange="aplicarModelo('medico-modelo-sel')">
+        <option value="">— escolher modelo —</option>
+      </select>
+      <button class="btn btn-outline" style="padding:7px 14px;font-size:12px;white-space:nowrap" onclick="loadModelosForMedico(currentDoctor?.id,'medico-modelo-sel')">🔄 Carregar modelos</button>
+    </div>
+
     <div class="card">
       <div class="card-hdr"><div class="card-ico">📋</div><div class="card-title">Seções do Laudo</div></div>
 
@@ -931,6 +939,143 @@ async function loadDoctorsForSec() {
     data.map(d => `<option value="${d.id}" data-nome="${d.nome}" data-crm="${d.crm||''}">${d.nome}</option>`).join('');
   const sel = document.getElementById('sec-medico-id');
   if (sel) sel.innerHTML = opts;
+}
+
+// ── MODELOS ──
+let modelosList = [];
+
+async function loadModelosForMedico(medicoId, targetSelectId) {
+  const sel = document.getElementById(targetSelectId);
+  if (!sel) return;
+  if (!medicoId) { sel.innerHTML = '<option value="">— sem modelos —</option>'; return; }
+  sel.innerHTML = '<option value="">Carregando...</option>';
+  const { data } = await supa.from('modelos').select('id,nome,secoes').eq('medico_id', medicoId).order('nome');
+  modelosList = data || [];
+  if (!modelosList.length) {
+    sel.innerHTML = '<option value="">— nenhum modelo cadastrado —</option>';
+    return;
+  }
+  sel.innerHTML = '<option value="">— escolher modelo —</option>' +
+    modelosList.map(m => `<option value="${m.id}">${m.nome}</option>`).join('');
+}
+
+function aplicarModelo(selectId) {
+  const sel = document.getElementById(selectId);
+  if (!sel || !sel.value) return;
+  const modelo = modelosList.find(m => m.id === sel.value);
+  if (!modelo || !modelo.secoes) return;
+  const s = modelo.secoes;
+  const secMap = {
+    venoso_d: 'txt-venoso-d', venoso_e: 'txt-venoso-e',
+    arterial: 'txt-arterial', carotidas: 'txt-carotidas',
+    aorta: 'txt-aorta', cava: 'txt-cava',
+    superiores: 'txt-superiores', ecoca: 'txt-ecoca'
+  };
+  Object.entries(secMap).forEach(([key, txtId]) => {
+    if (!s[key]) return;
+    const txt = document.getElementById(txtId);
+    const chkKey = (key === 'venoso_d' || key === 'venoso_e') ? 'venoso' : key;
+    const chk = document.getElementById('chk-' + chkKey);
+    const lbl = document.getElementById('lb-' + chkKey);
+    if (chk && s[key].ativo !== undefined) { chk.checked = s[key].ativo; if (lbl) lbl.classList.toggle('on', s[key].ativo); }
+    if (txt && s[key].texto) txt.value = s[key].texto;
+  });
+  toast('Modelo "' + modelo.nome + '" aplicado! ✓', 'ok');
+  sel.value = '';
+}
+
+async function loadModelosAdmin() {
+  const { data: medicos } = await supa.from('medicos').select('id,nome').eq('papel','medico').order('nome');
+  const { data: modelos } = await supa.from('modelos').select('*').order('nome');
+  const cont = document.getElementById('admin-modelos-cont');
+  if (!cont) return;
+  if (!medicos?.length) { cont.innerHTML = '<p style="color:var(--text-muted)">Nenhum médico cadastrado.</p>'; return; }
+  let html = '';
+  medicos.forEach(med => {
+    const meus = (modelos||[]).filter(m => m.medico_id === med.id);
+    html += `<div style="margin-bottom:16px;border:1.5px solid var(--border);border-radius:10px;overflow:hidden">
+      <div style="background:var(--green-pale);padding:10px 14px;font-weight:800;font-size:13px;display:flex;justify-content:space-between;align-items:center">
+        👨‍⚕️ ${med.nome}
+        <button class="btn btn-green" style="padding:5px 12px;font-size:12px" onclick="novoModelo('${med.id}','${med.nome}')">+ Novo modelo</button>
+      </div><div style="padding:10px 14px">`;
+    if (!meus.length) {
+      html += '<p style="color:var(--text-muted);font-size:13px;margin:4px 0">Nenhum modelo cadastrado.</p>';
+    } else {
+      meus.forEach(m => {
+        html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:13px;font-weight:600">📄 ${m.nome}</span>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-outline" style="padding:4px 10px;font-size:11px" onclick="editarModelo('${m.id}')">✏️ Editar</button>
+            <button class="btn btn-red" style="padding:4px 10px;font-size:11px" onclick="deletarModelo('${m.id}')">🗑️</button>
+          </div></div>`;
+      });
+    }
+    html += '</div></div>';
+  });
+  cont.innerHTML = html;
+}
+
+let editingModeloId = null, editingModeloMedicoId = null;
+const MODELO_KEY_MAP = {
+  'venoso_d':'venoso_d','venoso_e':'venoso_e','arterial':'arterial',
+  'carotidas':'carotidas','aorta':'aorta','cava':'cava','superiores':'superiores','ecoca':'ecoca'
+};
+
+function novoModelo(medicoId, medicoNome) {
+  editingModeloId = null; editingModeloMedicoId = medicoId;
+  document.getElementById('modal-modelo-titulo').textContent = 'Novo modelo — ' + medicoNome;
+  document.getElementById('modal-modelo-nome').value = '';
+  Object.keys(MODELO_KEY_MAP).forEach(k => {
+    const txt = document.getElementById('modal-modelo-txt-' + k);
+    const chk = document.getElementById('modal-modelo-chk-' + k);
+    if (txt) txt.value = TEXTOS_PADRAO[k.replace('_','-')] || '';
+    if (chk) chk.checked = true;
+  });
+  openModal('modal-modelo');
+}
+
+async function editarModelo(id) {
+  const { data: m } = await supa.from('modelos').select('*').eq('id', id).single();
+  if (!m) return;
+  editingModeloId = id; editingModeloMedicoId = m.medico_id;
+  const { data: med } = await supa.from('medicos').select('nome').eq('id', m.medico_id).single();
+  document.getElementById('modal-modelo-titulo').textContent = 'Editar modelo — ' + (med?.nome || '');
+  document.getElementById('modal-modelo-nome').value = m.nome;
+  const s = m.secoes || {};
+  Object.keys(MODELO_KEY_MAP).forEach(k => {
+    const txt = document.getElementById('modal-modelo-txt-' + k);
+    const chk = document.getElementById('modal-modelo-chk-' + k);
+    if (txt) txt.value = s[k]?.texto || '';
+    if (chk) chk.checked = s[k]?.ativo !== false;
+  });
+  openModal('modal-modelo');
+}
+
+async function salvarModelo() {
+  const nome = document.getElementById('modal-modelo-nome').value.trim();
+  if (!nome) { toast('Informe o nome do modelo.', 'err'); return; }
+  const secoes = {};
+  Object.keys(MODELO_KEY_MAP).forEach(k => {
+    const txt = document.getElementById('modal-modelo-txt-' + k);
+    const chk = document.getElementById('modal-modelo-chk-' + k);
+    secoes[k] = { ativo: chk ? chk.checked : true, texto: txt ? txt.value : '' };
+  });
+  loading(true, 'Salvando modelo...');
+  const { error } = editingModeloId
+    ? await supa.from('modelos').update({ nome, secoes }).eq('id', editingModeloId)
+    : await supa.from('modelos').insert({ medico_id: editingModeloMedicoId, nome, secoes });
+  loading(false);
+  if (error) { toast('Erro: ' + error.message, 'err'); return; }
+  toast('Modelo salvo!', 'ok');
+  closeModal('modal-modelo');
+  loadModelosAdmin();
+}
+
+async function deletarModelo(id) {
+  if (!confirm('Excluir este modelo?')) return;
+  await supa.from('modelos').delete().eq('id', id);
+  toast('Modelo excluído.', 'ok');
+  loadModelosAdmin();
 }
 
 async function afterLogin() {
@@ -2522,8 +2667,16 @@ function stopSessionTimeout() {
         <div class="field"><label>Convênio</label><input type="text" id="sec-convenio" placeholder="EX: UNIMED, PARTICULAR..." oninput="this.value=this.value.toUpperCase()"></div>
         <div class="field"><label>Data do Exame</label><input type="date" id="sec-data"></div>
         <div class="field s2"><label>Médico Solicitante <span style="font-weight:400;font-size:10px">(opcional)</span></label><input type="text" id="sec-solicitante" placeholder="NOME DO MÉDICO SOLICITANTE" oninput="this.value=this.value.toUpperCase()"></div>
-        <div class="field s2"><label>Médico Responsável pelo Laudo *</label><select id="sec-medico-id" onfocus="if(!this.options.length||this.options.length<2)loadDoctorsForSec()" onchange="document.getElementById('sec-medico-nome').value=this.options[this.selectedIndex].dataset.nome||''"><option value="">— Selecione o médico —</option></select><input type="hidden" id="sec-medico-nome"></div>
+        <div class="field s2"><label>Médico Responsável pelo Laudo *</label><select id="sec-medico-id" onfocus="if(!this.options.length||this.options.length<2)loadDoctorsForSec()" onchange="document.getElementById('sec-medico-nome').value=this.options[this.selectedIndex].dataset.nome||'';loadModelosForMedico(this.value,'sec-modelo-sel')"><option value="">— Selecione o médico —</option></select><input type="hidden" id="sec-medico-nome"></div>
       </div>
+    </div>
+
+    <div class="card" style="padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap" id="sec-modelo-card" style="display:none">
+      <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap">📄 Modelo preferido:</div>
+      <select id="sec-modelo-sel" style="flex:1;min-width:200px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:#fff">
+        <option value="">— selecione o médico primeiro —</option>
+      </select>
+      <button class="btn btn-green" style="padding:7px 14px;font-size:12px;white-space:nowrap" onclick="aplicarModeloSecForm()">✅ Aplicar ao laudo</button>
     </div>
 
     <div class="card">
@@ -2622,6 +2775,13 @@ Ecocardiograma dentro dos limites da normalidade.</textarea></div>
       <button class="btn btn-green" style="margin-top:12px" onclick="openModal('modal-doctor')">+ Cadastrar Médico / Secretaria</button>
     </div>
     <div class="card">
+      <div class="card-hdr"><div class="card-ico">📄</div><div class="card-title">Modelos de Laudo</div>
+        <button class="btn btn-green" style="margin-left:auto;padding:5px 14px;font-size:12px" onclick="loadModelosAdmin()">🔄 Atualizar</button>
+      </div>
+      <div id="admin-modelos-cont" style="margin-top:4px"><p style="color:var(--text-muted);font-size:13px">Clique em Atualizar para carregar.</p></div>
+    </div>
+
+    <div class="card">
       <div class="card-hdr"><div class="card-ico">👤</div><div class="card-title">Pacientes com Acesso</div></div>
       <div class="tip">Pacientes conseguem fazer login e visualizar seus laudos. Pacientes podem fazer login e visualizar seus laudos.</div>
       <div id="admin-sec-patients" style="margin-top:12px"></div>
@@ -2682,6 +2842,90 @@ Ecocardiograma dentro dos limites da normalidade.</textarea></div>
     <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
       <button class="btn btn-outline" onclick="closeModal('modal-change-pwd')">Cancelar</button>
       <button class="btn btn-green" onclick="saveChangePwd()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+<div id="modal-modelo" class="modal" style="display:none">
+  <div class="modal-box" style="max-width:720px;max-height:90vh;overflow-y:auto">
+    <div class="modal-hdr">
+      <span id="modal-modelo-titulo">Modelo de Laudo</span>
+      <button class="modal-close" onclick="closeModal('modal-modelo')">✕</button>
+    </div>
+    <div style="padding:16px 20px">
+      <div class="field" style="margin-bottom:16px">
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px">Nome do modelo *</label>
+        <input type="text" id="modal-modelo-nome" placeholder="Ex: Padrão Venoso, Carotidas Completo..." style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;margin-top:4px;box-sizing:border-box">
+      </div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;color:var(--text-muted)">Seções do modelo</div>
+      
+        <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+          <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer">
+              <input type="checkbox" id="modal-modelo-chk-venoso_d" checked> Sistema Venoso — Membro Inferior DIREITO
+            </label>
+          </div>
+          <textarea id="modal-modelo-txt-venoso_d" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+        </div>
+        <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+          <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer">
+              <input type="checkbox" id="modal-modelo-chk-venoso_e" checked> Sistema Venoso — Membro Inferior ESQUERDO
+            </label>
+          </div>
+          <textarea id="modal-modelo-txt-venoso_e" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+        </div>
+        <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+          <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer">
+              <input type="checkbox" id="modal-modelo-chk-arterial" checked> Eco Doppler Arterial
+            </label>
+          </div>
+          <textarea id="modal-modelo-txt-arterial" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+        </div>
+        <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+          <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer">
+              <input type="checkbox" id="modal-modelo-chk-carotidas" checked> Eco Doppler Carótidas
+            </label>
+          </div>
+          <textarea id="modal-modelo-txt-carotidas" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+        </div>
+        <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+          <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer">
+              <input type="checkbox" id="modal-modelo-chk-aorta" checked> Eco Doppler Aorta
+            </label>
+          </div>
+          <textarea id="modal-modelo-txt-aorta" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+        </div>
+        <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+          <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer">
+              <input type="checkbox" id="modal-modelo-chk-cava" checked> Eco Doppler Veia Cava
+            </label>
+          </div>
+          <textarea id="modal-modelo-txt-cava" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+        </div>
+        <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+          <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer">
+              <input type="checkbox" id="modal-modelo-chk-superiores" checked> Sistema Venoso Membros Superiores
+            </label>
+          </div>
+          <textarea id="modal-modelo-txt-superiores" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+        </div>
+        <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+          <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer">
+              <input type="checkbox" id="modal-modelo-chk-ecoca" checked> Ecocardiograma
+            </label>
+          </div>
+          <textarea id="modal-modelo-txt-ecoca" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+        </div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button class="btn btn-green" style="flex:1;padding:12px" onclick="salvarModelo()">💾 Salvar modelo</button>
+        <button class="btn btn-outline" style="padding:12px 20px" onclick="closeModal('modal-modelo')">Cancelar</button>
+      </div>
     </div>
   </div>
 </div>
