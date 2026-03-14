@@ -1251,31 +1251,44 @@ function buildSecoesObj() {
 
 async function saveLaudo() {
   if (!get('p-nome')) { toast('Informe o nome do paciente.','err'); return; }
+  // Captura TUDO antes do upload para não perder dados se o form mudar
   const secoes = buildSecoesObj();
+  const snapNome    = get('p-nome');
+  const snapNasc    = get('p-nasc');
+  const snapIdade   = get('p-idade');
+  const snapData    = get('p-data');
+  const snapConv    = get('p-convenio');
+  const snapSolic   = get('p-solicitante');
+  const snapMedNome = editingLaudoMedico?.nome || currentDoctor?.nome || '';
+  const snapMedCrm  = editingLaudoMedico?.crm  || currentDoctor?.crm  || '';
+  const snapMedId   = currentDoctor?.id   || null;
+  const snapMedResp = currentDoctor?.nome || '';
+  const snapPapel   = currentDoctor?.papel || 'medico';
+  const snapImages  = [...images]; // cópia do array antes do upload
+
   // Upload imagens para Storage (paralelo com compressão)
-  const totalImgs = images.filter(i => i.src?.startsWith('data:')).length;
+  const totalImgs = snapImages.filter(i => i.src?.startsWith('data:')).length;
   loading(true, totalImgs > 0 ? `Enviando ${totalImgs} imagem(ns)...` : 'Salvando...');
   let imagensFinais = [];
   try {
-    imagensFinais = await processImagesForStorage(images);
+    imagensFinais = await processImagesForStorage(snapImages);
   } catch(e) {
     console.warn('processImages failed:', e.message);
-    // fallback: mantém só URLs já salvas, descarta base64
-    imagensFinais = images.filter(i => i.src && !i.src.startsWith('data:')).map(i => ({src:i.src, name:i.name||''}));
+    imagensFinais = snapImages.filter(i => i.src && !i.src.startsWith('data:')).map(i => ({src:i.src, name:i.name||''}));
   }
   const payload = {
-    paciente_nome:           get('p-nome'),
-    paciente_nasc:           get('p-nasc'),
-    paciente_idade:          get('p-idade'),
-    data_exame:              get('p-data'),
-    convenio:                get('p-convenio'),
-    solicitante:             get('p-solicitante'),
-    medico_nome:             (editingLaudoMedico?.nome || currentDoctor?.nome || ''),
-    medico_crm:              (editingLaudoMedico?.crm  || currentDoctor?.crm  || ''),
-    medico_responsavel_id:   currentDoctor?.id   || null,
-    medico_responsavel_nome: currentDoctor?.nome || '',
+    paciente_nome:           snapNome,
+    paciente_nasc:           snapNasc,
+    paciente_idade:          snapIdade,
+    data_exame:              snapData,
+    convenio:                snapConv,
+    solicitante:             snapSolic,
+    medico_nome:             snapMedNome,
+    medico_crm:              snapMedCrm,
+    medico_responsavel_id:   snapMedId,
+    medico_responsavel_nome: snapMedResp,
     status:                  'concluido',
-    criado_por:              currentDoctor?.papel || 'medico',
+    criado_por:              snapPapel,
     secoes,
     imagens: imagensFinais,
   };
