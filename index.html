@@ -365,7 +365,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
   .print-page:last-child { page-break-after: avoid; break-after: avoid; }
 
   /* content area - leaves room for footer+signature at bottom */
-  .print-body { display: block; padding-bottom: 52mm; }
+  .print-body { display: block; padding-bottom: 48mm; overflow: hidden; }
 
   /* ── HEADER ── */
   .print-header {
@@ -410,7 +410,12 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
   .print-section { display: block; }
   .print-section h3 { font-size: 10pt; font-weight: bold; text-decoration: underline; text-transform: uppercase; margin-bottom: 5px; }
   .print-section h4 { font-size: 10pt; font-weight: bold; margin-bottom: 4px; }
-  .print-section p  { font-size: 10.5pt; line-height: 1.85; text-align: justify; white-space: pre-wrap; }
+  .print-section p  { font-size: 10pt; line-height: 1.55; text-align: justify; white-space: pre-wrap; word-break: break-word; }
+
+/* ── FORMATAÇÃO DE TEXTO (aplicado no print) ── */
+.print-section p b, .print-section p strong { font-weight: bold; }
+.print-section p i, .print-section p em { font-style: italic; }
+.print-section p u { text-decoration: underline; }
 
   /* ── IMAGES ── */
   .print-img-grid {
@@ -560,7 +565,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
         </div>
         <div class="lb-body">
           <div style="margin-bottom:10px;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">🦵 Membro Inferior Direito</div>
-          <textarea oninput="scheduleAutosave()" id="txt-venoso-d" style="margin-bottom:16px">PERVIEDADE:
+          <div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('txt-venoso-d')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('txt-venoso-d')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('txt-venoso-d')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-venoso-d')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('txt-venoso-d')" style="color:#e11d48">✕ fmt</button></div><textarea oninput="scheduleAutosave()" id="txt-venoso-d" class="fmt-textarea" style="margin-bottom:16px">PERVIEDADE:
 
 Veias do sistema superficial e profundo encontram-se pérvias, calibres normais, compressíveis, sem trombos visíveis ao mapeamento a cores, com fluxos fásicos com a respiração, sendo suas paredes lisas sem irregularidades parietais.
 
@@ -576,7 +581,7 @@ Não foram visualizadas veias perfurantes incompetentes.
 
 Há varicosidades conforme ectoscopia. Telangiectasias e varizes reticulares subcutâneas, visualizadas veias extra-faciais insuficientes na face anterior e lateral e posterior da coxa e perna.</textarea>
           <div style="margin-bottom:10px;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">🦵 Membro Inferior Esquerdo</div>
-          <textarea oninput="scheduleAutosave()" id="txt-venoso-e">PERVIEDADE:
+          <div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('txt-venoso-e')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('txt-venoso-e')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('txt-venoso-e')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-venoso-e')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('txt-venoso-e')" style="color:#e11d48">✕ fmt</button></div><textarea oninput="scheduleAutosave()" id="txt-venoso-e" class="fmt-textarea">PERVIEDADE:
 
 Veias do sistema superficial e profundo encontram-se pérvias, calibres normais, compressíveis, sem trombos visíveis ao mapeamento a cores, com fluxos fásicos com a respiração, sendo suas paredes lisas sem irregularidades parietais.
 
@@ -599,7 +604,7 @@ Há varicosidades conforme ectoscopia. Telangiectasias e varizes reticulares sub
           <span class="lb-title">ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-arterial" checked onchange="toggleLb('arterial')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
-        <div class="lb-body"><textarea oninput="scheduleAutosave()" id="txt-arterial">O exame com Doppler espectral e colorido revela:
+        <div class="lb-body"><div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('txt-arterial')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('txt-arterial')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('txt-arterial')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-arterial')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('txt-arterial')" style="color:#e11d48">✕ fmt</button></div><textarea oninput="scheduleAutosave()" id="txt-arterial" class="fmt-textarea">O exame com Doppler espectral e colorido revela:
 
 MEMBRO INFERIOR DIREITO
 
@@ -627,7 +632,7 @@ Não foi evidenciado redução no deságue arterial dos membros inferiores.</tex
           <span class="lb-title">ECOCOLOR DOPPLER DAS CARÓTIDAS E VERTEBRAIS</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-carotidas" checked onchange="toggleLb('carotidas')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
-        <div class="lb-body"><textarea oninput="scheduleAutosave()" id="txt-carotidas">O exame com mapeamento a cores e espectral, revela:
+        <div class="lb-body"><div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('txt-carotidas')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('txt-carotidas')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('txt-carotidas')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-carotidas')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('txt-carotidas')" style="color:#e11d48">✕ fmt</button></div><textarea oninput="scheduleAutosave()" id="txt-carotidas" class="fmt-textarea">O exame com mapeamento a cores e espectral, revela:
 
 Artérias carótidas e vertebrais apresentam calibres e pulsatilidades normais, sem tortuosidades destes vasos.
 
@@ -645,7 +650,7 @@ Ausências de lesões hemodinamicamente significativas.</textarea></div>
           <span class="lb-title">ECOCOLOR DOPPLER DE AORTA E ARTÉRIAS ILÍACAS</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-aorta" onchange="toggleLb('aorta')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
-        <div class="lb-body"><textarea oninput="scheduleAutosave()" id="txt-aorta">O exame com Doppler espectral e colorido, revela:
+        <div class="lb-body"><div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('txt-aorta')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('txt-aorta')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('txt-aorta')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-aorta')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('txt-aorta')" style="color:#e11d48">✕ fmt</button></div><textarea oninput="scheduleAutosave()" id="txt-aorta" class="fmt-textarea">O exame com Doppler espectral e colorido, revela:
 
 Aorta abdominal e artérias ilíacas estão com calibres e pulsatilidades normais. Espessamento da camada médio intimal compatível com a faixa etária, sem lesões obstrutivas.
 
@@ -661,7 +666,7 @@ Ausência de lesões hemodinamicamente significativas.</textarea></div>
           <span class="lb-title">ECOCOLOR DOPPLER DA VEIA CAVA E ILÍACAS</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-cava" onchange="toggleLb('cava')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
-        <div class="lb-body"><textarea oninput="scheduleAutosave()" id="txt-cava">Veia Cava apresenta calibres e pulsatilidades normais, sem tortuosidades e ausência de dilatações.
+        <div class="lb-body"><div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('txt-cava')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('txt-cava')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('txt-cava')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-cava')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('txt-cava')" style="color:#e11d48">✕ fmt</button></div><textarea oninput="scheduleAutosave()" id="txt-cava" class="fmt-textarea">Veia Cava apresenta calibres e pulsatilidades normais, sem tortuosidades e ausência de dilatações.
 
 Veia Ilíacas apresenta calibres e pulsatilidades normais, sem tortuosidades e ausência de dilatações. Ao Doppler, foram detectados fluxos ascendentes e laminares, com morfologia e velocidades características.
 
@@ -675,7 +680,7 @@ Ausência de placas ateromatosas, sem alterações importantes de fluxo ao Doppl
           <span class="lb-title">ECOCOLOR DOPPLER DOS MEMBROS SUPERIORES</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-superiores" onchange="toggleLb('superiores')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
-        <div class="lb-body"><textarea oninput="scheduleAutosave()" id="txt-superiores">Veias do sistema venoso dos membros superiores superficial e profundo encontram-se pérvias, calibres normais, compressíveis, sem trombos visíveis ao mapeamento a cores.
+        <div class="lb-body"><div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('txt-superiores')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('txt-superiores')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('txt-superiores')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-superiores')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('txt-superiores')" style="color:#e11d48">✕ fmt</button></div><textarea oninput="scheduleAutosave()" id="txt-superiores" class="fmt-textarea">Veias do sistema venoso dos membros superiores superficial e profundo encontram-se pérvias, calibres normais, compressíveis, sem trombos visíveis ao mapeamento a cores.
 
 Artérias axilar, braquial, radial e ulnar pérvias, com calibres e pulsatilidades normais. Espessamento da camada médio intimal compatível com a faixa etária, sem lesões obstrutivas.
 
@@ -692,7 +697,7 @@ Não foi evidenciado redução no deságue arterial dos membros superiores.</tex
           <span class="lb-title">ECOCARDIOGRAMA COM DOPPLER</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-ecoca" onchange="toggleLb('ecoca')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
-        <div class="lb-body"><textarea oninput="scheduleAutosave()" id="txt-ecoca">ECOCARDIOGRAMA TRANSTORÁCICO COM DOPPLER
+        <div class="lb-body"><div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('txt-ecoca')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('txt-ecoca')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('txt-ecoca')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-ecoca')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('txt-ecoca')" style="color:#e11d48">✕ fmt</button></div><textarea oninput="scheduleAutosave()" id="txt-ecoca" class="fmt-textarea">ECOCARDIOGRAMA TRANSTORÁCICO COM DOPPLER
 
 Exame realizado em decúbito lateral esquerdo com transdutor de 2,5 MHz.
 
@@ -1831,6 +1836,69 @@ function printLaudo() {
   buildPrint(data);
 }
 
+// ── FORMATAÇÃO DE TEXTO ──
+function fmtInserirMarcador(textareaId, abre, fecha) {
+  const ta = document.getElementById(textareaId);
+  if (!ta) return;
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  const sel = ta.value.substring(start, end);
+  // Toggle: se já tem o marcador, remove; senão, adiciona
+  if (sel.startsWith(abre) && sel.endsWith(fecha)) {
+    const inner = sel.slice(abre.length, sel.length - fecha.length);
+    ta.value = ta.value.substring(0, start) + inner + ta.value.substring(end);
+    ta.setSelectionRange(start, start + inner.length);
+  } else {
+    const novo = abre + (sel || 'texto') + fecha;
+    ta.value = ta.value.substring(0, start) + novo + ta.value.substring(end);
+    ta.setSelectionRange(start + abre.length, start + abre.length + (sel || 'texto').length);
+  }
+  ta.focus();
+  ta.dispatchEvent(new Event('input'));
+}
+function fmtNegrito(id)    { fmtInserirMarcador(id, '**', '**'); }
+function fmtItalico(id)    { fmtInserirMarcador(id, '_', '_'); }
+function fmtSublinhado(id) { fmtInserirMarcador(id, '__', '__'); }
+function fmtMaiusculo(id) {
+  const ta = document.getElementById(id);
+  if (!ta) return;
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  if (s === e) return;
+  const sel = ta.value.substring(s, e);
+  const conv = sel === sel.toUpperCase() ? sel.toLowerCase() : sel.toUpperCase();
+  ta.value = ta.value.substring(0, s) + conv + ta.value.substring(e);
+  ta.setSelectionRange(s, s + conv.length);
+  ta.focus();
+}
+function fmtLimpar(id) {
+  const ta = document.getElementById(id);
+  if (!ta) return;
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  const trecho = s !== e ? ta.value.substring(s, e) : ta.value;
+  const limpo = trecho.replace(/\*\*|__|_/g, '');
+  if (s !== e) {
+    ta.value = ta.value.substring(0, s) + limpo + ta.value.substring(e);
+    ta.setSelectionRange(s, s + limpo.length);
+  } else {
+    ta.value = limpo;
+  }
+  ta.focus();
+}
+
+// Converte marcadores para HTML no print
+function marcadoresParaHtml(texto) {
+  if (!texto) return '';
+  // Escapa HTML primeiro
+  let html = texto
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  // Aplica marcadores (ordem importa: negrito antes de itálico)
+  html = html.replace(/\*\*(.+?)\*\*/gs, '<strong>$1</strong>');
+  html = html.replace(/__(.+?)__/gs, '<u>$1</u>');
+  html = html.replace(/_(.+?)_/gs, '<em>$1</em>');
+  return html;
+}
+
 function buildPrint(data) {
   const HEADER = `<div class="print-header"><div class="ph-main">C.T.D.M.I. - Angiologia e Cirurgia Vascular</div><div class="ph-sub">Cirurgia Vascular-Angiologia-Ecografia Vascular com Doppler</div><div class="ph-crm">CRM: 11. 1260-0</div></div>`;
   
@@ -1872,7 +1940,7 @@ function buildPrint(data) {
     const secHtml = `<div class="print-section">
       <h3>${sec.title}</h3>
       ${sec.subtitle ? `<h3 style="font-size:10.5pt;margin-bottom:5px">${sec.subtitle}</h3>` : ''}
-      <p>${s[sec.key].texto||''}</p>
+      <p>${marcadoresParaHtml(s[sec.key].texto||'')}</p>
     </div>`;
     pagesHtml += `<div class="print-page"><div class="print-body">${HEADER}${PAT}${secHtml}</div>${SIGN}${FOOTER}</div>`;
   });
@@ -2893,7 +2961,7 @@ Ecocardiograma dentro dos limites da normalidade.</textarea></div>
               <input type="checkbox" id="modal-modelo-chk-venoso_d" checked> Sistema Venoso — Membro Inferior DIREITO
             </label>
           </div>
-          <textarea id="modal-modelo-txt-venoso_d" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+          <div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-venoso_d')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('modal-modelo-txt-venoso_d')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-venoso_d')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-venoso_d')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-venoso_d')" style="color:#e11d48">✕</button></div><textarea id="modal-modelo-txt-venoso_d" class="fmt-textarea" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
         </div>
         <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
           <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
@@ -2901,7 +2969,7 @@ Ecocardiograma dentro dos limites da normalidade.</textarea></div>
               <input type="checkbox" id="modal-modelo-chk-venoso_e" checked> Sistema Venoso — Membro Inferior ESQUERDO
             </label>
           </div>
-          <textarea id="modal-modelo-txt-venoso_e" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+          <div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-venoso_e')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('modal-modelo-txt-venoso_e')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-venoso_e')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-venoso_e')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-venoso_e')" style="color:#e11d48">✕</button></div><textarea id="modal-modelo-txt-venoso_e" class="fmt-textarea" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
         </div>
         <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
           <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
@@ -2909,7 +2977,7 @@ Ecocardiograma dentro dos limites da normalidade.</textarea></div>
               <input type="checkbox" id="modal-modelo-chk-arterial" checked> Eco Doppler Arterial
             </label>
           </div>
-          <textarea id="modal-modelo-txt-arterial" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+          <div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-arterial')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('modal-modelo-txt-arterial')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-arterial')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-arterial')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-arterial')" style="color:#e11d48">✕</button></div><textarea id="modal-modelo-txt-arterial" class="fmt-textarea" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
         </div>
         <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
           <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
@@ -2917,7 +2985,7 @@ Ecocardiograma dentro dos limites da normalidade.</textarea></div>
               <input type="checkbox" id="modal-modelo-chk-carotidas" checked> Eco Doppler Carótidas
             </label>
           </div>
-          <textarea id="modal-modelo-txt-carotidas" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+          <div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-carotidas')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('modal-modelo-txt-carotidas')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-carotidas')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-carotidas')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-carotidas')" style="color:#e11d48">✕</button></div><textarea id="modal-modelo-txt-carotidas" class="fmt-textarea" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
         </div>
         <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
           <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
@@ -2925,7 +2993,7 @@ Ecocardiograma dentro dos limites da normalidade.</textarea></div>
               <input type="checkbox" id="modal-modelo-chk-aorta" checked> Eco Doppler Aorta
             </label>
           </div>
-          <textarea id="modal-modelo-txt-aorta" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+          <div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-aorta')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('modal-modelo-txt-aorta')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-aorta')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-aorta')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-aorta')" style="color:#e11d48">✕</button></div><textarea id="modal-modelo-txt-aorta" class="fmt-textarea" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
         </div>
         <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
           <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
@@ -2933,7 +3001,7 @@ Ecocardiograma dentro dos limites da normalidade.</textarea></div>
               <input type="checkbox" id="modal-modelo-chk-cava" checked> Eco Doppler Veia Cava
             </label>
           </div>
-          <textarea id="modal-modelo-txt-cava" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+          <div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-cava')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('modal-modelo-txt-cava')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-cava')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-cava')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-cava')" style="color:#e11d48">✕</button></div><textarea id="modal-modelo-txt-cava" class="fmt-textarea" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
         </div>
         <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
           <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
@@ -2941,7 +3009,7 @@ Ecocardiograma dentro dos limites da normalidade.</textarea></div>
               <input type="checkbox" id="modal-modelo-chk-superiores" checked> Sistema Venoso Membros Superiores
             </label>
           </div>
-          <textarea id="modal-modelo-txt-superiores" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+          <div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-superiores')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('modal-modelo-txt-superiores')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-superiores')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-superiores')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-superiores')" style="color:#e11d48">✕</button></div><textarea id="modal-modelo-txt-superiores" class="fmt-textarea" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
         </div>
         <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
           <div style="background:#f8f9fa;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
@@ -2949,7 +3017,7 @@ Ecocardiograma dentro dos limites da normalidade.</textarea></div>
               <input type="checkbox" id="modal-modelo-chk-ecoca" checked> Ecocardiograma
             </label>
           </div>
-          <textarea id="modal-modelo-txt-ecoca" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
+          <div class="fmt-bar"><button type="button" class="fmt-btn" title="Negrito" onclick="fmtNegrito('modal-modelo-txt-ecoca')"><b>N</b></button><button type="button" class="fmt-btn" title="Itálico" onclick="fmtItalico('modal-modelo-txt-ecoca')"><i>I</i></button><button type="button" class="fmt-btn" title="Sublinhado" onclick="fmtSublinhado('modal-modelo-txt-ecoca')"><u>S</u></button><div class="fmt-sep"></div><button type="button" class="fmt-btn" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('modal-modelo-txt-ecoca')">Aa</button><button type="button" class="fmt-btn" title="Limpar formatação" onclick="fmtLimpar('modal-modelo-txt-ecoca')" style="color:#e11d48">✕</button></div><textarea id="modal-modelo-txt-ecoca" class="fmt-textarea" style="width:100%;min-height:100px;padding:10px 12px;border:none;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box" placeholder="Texto padrão para esta seção..."></textarea>
         </div>
       <div style="display:flex;gap:10px;margin-top:16px">
         <button class="btn btn-green" style="flex:1;padding:12px" onclick="salvarModelo()">💾 Salvar modelo</button>
