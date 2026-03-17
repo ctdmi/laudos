@@ -2527,37 +2527,52 @@ async function savePendente() {
 }
 
 async function upsertPaciente({ cpf, nome, tel, emailRec, laudoId }) {
+  console.log('[upsert] iniciando cpf='+cpf+' nome='+nome+' laudoId='+laudoId);
   const fakeEmail = cpf + '@ctdmi.pac';
-  // Check if patient already exists
-  const { data: existing } = await supa.from('pacientes').select('id,laudo_ids').eq('cpf', cpf).single();
+
+  // Verifica se paciente já existe pelo CPF
+  const { data: existing, error: findErr } = await supa
+    .from('pacientes').select('id,laudo_ids').eq('cpf', cpf).maybeSingle();
+  console.log('[upsert] busca existente:', existing?.id || 'não encontrado', findErr?.message || 'sem erro');
+
   if (existing) {
-    // Update: add laudo to list
-    const ids = existing.laudo_ids || [];
+    // Já existe — só atualiza e adiciona o laudo
+    const ids = Array.isArray(existing.laudo_ids) ? existing.laudo_ids : [];
     if (laudoId && !ids.includes(laudoId)) ids.push(laudoId);
-    await supa.from('pacientes').update({
-      nome,
-      telefone: tel || undefined,
-      email_recuperacao: emailRec || undefined,
-      laudo_ids: ids,
-    }).eq('id', existing.id);
+    const upd = { nome, laudo_ids: ids };
+    if (tel) upd.telefone = tel;
+    if (emailRec) upd.email_recuperacao = emailRec;
+    const { error: updErr } = await supa.from('pacientes').update(upd).eq('id', existing.id);
+    console.log('[upsert] update:', updErr?.message || 'ok');
+    if (updErr) toast('Erro ao atualizar paciente: ' + updErr.message, 'err');
   } else {
-    // Create auth user + patient record
+    // Cria conta auth
+    console.log('[upsert] criando auth user:', fakeEmail);
     const { data: authData, error: authErr } = await supa.auth.signUp({
-      email: fakeEmail, password: cpf,
-      options: { data: { recovery_email: emailRec } }
+      email: fakeEmail,
+      password: cpf,
     });
-    if (authErr) { console.warn('Auth signup error:', authErr.message); toast('CPF cadastrado na fila, mas conta não criada: ' + authErr.message, 'warn'); return; }
-    const uid = authData.user?.id;
-    if (uid) {
-      await supa.from('pacientes').insert({
-        user_id: uid, nome, cpf,
-        email: fakeEmail,
-        email_recuperacao: emailRec || null,
-        telefone: tel || null,
-        laudo_ids: laudoId ? [laudoId] : [],
-      });
+    console.log('[upsert] auth result:', authData?.user?.id || 'sem uid', authErr?.message || 'sem erro');
+
+    if (authErr) {
+      toast('Aviso: conta do paciente não criada (' + authErr.message + ')', 'warn');
+      // Mesmo sem auth, tenta inserir na tabela com user_id nulo
     }
+
+    const uid = authData?.user?.id || null;
+    const { error: insErr } = await supa.from('pacientes').insert({
+      user_id:            uid,
+      nome,
+      cpf,
+      email:              fakeEmail,
+      email_recuperacao:  emailRec || null,
+      telefone:           tel || null,
+      laudo_ids:          laudoId ? [laudoId] : [],
+    });
+    console.log('[upsert] insert paciente:', insErr?.message || 'ok');
+    if (insErr) toast('Erro ao criar paciente: ' + insErr.message, 'err');
   }
+  console.log('[upsert] concluído');
 }
 async function savePendente() {
   const nome = document.getElementById('sec-nome')?.value?.trim();
