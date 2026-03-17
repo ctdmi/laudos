@@ -2496,18 +2496,32 @@ async function savePendente() {
 
   loading(true, 'Salvando na fila...');
 
-  // Insert laudo
-  const { data: laudoData, error } = await supa.from('laudos').insert(payload).select('id').single();
-  if (error) { loading(false); toast('Erro: ' + error.message, 'err'); return; }
-  const laudoId = laudoData.id;
+  // Insert laudo — tenta com cpf_paciente, faz fallback sem se a coluna não existir
+  let laudoId = null;
+  let { data: laudoData, error } = await supa.from('laudos').insert(payload).select('id').single();
+  if (error) {
+    if (error.message.includes('cpf_paciente')) {
+      // Coluna ainda não existe no banco — salva sem ela
+      const { cpf_paciente: _, ...payloadSemCpf } = payload;
+      const res2 = await supa.from('laudos').insert(payloadSemCpf).select('id').single();
+      if (res2.error) { loading(false); toast('Erro: ' + res2.error.message, 'err'); return; }
+      laudoData = res2.data;
+      toast('⚠️ Execute o SQL: alter table laudos add column if not exists cpf_paciente text;', 'warn');
+    } else {
+      loading(false); toast('Erro: ' + error.message, 'err'); return;
+    }
+  }
+  laudoId = laudoData.id;
 
-  // If CPF provided: create or update patient account
+  // Cria/atualiza paciente se CPF informado
   if (cpfRaw && cpfRaw.length === 11) {
+    loading(true, 'Criando acesso do paciente...');
     await upsertPaciente({ cpf: cpfRaw, nome, tel, emailRec, laudoId });
   }
 
   loading(false);
-  toast('Paciente adicionado à fila' + (mod ? ' com modelo "' + mod.nome + '"' : '') + '!', 'ok');
+  const msgCpf = cpfRaw.length === 11 ? ' • Acesso criado para o paciente.' : '';
+  toast('Paciente adicionado à fila' + (mod ? ' — modelo "' + mod.nome + '"' : '') + msgCpf, 'ok');
   resetSecForm();
   loadSecQueue();
 }
@@ -2532,7 +2546,7 @@ async function upsertPaciente({ cpf, nome, tel, emailRec, laudoId }) {
       email: fakeEmail, password: cpf,
       options: { data: { recovery_email: emailRec } }
     });
-    if (authErr) { console.warn('Auth signup error:', authErr.message); return; }
+    if (authErr) { console.warn('Auth signup error:', authErr.message); toast('CPF cadastrado na fila, mas conta não criada: ' + authErr.message, 'warn'); return; }
     const uid = authData.user?.id;
     if (uid) {
       await supa.from('pacientes').insert({
