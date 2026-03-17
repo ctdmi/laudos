@@ -561,261 +561,6 @@ textarea.fmt-textarea { display: none !important; }
   </div>
 </div>
 
-<!-- ══════════ APP (MÉDICO) ══════════ -->
-<div id="screen-app" class="screen">
-  <header class="app-header">
-    <div class="hdr-left">
-      <div class="hdr-logo">🩺</div>
-      <div><div class="hdr-title">C.T.D.M.I.</div><div class="hdr-sub">Sistema de Laudos</div></div>
-    </div>
-    <div class="hdr-right">
-      <div class="doctor-badge" id="doctor-badge">👨‍⚕️ Médico</div>
-      <button class="btn btn-outline" style="padding:7px 14px;font-size:12px" onclick="doLogout()">Sair</button>
-    </div>
-  </header>
-  <nav>
-    <div class="tab active" onclick="showTab('inicio',this)">🏠 Início</div>
-    <div class="tab" onclick="showTab('novo',this)">✏️ Novo Laudo</div>
-    <div class="tab" onclick="showTab('pendentes',this)">⏳ Pendentes <span class="tab-badge" id="pending-count" style="background:#d97706">0</span></div>
-    <div class="tab" onclick="showTab('salvos',this)">📁 Concluídos <span class="tab-badge" id="saved-count">0</span></div>
-    <div class="tab" onclick="showTab('lixeira',this)">🗑️ Lixeira <span class="tab-badge" id="lixeira-count" style="background:#9ca3af;display:none">0</span></div>
-    <div class="tab" id="tab-admin-btn" onclick="showTab('admin',this)" style="display:none">⚙️ Administração</div>
-  </nav>
-
-  <!-- TAB INÍCIO -->
-  <div id="tab-inicio" class="app-main">
-    <div id="dashboard-content">
-      <div class="empty"><div class="ei">⏳</div><p>Carregando...</p></div>
-    </div>
-  </div>
-
-  <!-- TAB NOVO -->
-  <div id="tab-novo" class="app-main" style="display:none">
-    <div id="autosave-bar" style="display:flex;justify-content:flex-end;align-items:center;padding:4px 0 8px;font-size:11px;color:var(--text-muted)">
-      <span id="autosave-ind" style="opacity:0;transition:opacity 0.5s;background:var(--green-light);color:var(--green-dark);padding:3px 10px;border-radius:12px;font-weight:600"></span>
-    </div>
-    <div class="card">
-      <div class="card-hdr"><div class="card-ico">👤</div><div class="card-title">Dados do Paciente</div></div>
-      <div class="g2">
-        <div class="field s2"><label>Nome completo *</label><input type="text" id="p-nome" placeholder="Nome completo do paciente" oninput="this.value=this.value.toUpperCase()"></div>
-        <div class="field"><label>Data de Nascimento</label><input type="date" id="p-nasc" oninput="calcIdade()"></div>
-        <div class="field"><label>Idade</label><input type="text" id="p-idade" readonly style="background:#f0f0f0;color:#888"></div>
-        <div class="field"><label>Convênio</label><input type="text" id="p-convenio" placeholder="EX: UNIMED, PARTICULAR..." oninput="this.value=this.value.toUpperCase()"></div>
-        <div class="field"><label>Data do Exame</label><input type="date" id="p-data"></div>
-        <div class="field s2"><label>Médico Solicitante <span style="font-weight:400;text-transform:none;font-size:10px">(opcional)</span></label><input type="text" id="p-solicitante" placeholder="NOME DO MÉDICO SOLICITANTE" oninput="this.value=this.value.toUpperCase()"></div>
-      </div>
-    </div>
-
-    <div class="card" style="padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#f8fafc">
-      <span style="font-size:12px;font-weight:700;color:var(--text-muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.5px">📄 Modelo</span>
-      <select id="medico-modelo-sel" style="flex:1;min-width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;background:#fff" onchange="aplicarModelo('medico-modelo-sel')">
-        <option value="">— escolher modelo —</option>
-      </select>
-    </div>
-
-    <div class="card">
-      <div class="card-hdr"><div class="card-ico">📋</div><div class="card-title">Seções do Laudo</div></div>
-
-      <div class="lb on" id="lb-venoso">
-        <div class="lb-hdr" onclick="toggleLb('venoso')">
-          <span class="lb-title">SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES</span>
-          <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-venoso" checked onchange="toggleLb('venoso')"><div class="tog-track"></div><div class="tog-knob"></div></label>
-        </div>
-        <div class="lb-body">
-          <div style="margin-bottom:10px;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">🦵 Membro Inferior Direito</div>
-          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-venoso-d')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-venoso-d')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-venoso-d')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-venoso-d',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-venoso-d')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-venoso-d')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-venoso-d" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
-          <div style="margin-bottom:10px;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">🦵 Membro Inferior Esquerdo</div>
-          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-venoso-e')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-venoso-e')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-venoso-e')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-venoso-e',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-venoso-e')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-venoso-e')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-venoso-e" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
-        </div>
-      </div>
-
-      <div class="lb" id="lb-arterial">
-        <div class="lb-hdr" onclick="toggleLb('arterial')">
-          <span class="lb-title">ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES</span>
-          <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-arterial" onchange="toggleLb('arterial')"><div class="tog-track"></div><div class="tog-knob"></div></label>
-        </div>
-        <div class="lb-body">
-          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-arterial')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-arterial')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-arterial')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-arterial',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-arterial')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-arterial')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-arterial" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
-        </div>
-      </div>
-
-      <div class="lb" id="lb-carotidas">
-        <div class="lb-hdr" onclick="toggleLb('carotidas')">
-          <span class="lb-title">ECOCOLOR DOPPLER DAS CARÓTIDAS E VERTEBRAIS</span>
-          <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-carotidas" onchange="toggleLb('carotidas')"><div class="tog-track"></div><div class="tog-knob"></div></label>
-        </div>
-        <div class="lb-body">
-          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-carotidas')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-carotidas')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-carotidas')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-carotidas',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-carotidas')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-carotidas')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-carotidas" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
-        </div>
-      </div>
-
-      <div class="lb" id="lb-aorta">
-        <div class="lb-hdr" onclick="toggleLb('aorta')">
-          <span class="lb-title">ECOCOLOR DOPPLER DE AORTA E ARTÉRIAS ILÍACAS</span>
-          <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-aorta" onchange="toggleLb('aorta')"><div class="tog-track"></div><div class="tog-knob"></div></label>
-        </div>
-        <div class="lb-body">
-          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-aorta')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-aorta')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-aorta')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-aorta',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-aorta')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-aorta')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-aorta" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
-        </div>
-      </div>
-
-      <div class="lb" id="lb-cava">
-        <div class="lb-hdr" onclick="toggleLb('cava')">
-          <span class="lb-title">ECOCOLOR DOPPLER DA VEIA CAVA E ILÍACAS</span>
-          <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-cava" onchange="toggleLb('cava')"><div class="tog-track"></div><div class="tog-knob"></div></label>
-        </div>
-        <div class="lb-body">
-          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-cava')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-cava')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-cava')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-cava',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-cava')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-cava')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-cava" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
-        </div>
-      </div>
-
-      <div class="lb" id="lb-superiores">
-        <div class="lb-hdr" onclick="toggleLb('superiores')">
-          <span class="lb-title">ECOCOLOR DOPPLER DOS MEMBROS SUPERIORES</span>
-          <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-superiores" onchange="toggleLb('superiores')"><div class="tog-track"></div><div class="tog-knob"></div></label>
-        </div>
-        <div class="lb-body">
-          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-superiores')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-superiores')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-superiores')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-superiores',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-superiores')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-superiores')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-superiores" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
-        </div>
-      </div>
-
-      <div class="lb" id="lb-ecoca">
-        <div class="lb-hdr" onclick="toggleLb('ecoca')">
-          <span class="lb-title">ECOCARDIOGRAMA COM DOPPLER</span>
-          <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-ecoca" onchange="toggleLb('ecoca')"><div class="tog-track"></div><div class="tog-knob"></div></label>
-        </div>
-        <div class="lb-body">
-          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-ecoca')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-ecoca')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-ecoca')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-ecoca',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-ecoca')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-ecoca')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-ecoca" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
-        </div>
-      </div>
-
-    </div>
-    <div class="card">
-      <div class="card-hdr"><div class="card-ico">🖼️</div><div class="card-title">Imagens do Exame (2 colunas × 3 linhas por página)</div></div>
-      <div class="drop-zone" id="dz" onclick="document.getElementById('fi').click()" ondrop="onDrop(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)">
-        <div class="dz-icon">📁</div>
-        <div class="dz-main">Clique aqui ou arraste as imagens</div>
-        <div class="dz-sub">JPG, PNG — pode selecionar vários de uma vez</div>
-      </div>
-      <input type="file" id="fi" multiple accept="image/*" style="display:none" onchange="onFileSelect(event)">
-      <div id="img-container"></div>
-    </div>
-
-    <div class="tip">💡 Clique em <strong>Salvar</strong> para guardar no banco de dados e depois <strong>Imprimir / PDF</strong> para gerar o documento. Para <strong>baixar como PDF</strong>: na janela de impressão, selecione <em>"Salvar como PDF"</em> como destino.</div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap">
-      <button class="btn btn-green btn-big" id="btn-salvar-laudo" style="flex:1" onclick="saveLaudo()">💾 Salvar Laudo</button>
-      <button class="btn btn-outline btn-big" id="btn-retornar-pendente" style="display:none;flex:0 0 auto" onclick="retornarPendente()">↩️ Retornar aos Pendentes</button>
-      <button class="btn btn-print btn-big" style="flex:1" onclick="printLaudo()">🖨️ Imprimir / PDF</button>
-    </div>
-    <div class="abar">
-      <button class="btn btn-outline" onclick="resetForm()">🔄 Limpar / Novo</button>
-    </div>
-  </div>
-
-  <!-- TAB PENDENTES -->
-  <div id="tab-pendentes" class="app-main" style="display:none">
-    <div class="card">
-      <div class="card-hdr"><div class="card-ico">⏳</div><div class="card-title">Laudos Pendentes — Aguardando Laudo Médico</div></div>
-      <div id="pending-list-container"><div class="empty"><div class="ei">⏳</div><p>Nenhum laudo pendente.</p></div></div>
-    </div>
-  </div>
-
-  <!-- TAB SALVOS -->
-  <div id="tab-salvos" class="app-main" style="display:none">
-    <div class="card">
-      <div class="card-hdr"><div class="card-ico">📁</div><div class="card-title">Laudos Concluídos</div></div>
-      <div style="margin-bottom:16px">
-        <input type="text" id="search-saved" placeholder="🔍 Buscar por nome do paciente..." oninput="searchSaved()" style="width:100%;background:var(--off-white);border:1.5px solid var(--border);border-radius:8px;padding:10px 16px;font-family:Lato,sans-serif;font-size:14px;outline:none;color:var(--text);box-sizing:border-box">
-      </div>
-      <div id="saved-list-container"><div class="empty"><div class="ei">📂</div><p>Nenhum laudo salvo ainda.</p></div></div>
-    </div>
-  </div>
-
-  <!-- TAB LIXEIRA -->
-  <div id="tab-lixeira" class="app-main" style="display:none">
-    <div class="card">
-      <div class="card-hdr">
-        <div class="card-ico">🗑️</div>
-        <div class="card-title">Lixeira</div>
-      </div>
-      <div class="tip" style="margin-bottom:12px">Laudos excluídos ficam aqui por <strong>30 dias</strong> antes de serem removidos definitivamente. Você pode restaurar ou excluir permanentemente.</div>
-      <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-        <button class="btn btn-red" style="font-size:12px;padding:7px 14px" onclick="purgeAllLixeira()">🗑️ Esvaziar Lixeira</button>
-      </div>
-      <div id="lixeira-list"><div class="empty"><div class="ei">🗑️</div><p>Lixeira vazia.</p></div></div>
-    </div>
-  </div>
-
-  <!-- TAB ADMIN -->
-  <div id="tab-admin" class="app-main" style="display:none">
-    <div class="card">
-      <div class="card-hdr"><div class="card-ico">👨‍⚕️</div><div class="card-title">Médicos e Secretaria</div></div>
-      <div id="doctors-list"></div>
-      <div class="abar"><button class="btn btn-green" onclick="openModal('modal-doctor')">+ Cadastrar Médico / Secretaria</button></div>
-    </div>
-    <div class="card">
-      <div class="card-hdr"><div class="card-ico">👥</div><div class="card-title">Pacientes com Acesso</div></div>
-      <div class="tip">Pacientes conseguem fazer login e visualizar seus laudos. Pacientes podem fazer login e visualizar seus laudos.</div>
-      <div id="patients-list"></div>
-      <div class="abar"><button class="btn btn-green" onclick="openModal('modal-patient')">+ Cadastrar Paciente</button></div>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════ PATIENT VIEW ══════════ -->
-<div id="screen-patient" class="screen">
-  <header class="app-header">
-    <div class="hdr-left">
-      <div class="hdr-logo">🩺</div>
-      <div><div class="hdr-title">C.T.D.M.I.</div><div class="hdr-sub">Portal do Paciente</div></div>
-    </div>
-    <div class="hdr-right">
-      <div class="patient-badge" id="patient-badge">👤 Paciente</div>
-      <button class="btn btn-outline" style="padding:7px 14px;font-size:12px" onclick="doLogout()">Sair</button>
-    </div>
-  </header>
-  <div class="app-main">
-    <div class="card">
-      <div class="card-hdr"><div class="card-ico">📋</div><div class="card-title">Meus Laudos</div></div>
-      <div id="patient-laudos-list"><div class="empty"><div class="ei">📋</div><p>Nenhum laudo disponível.</p></div></div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL DOCTOR -->
-<div class="modal-bg" id="modal-doctor">
-  <div class="modal">
-    <h3>Cadastrar Médico / Secretaria</h3>
-    <div class="field"><label>Nome completo</label><input type="text" id="doc-nome" placeholder="Dr(a). Nome Sobrenome"></div>
-    <div class="field"><label>CRM</label><input type="text" id="doc-crm" placeholder="Ex: 52 74144-2"></div>
-    <div class="field"><label>Email</label><input type="email" id="doc-email" placeholder="medico@email.com"></div>
-    <div class="field"><label>Senha</label><input type="password" id="doc-senha" placeholder="Mínimo 6 caracteres"></div>
-    <div class="field"><label>Papel</label><select id="doc-role"><option value="medico">Médico</option><option value="secretaria">Secretaria</option><option value="admin">Administrador</option></select></div>
-    <div id="doc-error" style="color:var(--red);font-size:12px;margin-top:8px;display:none"></div>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeModal('modal-doctor')">Cancelar</button>
-      <button class="btn btn-green" onclick="saveDoctor()">Salvar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL PATIENT -->
-<div class="modal-bg" id="modal-patient">
-  <div class="modal">
-    <h3>Cadastrar Paciente</h3>
-    <div class="tip" style="font-size:12px">O paciente acessa com <strong>CPF</strong> (sem pontos/traços) como usuário e senha. Email usado apenas para recuperar senha.</div>
-    <div class="field"><label>Nome do Paciente</label><input type="text" id="pat-nome" placeholder="Nome completo"></div>
-    <div class="field"><label>CPF (será o login e senha)</label><input type="text" id="pat-cpf" placeholder="00000000000" maxlength="11" oninput="this.value=this.value.replace(/\D/g,'')"></div>
-    <div class="field"><label>WhatsApp (com DDD, somente números)</label><input type="text" id="pat-tel" placeholder="21999998888" maxlength="11" oninput="this.value=this.value.replace(/\D/g,'')"></div>
-    <div class="field"><label>Email (recuperação de senha)</label><input type="email" id="pat-email" placeholder="paciente@email.com"></div>
-    <div id="pat-error" style="color:var(--red);font-size:12px;margin-top:8px;display:none"></div>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeModal('modal-patient')">Cancelar</button>
-      <button class="btn btn-green" onclick="savePatient()">Cadastrar</button>
-    </div>
-  </div>
-</div>
-
 <script>
 const SUPA_URL = 'https://ncrsgnlyskasdjmjqhpx.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcnNnbmx5c2thc2RqbWpxaHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQ5NjYsImV4cCI6MjA4ODMwMDk2Nn0.xb1EbGvS9bvxbwW-2mqcDJ5bJ3kjAiz2vBlxHRyXB_4';
@@ -1087,6 +832,28 @@ function fmtMaiusculo(id) {
   scheduleAutosave();
 }
 function fmtLimpar(id) { fmtCmd('removeFormat', id); }
+
+function fmtCpf(el) {
+  let v = el.value.replace(/\D/g,'').slice(0,11);
+  if (v.length > 9)      v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/,'$1.$2.$3-$4');
+  else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{1,3})/,'$1.$2.$3');
+  else if (v.length > 3) v = v.replace(/(\d{3})(\d{1,3})/,'$1.$2');
+  el.value = v;
+  const raw = v.replace(/\D/g,'');
+  const hint = document.getElementById('sec-cpf-status');
+  if (!hint) return;
+  if (raw.length === 11) {
+    hint.textContent = '✓ CPF válido — paciente terá acesso ao portal';
+    hint.style.color = 'var(--green)';
+  } else if (raw.length > 0) {
+    hint.textContent = raw.length + '/11 dígitos';
+    hint.style.color = 'var(--text-muted)';
+  } else {
+    hint.textContent = 'Sem CPF — laudo não ficará disponível online';
+    hint.style.color = '#e38c3a';
+  }
+}
+
 function marcadoresParaHtml(texto) {
   if (!texto) return '';
   if (/<[a-z][\s\S]*>/i.test(texto)) return texto; // ja e HTML
@@ -1775,6 +1542,18 @@ async function saveLaudo() {
   laudoConcluido = true;
   clearTimeout(autosaveTimer); autosaveTimer = null;
   toast('Laudo salvo com sucesso! ✓','ok');
+  // Auto-link to patient if CPF is known
+  const savedLaudoId = editingLaudoId;
+  const { data: laudoInfo } = await supa.from('laudos').select('cpf_paciente').eq('id', savedLaudoId).single();
+  if (laudoInfo?.cpf_paciente) {
+    const { data: pat } = await supa.from('pacientes').select('id,laudo_ids').eq('cpf', laudoInfo.cpf_paciente).single();
+    if (pat) {
+      const ids = pat.laudo_ids || [];
+      if (!ids.includes(savedLaudoId)) {
+        await supa.from('pacientes').update({ laudo_ids: [...ids, savedLaudoId] }).eq('id', pat.id);
+      }
+    }
+  }
   loadSaved(); loadPending(); updateLixeiraBadge();
   setTimeout(() => { showTab('inicio', document.querySelector('#screen-app nav .tab')); }, 400);
 }
@@ -1997,7 +1776,7 @@ function renderSaved(list) {
         <div class="saved-actions">
           <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="loadLaudo('${r.id}')">✏️ Abrir</button>
           <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="printById('${r.id}')">🖨️</button>
-          <button class="btn btn-outline" style="padding:7px 12px;font-size:12px;color:var(--green)" onclick="linkLaudoToPatient('${r.id}','${r.paciente_nome}')">🔗</button>
+
           <button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deleteLaudo('${r.id}')">🗑️</button>
         </div>
       </div>`;
@@ -2178,17 +1957,30 @@ function buildPrint(data) {
 // ── PATIENT LAUDOS ──
 async function loadPatientLaudos() {
   const c = document.getElementById('patient-laudos-list');
-  // Find laudos linked to this patient via the pacientes table
-  const { data: patData } = await supa.from('pacientes').select('laudo_ids').eq('user_id', currentUser.id).single();
+  c.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted)">Carregando...</div>';
+  // Get patient record to find laudo_ids
+  const { data: patData } = await supa.from('pacientes').select('id,laudo_ids,cpf').eq('user_id', currentUser.id).single();
   const ids = patData?.laudo_ids || [];
-  if (!ids.length) { c.innerHTML='<div class="empty"><div class="ei">📋</div><p>Nenhum laudo disponível ainda.<br><small style=\"color:var(--text-muted)\">Aguarde o médico vincular seu laudo.</small></p></div>'; return; }
-  const { data: laudos } = await supa.from('laudos').select('*').in('id', ids).order('criado_em',{ascending:false});
-  if (!laudos?.length) { c.innerHTML='<div class="empty"><div class="ei">📋</div><p>Nenhum laudo disponível.</p></div>'; return; }
+  if (!ids.length) {
+    c.innerHTML='<div class="empty"><div class="ei">📋</div><p>Nenhum laudo disponível ainda.</p></div>';
+    return;
+  }
+  const { data: laudos } = await supa.from('laudos')
+    .select('id,paciente_nome,data_exame,medico_nome,medico_crm,convenio,status')
+    .in('id', ids).eq('status','concluido').is('deleted_at',null)
+    .order('data_exame',{ascending:false});
+  if (!laudos?.length) {
+    c.innerHTML='<div class="empty"><div class="ei">📋</div><p>Nenhum laudo concluído disponível.</p></div>';
+    return;
+  }
   c.innerHTML = laudos.map(l => `
     <div class="saved-row">
-      <div><div class="saved-name">${l.paciente_nome}</div><div class="saved-meta">📅 ${l.data_exame?fmtDate(l.data_exame):'—'} &nbsp;|&nbsp; 👨‍⚕️ ${l.medico_nome||'—'}</div></div>
+      <div>
+        <div class="saved-name">${l.paciente_nome}</div>
+        <div class="saved-meta">📅 ${l.data_exame?fmtDate(l.data_exame):'—'} &nbsp;|&nbsp; 👨‍⚕️ ${l.medico_nome||'—'} &nbsp;|&nbsp; 🏥 ${l.convenio||'—'}</div>
+      </div>
       <div class="saved-actions">
-        <button class="btn btn-green" style="padding:7px 12px;font-size:12px" onclick="printById('${l.id}')">🖨️ Imprimir / PDF</button>
+        <button class="btn btn-green" style="padding:7px 14px;font-size:12px" onclick="printById('${l.id}')">🖨️ Ver / Imprimir</button>
       </div>
     </div>`).join('');
 }
@@ -2665,6 +2457,96 @@ function removeSecImg(id) { secImages=secImages.filter(i=>i.id!==id); renderSecI
 
 async function savePendente() {
   const nome = document.getElementById('sec-nome')?.value?.trim();
+  if (!nome) { toast('Informe o nome do paciente.', 'err'); return; }
+
+  const cpfRaw = (document.getElementById('sec-cpf')?.value || '').replace(/\D/g, '');
+  const tel    = document.getElementById('sec-tel')?.value?.trim() || '';
+  const emailRec = document.getElementById('sec-email-rec')?.value?.trim() || '';
+
+  // Build secoes with modelo
+  const modeloSel = document.getElementById('sec-modelo-sel');
+  const mod = modeloSel?.value ? modelosList.find(m => m.id === modeloSel.value) : null;
+  const secoes = {};
+  document.querySelectorAll('.sec-exame-chk').forEach(chk => {
+    const ativo = chk.checked;
+    secoes[chk.value] = { ativo, texto: mod?.secoes?.[chk.value]?.texto || '' };
+    if (chk.value === 'venoso') {
+      secoes['venoso_d'] = { ativo, texto: mod?.secoes?.venoso_d?.texto || '' };
+      secoes['venoso_e'] = { ativo, texto: mod?.secoes?.venoso_e?.texto || '' };
+    }
+  });
+
+  const payload = {
+    paciente_nome:           nome,
+    paciente_nasc:           document.getElementById('sec-nasc')?.value || '',
+    paciente_idade:          document.getElementById('sec-idade')?.value || '',
+    data_exame:              document.getElementById('sec-data')?.value || todayISO(),
+    convenio:                document.getElementById('sec-convenio')?.value?.trim() || '',
+    solicitante:             document.getElementById('sec-solicitante')?.value?.trim() || '',
+    medico_nome:             '',
+    medico_crm:              '',
+    status:                  'pendente',
+    medico_responsavel_id:   document.getElementById('sec-medico-id')?.value || null,
+    medico_responsavel_nome: document.getElementById('sec-medico-nome')?.value || '',
+    criado_por:              'secretaria',
+    cpf_paciente:            cpfRaw || null,
+    secoes,
+    imagens: [],
+  };
+
+  loading(true, 'Salvando na fila...');
+
+  // Insert laudo
+  const { data: laudoData, error } = await supa.from('laudos').insert(payload).select('id').single();
+  if (error) { loading(false); toast('Erro: ' + error.message, 'err'); return; }
+  const laudoId = laudoData.id;
+
+  // If CPF provided: create or update patient account
+  if (cpfRaw && cpfRaw.length === 11) {
+    await upsertPaciente({ cpf: cpfRaw, nome, tel, emailRec, laudoId });
+  }
+
+  loading(false);
+  toast('Paciente adicionado à fila' + (mod ? ' com modelo "' + mod.nome + '"' : '') + '!', 'ok');
+  resetSecForm();
+  loadSecQueue();
+}
+
+async function upsertPaciente({ cpf, nome, tel, emailRec, laudoId }) {
+  const fakeEmail = cpf + '@ctdmi.pac';
+  // Check if patient already exists
+  const { data: existing } = await supa.from('pacientes').select('id,laudo_ids').eq('cpf', cpf).single();
+  if (existing) {
+    // Update: add laudo to list
+    const ids = existing.laudo_ids || [];
+    if (laudoId && !ids.includes(laudoId)) ids.push(laudoId);
+    await supa.from('pacientes').update({
+      nome,
+      telefone: tel || undefined,
+      email_recuperacao: emailRec || undefined,
+      laudo_ids: ids,
+    }).eq('id', existing.id);
+  } else {
+    // Create auth user + patient record
+    const { data: authData, error: authErr } = await supa.auth.signUp({
+      email: fakeEmail, password: cpf,
+      options: { data: { recovery_email: emailRec } }
+    });
+    if (authErr) { console.warn('Auth signup error:', authErr.message); return; }
+    const uid = authData.user?.id;
+    if (uid) {
+      await supa.from('pacientes').insert({
+        user_id: uid, nome, cpf,
+        email: fakeEmail,
+        email_recuperacao: emailRec || null,
+        telefone: tel || null,
+        laudo_ids: laudoId ? [laudoId] : [],
+      });
+    }
+  }
+}
+async function savePendente() {
+  const nome = document.getElementById('sec-nome')?.value?.trim();
   if (!nome) { toast('Informe o nome do paciente.','err'); return; }
   const payload = {
     paciente_nome:  nome,
@@ -2707,10 +2589,13 @@ async function savePendente() {
 }
 
 function resetSecForm() {
-  ['sec-nome','sec-nasc','sec-convenio','sec-solicitante'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['sec-nome','sec-nasc','sec-convenio','sec-solicitante','sec-cpf','sec-tel','sec-email-rec'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
   document.getElementById('sec-idade').value='';
   document.getElementById('sec-data').value=todayISO();
-  // Reset exam checkboxes to default (only venoso checked)
+  const cpfStatus = document.getElementById('sec-cpf-status');
+  if (cpfStatus) cpfStatus.textContent = '';
   document.querySelectorAll('.sec-exame-chk').forEach(chk => { chk.checked = chk.value === 'venoso'; });
   secImages=[]; renderSecImages();
 }
@@ -2908,6 +2793,261 @@ function stopSessionTimeout() {
 }
 
 </script>
+<div id="screen-app" class="screen">
+  <header class="app-header">
+    <div class="hdr-left">
+      <div class="hdr-logo">🩺</div>
+      <div><div class="hdr-title">C.T.D.M.I.</div><div class="hdr-sub">Sistema de Laudos</div></div>
+    </div>
+    <div class="hdr-right">
+      <div class="doctor-badge" id="doctor-badge">👨‍⚕️ Médico</div>
+      <button class="btn btn-outline" style="padding:7px 14px;font-size:12px" onclick="doLogout()">Sair</button>
+    </div>
+  </header>
+  <nav>
+    <div class="tab active" onclick="showTab('inicio',this)">🏠 Início</div>
+    <div class="tab" onclick="showTab('novo',this)">✏️ Novo Laudo</div>
+    <div class="tab" onclick="showTab('pendentes',this)">⏳ Pendentes <span class="tab-badge" id="pending-count" style="background:#d97706">0</span></div>
+    <div class="tab" onclick="showTab('salvos',this)">📁 Concluídos <span class="tab-badge" id="saved-count">0</span></div>
+    <div class="tab" onclick="showTab('lixeira',this)">🗑️ Lixeira <span class="tab-badge" id="lixeira-count" style="background:#9ca3af;display:none">0</span></div>
+    <div class="tab" id="tab-admin-btn" onclick="showTab('admin',this)" style="display:none">⚙️ Administração</div>
+  </nav>
+
+  <!-- TAB INÍCIO -->
+  <div id="tab-inicio" class="app-main">
+    <div id="dashboard-content">
+      <div class="empty"><div class="ei">⏳</div><p>Carregando...</p></div>
+    </div>
+  </div>
+
+  <!-- TAB NOVO -->
+  <div id="tab-novo" class="app-main" style="display:none">
+    <div id="autosave-bar" style="display:flex;justify-content:flex-end;align-items:center;padding:4px 0 8px;font-size:11px;color:var(--text-muted)">
+      <span id="autosave-ind" style="opacity:0;transition:opacity 0.5s;background:var(--green-light);color:var(--green-dark);padding:3px 10px;border-radius:12px;font-weight:600"></span>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-ico">👤</div><div class="card-title">Dados do Paciente</div></div>
+      <div class="g2">
+        <div class="field s2"><label>Nome completo *</label><input type="text" id="p-nome" placeholder="Nome completo do paciente" oninput="this.value=this.value.toUpperCase()"></div>
+        <div class="field"><label>Data de Nascimento</label><input type="date" id="p-nasc" oninput="calcIdade()"></div>
+        <div class="field"><label>Idade</label><input type="text" id="p-idade" readonly style="background:#f0f0f0;color:#888"></div>
+        <div class="field"><label>Convênio</label><input type="text" id="p-convenio" placeholder="EX: UNIMED, PARTICULAR..." oninput="this.value=this.value.toUpperCase()"></div>
+        <div class="field"><label>Data do Exame</label><input type="date" id="p-data"></div>
+        <div class="field s2"><label>Médico Solicitante <span style="font-weight:400;text-transform:none;font-size:10px">(opcional)</span></label><input type="text" id="p-solicitante" placeholder="NOME DO MÉDICO SOLICITANTE" oninput="this.value=this.value.toUpperCase()"></div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#f8fafc">
+      <span style="font-size:12px;font-weight:700;color:var(--text-muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.5px">📄 Modelo</span>
+      <select id="medico-modelo-sel" style="flex:1;min-width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;background:#fff" onchange="aplicarModelo('medico-modelo-sel')">
+        <option value="">— escolher modelo —</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr"><div class="card-ico">📋</div><div class="card-title">Seções do Laudo</div></div>
+
+      <div class="lb on" id="lb-venoso">
+        <div class="lb-hdr" onclick="toggleLb('venoso')">
+          <span class="lb-title">SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES</span>
+          <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-venoso" checked onchange="toggleLb('venoso')"><div class="tog-track"></div><div class="tog-knob"></div></label>
+        </div>
+        <div class="lb-body">
+          <div style="margin-bottom:10px;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">🦵 Membro Inferior Direito</div>
+          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-venoso-d')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-venoso-d')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-venoso-d')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-venoso-d',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-venoso-d')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-venoso-d')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-venoso-d" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
+          <div style="margin-bottom:10px;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">🦵 Membro Inferior Esquerdo</div>
+          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-venoso-e')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-venoso-e')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-venoso-e')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-venoso-e',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-venoso-e')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-venoso-e')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-venoso-e" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
+        </div>
+      </div>
+
+      <div class="lb" id="lb-arterial">
+        <div class="lb-hdr" onclick="toggleLb('arterial')">
+          <span class="lb-title">ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES</span>
+          <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-arterial" onchange="toggleLb('arterial')"><div class="tog-track"></div><div class="tog-knob"></div></label>
+        </div>
+        <div class="lb-body">
+          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-arterial')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-arterial')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-arterial')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-arterial',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-arterial')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-arterial')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-arterial" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
+        </div>
+      </div>
+
+      <div class="lb" id="lb-carotidas">
+        <div class="lb-hdr" onclick="toggleLb('carotidas')">
+          <span class="lb-title">ECOCOLOR DOPPLER DAS CARÓTIDAS E VERTEBRAIS</span>
+          <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-carotidas" onchange="toggleLb('carotidas')"><div class="tog-track"></div><div class="tog-knob"></div></label>
+        </div>
+        <div class="lb-body">
+          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-carotidas')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-carotidas')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-carotidas')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-carotidas',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-carotidas')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-carotidas')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-carotidas" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
+        </div>
+      </div>
+
+      <div class="lb" id="lb-aorta">
+        <div class="lb-hdr" onclick="toggleLb('aorta')">
+          <span class="lb-title">ECOCOLOR DOPPLER DE AORTA E ARTÉRIAS ILÍACAS</span>
+          <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-aorta" onchange="toggleLb('aorta')"><div class="tog-track"></div><div class="tog-knob"></div></label>
+        </div>
+        <div class="lb-body">
+          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-aorta')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-aorta')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-aorta')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-aorta',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-aorta')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-aorta')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-aorta" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
+        </div>
+      </div>
+
+      <div class="lb" id="lb-cava">
+        <div class="lb-hdr" onclick="toggleLb('cava')">
+          <span class="lb-title">ECOCOLOR DOPPLER DA VEIA CAVA E ILÍACAS</span>
+          <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-cava" onchange="toggleLb('cava')"><div class="tog-track"></div><div class="tog-knob"></div></label>
+        </div>
+        <div class="lb-body">
+          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-cava')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-cava')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-cava')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-cava',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-cava')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-cava')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-cava" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
+        </div>
+      </div>
+
+      <div class="lb" id="lb-superiores">
+        <div class="lb-hdr" onclick="toggleLb('superiores')">
+          <span class="lb-title">ECOCOLOR DOPPLER DOS MEMBROS SUPERIORES</span>
+          <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-superiores" onchange="toggleLb('superiores')"><div class="tog-track"></div><div class="tog-knob"></div></label>
+        </div>
+        <div class="lb-body">
+          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-superiores')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-superiores')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-superiores')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-superiores',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-superiores')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-superiores')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-superiores" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
+        </div>
+      </div>
+
+      <div class="lb" id="lb-ecoca">
+        <div class="lb-hdr" onclick="toggleLb('ecoca')">
+          <span class="lb-title">ECOCARDIOGRAMA COM DOPPLER</span>
+          <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-ecoca" onchange="toggleLb('ecoca')"><div class="tog-track"></div><div class="tog-knob"></div></label>
+        </div>
+        <div class="lb-body">
+          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-ecoca')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-ecoca')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-ecoca')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-ecoca',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-ecoca')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-ecoca')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-ecoca" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-ico">🖼️</div><div class="card-title">Imagens do Exame (2 colunas × 3 linhas por página)</div></div>
+      <div class="drop-zone" id="dz" onclick="document.getElementById('fi').click()" ondrop="onDrop(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)">
+        <div class="dz-icon">📁</div>
+        <div class="dz-main">Clique aqui ou arraste as imagens</div>
+        <div class="dz-sub">JPG, PNG — pode selecionar vários de uma vez</div>
+      </div>
+      <input type="file" id="fi" multiple accept="image/*" style="display:none" onchange="onFileSelect(event)">
+      <div id="img-container"></div>
+    </div>
+
+    <div class="tip">💡 Clique em <strong>Salvar</strong> para guardar no banco de dados e depois <strong>Imprimir / PDF</strong> para gerar o documento. Para <strong>baixar como PDF</strong>: na janela de impressão, selecione <em>"Salvar como PDF"</em> como destino.</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <button class="btn btn-green btn-big" id="btn-salvar-laudo" style="flex:1" onclick="saveLaudo()">💾 Salvar Laudo</button>
+      <button class="btn btn-outline btn-big" id="btn-retornar-pendente" style="display:none;flex:0 0 auto" onclick="retornarPendente()">↩️ Retornar aos Pendentes</button>
+      <button class="btn btn-print btn-big" style="flex:1" onclick="printLaudo()">🖨️ Imprimir / PDF</button>
+    </div>
+    <div class="abar">
+      <button class="btn btn-outline" onclick="resetForm()">🔄 Limpar / Novo</button>
+    </div>
+  </div>
+
+  <!-- TAB PENDENTES -->
+  <div id="tab-pendentes" class="app-main" style="display:none">
+    <div class="card">
+      <div class="card-hdr"><div class="card-ico">⏳</div><div class="card-title">Laudos Pendentes — Aguardando Laudo Médico</div></div>
+      <div id="pending-list-container"><div class="empty"><div class="ei">⏳</div><p>Nenhum laudo pendente.</p></div></div>
+    </div>
+  </div>
+
+  <!-- TAB SALVOS -->
+  <div id="tab-salvos" class="app-main" style="display:none">
+    <div class="card">
+      <div class="card-hdr"><div class="card-ico">📁</div><div class="card-title">Laudos Concluídos</div></div>
+      <div style="margin-bottom:16px">
+        <input type="text" id="search-saved" placeholder="🔍 Buscar por nome do paciente..." oninput="searchSaved()" style="width:100%;background:var(--off-white);border:1.5px solid var(--border);border-radius:8px;padding:10px 16px;font-family:Lato,sans-serif;font-size:14px;outline:none;color:var(--text);box-sizing:border-box">
+      </div>
+      <div id="saved-list-container"><div class="empty"><div class="ei">📂</div><p>Nenhum laudo salvo ainda.</p></div></div>
+    </div>
+  </div>
+
+  <!-- TAB LIXEIRA -->
+  <div id="tab-lixeira" class="app-main" style="display:none">
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-ico">🗑️</div>
+        <div class="card-title">Lixeira</div>
+      </div>
+      <div class="tip" style="margin-bottom:12px">Laudos excluídos ficam aqui por <strong>30 dias</strong> antes de serem removidos definitivamente. Você pode restaurar ou excluir permanentemente.</div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+        <button class="btn btn-red" style="font-size:12px;padding:7px 14px" onclick="purgeAllLixeira()">🗑️ Esvaziar Lixeira</button>
+      </div>
+      <div id="lixeira-list"><div class="empty"><div class="ei">🗑️</div><p>Lixeira vazia.</p></div></div>
+    </div>
+  </div>
+
+  <!-- TAB ADMIN -->
+  <div id="tab-admin" class="app-main" style="display:none">
+    <div class="card">
+      <div class="card-hdr"><div class="card-ico">👨‍⚕️</div><div class="card-title">Médicos e Secretaria</div></div>
+      <div id="doctors-list"></div>
+      <div class="abar"><button class="btn btn-green" onclick="openModal('modal-doctor')">+ Cadastrar Médico / Secretaria</button></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-ico">👥</div><div class="card-title">Pacientes com Acesso</div></div>
+      <div class="tip">Pacientes conseguem fazer login e visualizar seus laudos. Pacientes podem fazer login e visualizar seus laudos.</div>
+      <div id="patients-list"></div>
+      <div class="abar"><button class="btn btn-green" onclick="openModal('modal-patient')">+ Cadastrar Paciente</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ PATIENT VIEW ══════════ -->
+<div id="screen-patient" class="screen">
+  <header class="app-header">
+    <div class="hdr-left">
+      <div class="hdr-logo">🩺</div>
+      <div><div class="hdr-title">C.T.D.M.I.</div><div class="hdr-sub">Portal do Paciente</div></div>
+    </div>
+    <div class="hdr-right">
+      <div class="patient-badge" id="patient-badge">👤 Paciente</div>
+      <button class="btn btn-outline" style="padding:7px 14px;font-size:12px" onclick="doLogout()">Sair</button>
+    </div>
+  </header>
+  <div class="app-main">
+    <div class="card">
+      <div class="card-hdr"><div class="card-ico">📋</div><div class="card-title">Meus Laudos</div></div>
+      <div id="patient-laudos-list"><div class="empty"><div class="ei">📋</div><p>Nenhum laudo disponível.</p></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DOCTOR -->
+<div class="modal-bg" id="modal-doctor">
+  <div class="modal">
+    <h3>Cadastrar Médico / Secretaria</h3>
+    <div class="field"><label>Nome completo</label><input type="text" id="doc-nome" placeholder="Dr(a). Nome Sobrenome"></div>
+    <div class="field"><label>CRM</label><input type="text" id="doc-crm" placeholder="Ex: 52 74144-2"></div>
+    <div class="field"><label>Email</label><input type="email" id="doc-email" placeholder="medico@email.com"></div>
+    <div class="field"><label>Senha</label><input type="password" id="doc-senha" placeholder="Mínimo 6 caracteres"></div>
+    <div class="field"><label>Papel</label><select id="doc-role"><option value="medico">Médico</option><option value="secretaria">Secretaria</option><option value="admin">Administrador</option></select></div>
+    <div id="doc-error" style="color:var(--red);font-size:12px;margin-top:8px;display:none"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-doctor')">Cancelar</button>
+      <button class="btn btn-green" onclick="saveDoctor()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PATIENT -->
+<div class="modal-bg" id="modal-patient">
+  <div class="modal">
+    <h3>Cadastrar Paciente</h3>
+    <div class="tip" style="font-size:12px">O paciente acessa com <strong>CPF</strong> (sem pontos/traços) como usuário e senha. Email usado apenas para recuperar senha.</div>
+    <div class="field"><label>Nome do Paciente</label><input type="text" id="pat-nome" placeholder="Nome completo"></div>
+    <div class="field"><label>CPF (será o login e senha)</label><input type="text" id="pat-cpf" placeholder="00000000000" maxlength="11" oninput="this.value=this.value.replace(/\D/g,'')"></div>
+    <div class="field"><label>WhatsApp (com DDD, somente números)</label><input type="text" id="pat-tel" placeholder="21999998888" maxlength="11" oninput="this.value=this.value.replace(/\D/g,'')"></div>
+    <div class="field"><label>Email (recuperação de senha)</label><input type="email" id="pat-email" placeholder="paciente@email.com"></div>
+    <div id="pat-error" style="color:var(--red);font-size:12px;margin-top:8px;display:none"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-patient')">Cancelar</button>
+      <button class="btn btn-green" onclick="savePatient()">Cadastrar</button>
+    </div>
+  </div>
+</div>
+
+
 
 <!-- MODAL LINK LAUDO -->
 <div class="modal-bg" id="modal-link">
@@ -2959,14 +3099,24 @@ function stopSessionTimeout() {
 
   <div id="tab-novo-sec" class="app-main">
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">👤</div><div class="card-title">Cadastrar Paciente para Laudo</div></div>
+      <div class="card-hdr"><div class="card-ico">👤</div><div class="card-title">Dados do Paciente</div></div>
       <div class="g2">
         <div class="field s2"><label>Nome completo *</label><input type="text" id="sec-nome" placeholder="NOME COMPLETO DO PACIENTE" oninput="this.value=this.value.toUpperCase()"></div>
+        <div class="field"><label>CPF <span style="font-weight:400;font-size:10px">(acesso ao portal)</span></label>
+          <input type="text" id="sec-cpf" placeholder="000.000.000-00" maxlength="14" oninput="fmtCpf(this)" autocomplete="off">
+          <div id="sec-cpf-status" style="font-size:11px;margin-top:3px;height:14px"></div>
+        </div>
         <div class="field"><label>Data de Nascimento</label><input type="date" id="sec-nasc" oninput="calcIdadeSec()"></div>
         <div class="field"><label>Idade</label><input type="text" id="sec-idade" readonly style="background:#f0f0f0;color:#888"></div>
         <div class="field"><label>Convênio</label><input type="text" id="sec-convenio" placeholder="EX: UNIMED, PARTICULAR..." oninput="this.value=this.value.toUpperCase()"></div>
         <div class="field"><label>Data do Exame</label><input type="date" id="sec-data"></div>
-        <div class="field s2"><label>Médico Solicitante <span style="font-weight:400;font-size:10px">(opcional)</span></label><input type="text" id="sec-solicitante" placeholder="NOME DO MÉDICO SOLICITANTE" oninput="this.value=this.value.toUpperCase()"></div>
+        <div class="field"><label>WhatsApp <span style="font-weight:400;font-size:10px">(opcional)</span></label>
+          <input type="text" id="sec-tel" placeholder="21999999999" maxlength="11" oninput="this.value=this.value.replace(/\D/g,'').slice(0,11)">
+        </div>
+        <div class="field"><label>E-mail de recuperação <span style="font-weight:400;font-size:10px">(opcional)</span></label>
+          <input type="email" id="sec-email-rec" placeholder="email@exemplo.com">
+        </div>
+        <div class="field s2"><label>Médico Solicitante <span style="font-weight:400;font-size:10px">(opcional)</span></label><input type="text" id="sec-solicitante" placeholder="Dr(a). Nome do médico solicitante"></div>
         <div class="field s2"><label>Médico Responsável pelo Laudo *</label><select id="sec-medico-id" onfocus="if(!this.options.length||this.options.length<2)loadDoctorsForSec()" onchange="document.getElementById('sec-medico-nome').value=this.options[this.selectedIndex].dataset.nome||'';loadModelosForMedico(this.value,'sec-modelo-sel')"><option value="">— Selecione o médico —</option></select><input type="hidden" id="sec-medico-nome"></div>
       </div>
     </div>
