@@ -192,7 +192,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 .img-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .img-over { position: absolute; inset: 0; background: rgba(0,0,0,0); display: flex; align-items: center; justify-content: center; gap: 5px; transition: background 0.2s; }
 .img-item:hover .img-over { background: rgba(0,0,0,0.6); }
-.img-over button { padding: 5px 9px; border: none; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 700; opacity: 0; transform: translateY(5px); transition: all 0.2s; }
+.img-over .img-over button { padding: 5px 9px; border: none; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 700; opacity: 0; transform: translateY(5px); transition: all 0.2s; }
 .img-item:hover .img-over button { opacity: 1; transform: translateY(0); }
 .ib-del { background: #dc2626; color: #fff; }
 .ib-lr { background: rgba(255,255,255,0.9); color: #333; }
@@ -343,126 +343,6 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 
 
 
-
-* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  body > *:not(#print-container) { display: none !important; }
-  body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
-  #print-container { display: block !important; }
-
-  @page { size: A4 portrait; margin: 0; }
-
-  /* ── PAGE: exact A4 size, content positioned inside ── */
-  .print-page {
-    width: 210mm;
-    height: 297mm;
-    box-sizing: border-box;
-    padding: 14mm 22mm 0 22mm;
-    font-family: 'Times New Roman', Times, serif;
-    page-break-after: always;
-    break-after: page;
-    background: #fff;
-    position: relative;
-    overflow: hidden;
-  }
-  .print-page:last-child { page-break-after: avoid; break-after: avoid; }
-
-  /* content area — strict height, clips at footer zone */
-  .print-body {
-    display: block;
-    max-height: 218mm;
-    overflow: hidden;
-  }
-
-  /* ── HEADER ── */
-  .print-header {
-    text-align: center;
-    border-bottom: 2px solid #000;
-    padding-bottom: 8px;
-    margin-bottom: 12px;
-  }
-  .ph-main { font-size: 14pt; font-weight: bold; }
-  .ph-sub  { font-size: 9.5pt; margin-top: 2px; }
-  .ph-crm  { font-size: 9pt; margin-top: 2px; }
-  .ph-tel  { font-size: 9pt; margin-top: 1px; }
-
-  /* ── PATIENT BOX ── */
-  .print-patient-box {
-    border: 1.5px solid #000;
-    border-radius: 4px;
-    padding: 7px 12px;
-    margin-bottom: 12px;
-    font-size: 9.5pt;
-    font-family: 'Times New Roman', serif;
-    background: #fff;
-    display: grid;
-    grid-template-columns: 3fr 1.2fr 0.8fr;
-    gap: 0;
-  }
-  .ppb-row { display: contents; }
-  .pp-cell { padding: 2px 4px; }
-  .pp-label { font-size: 7.5pt; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
-  .pp-value { font-weight: bold; font-size: 10pt; }
-  .ppb-bot-wrap {
-    grid-column: 1 / -1;
-    display: flex;
-    gap: 0;
-    margin-top: 4px;
-    padding-top: 4px;
-    border-top: none;
-  }
-  .pp-sep { display: none; }
-
-  /* ── SECTION ── */
-  .print-section { display: block; }
-  .print-section h3 { font-size: 10pt; font-weight: bold; text-decoration: underline; text-transform: uppercase; margin-bottom: 5px; }
-  .print-section h4 { font-size: 10pt; font-weight: bold; margin-bottom: 4px; }
-  .print-section p  {
-    font-size: 9.5pt;
-    line-height: 1.4;
-    text-align: justify;
-    white-space: pre-wrap;
-    word-break: break-word;
-    margin: 0;
-  }
-
-  /* ── IMAGES ── */
-  .print-img-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4mm;
-  }
-  .print-img-cell { width: 100%; aspect-ratio: 4/3; overflow: hidden; }
-  .print-img-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-  /* ── SIGNATURE: anchored above footer ── */
-  .print-signature {
-    position: absolute;
-    bottom: 28mm;
-    left: 22mm;
-    right: 22mm;
-    padding-top: 8px;
-    border-top: 1px solid #555;
-  }
-  .ps-label { font-size: 9pt; }
-  .ps-name  { font-size: 10pt; font-weight: bold; }
-  .ps-date  { font-size: 8.5pt; font-style: italic; }
-
-  /* ── FOOTER: anchored at bottom of each page ── */
-  .print-footer {
-    position: absolute;
-    bottom: 10mm;
-    left: 22mm;
-    right: 22mm;
-    padding-top: 6px;
-    border-top: 1.5px solid #000;
-    font-size: 8pt;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-  }
-
-}
-
 /* ══════════ EDITOR RICO (estilo Word) ══════════ */
 
 @media print {
@@ -583,6 +463,8 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
     align-items: flex-start;
   }
 
+}
+
 /* ══════════ EDITOR RICO (estilo Word) ══════════ */
 .fmt-wrap { display: flex; flex-direction: column; margin-bottom: 16px; }
 
@@ -604,7 +486,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
   transition: background 0.1s, border-color 0.1s;
   position: relative; line-height: 1;
   /* Reset global button opacity/transform */
-  opacity: 1 !important; transform: none !important;
+  opacity: 1; transform: none;
 }
 .fmt-btn:hover { background: #dce8f5; border-color: #a8c4e0; }
 .fmt-btn:active { background: #c5d9ef; border-color: #7aaed4; box-shadow: inset 0 1px 2px rgba(0,0,0,.12); }
