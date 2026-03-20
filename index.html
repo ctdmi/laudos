@@ -562,6 +562,8 @@ textarea.fmt-textarea { display: none !important; }
 </div>
 
 <script>
+
+
 const SUPA_URL = 'https://ncrsgnlyskasdjmjqhpx.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcnNnbmx5c2thc2RqbWpxaHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQ5NjYsImV4cCI6MjA4ODMwMDk2Nn0.xb1EbGvS9bvxbwW-2mqcDJ5bJ3kjAiz2vBlxHRyXB_4';
 const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -2574,48 +2576,6 @@ async function upsertPaciente({ cpf, nome, tel, emailRec, laudoId }) {
   }
   console.log('[upsert] concluído');
 }
-async function savePendente() {
-  const nome = document.getElementById('sec-nome')?.value?.trim();
-  if (!nome) { toast('Informe o nome do paciente.','err'); return; }
-  const payload = {
-    paciente_nome:  nome,
-    paciente_nasc:  document.getElementById('sec-nasc')?.value || '',
-    paciente_idade: document.getElementById('sec-idade')?.value || '',
-    data_exame:     document.getElementById('sec-data')?.value || todayISO(),
-    convenio:       document.getElementById('sec-convenio')?.value?.trim() || '',
-    solicitante:    document.getElementById('sec-solicitante')?.value?.trim() || '',
-    medico_nome:    '',
-    medico_crm:     '',
-    status:         'pendente',
-    medico_responsavel_id: document.getElementById('sec-medico-id')?.value || null,
-    medico_responsavel_nome: document.getElementById('sec-medico-nome')?.value || '',
-    criado_por:     'secretaria',
-    secoes:         (() => {
-      const modeloSel = document.getElementById('sec-modelo-sel');
-      const mod = modeloSel?.value ? modelosList.find(m => m.id === modeloSel.value) : null;
-      const s = {};
-      document.querySelectorAll('.sec-exame-chk').forEach(chk => {
-        const ativo = chk.checked;
-        s[chk.value] = { ativo, texto: mod?.secoes?.[chk.value]?.texto || '' };
-        if (chk.value === 'venoso') {
-          s['venoso_d'] = { ativo, texto: mod?.secoes?.venoso_d?.texto || '' };
-          s['venoso_e'] = { ativo, texto: mod?.secoes?.venoso_e?.texto || '' };
-        }
-      });
-      return s;
-    })(),
-    imagens:        [],
-  };
-  loading(true,'Enviando imagens...');
-  payload.imagens = await processImagesForStorage(secImages.map(i=>({src:i.src,name:i.name||'',id:i.id})));
-  loading(true,'Salvando na fila...');
-  const { error } = await supa.from('laudos').insert(payload);
-  loading(false);
-  if (error) { toast('Erro: '+error.message,'err'); return; }
-  toast('Paciente adicionado à fila do médico!','ok');
-  resetSecForm();
-  loadSecQueue();
-}
 
 function resetSecForm() {
   ['sec-nome','sec-nasc','sec-convenio','sec-solicitante','sec-cpf','sec-tel','sec-email-rec'].forEach(id=>{
@@ -2820,6 +2780,8 @@ function stopSessionTimeout() {
   const eventos = ['mousemove','keydown','click','touchstart','scroll'];
   eventos.forEach(ev => document.removeEventListener(ev, resetSessionTimer));
 }
+
+
 
 </script>
 <div id="screen-app" class="screen">
