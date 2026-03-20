@@ -352,20 +352,19 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
   /* ── PAGE: exact A4 size, content positioned inside ── */
   .print-page {
     width: 210mm;
-    height: 297mm;
+    min-height: 297mm;
     box-sizing: border-box;
-    padding: 14mm 22mm 0 22mm;
+    padding: 14mm 22mm 52mm 22mm;
     font-family: 'Times New Roman', Times, serif;
     page-break-after: always;
     break-after: page;
     background: #fff;
     position: relative;
-    overflow: hidden;
   }
   .print-page:last-child { page-break-after: avoid; break-after: avoid; }
 
-  /* content area - leaves room for footer+signature at bottom */
-  .print-body { display: block; padding-bottom: 48mm; overflow: hidden; }
+  /* content area */
+  .print-body { display: block; }
 
   /* ── HEADER ── */
   .print-header {
@@ -410,7 +409,15 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
   .print-section { display: block; }
   .print-section h3 { font-size: 10pt; font-weight: bold; text-decoration: underline; text-transform: uppercase; margin-bottom: 5px; }
   .print-section h4 { font-size: 10pt; font-weight: bold; margin-bottom: 4px; }
-  .print-section p  { font-size: 10pt; line-height: 1.55; text-align: justify; white-space: pre-wrap; word-break: break-word; }
+  .print-section p  {
+    font-size: 10pt;
+    line-height: 1.55;
+    text-align: justify;
+    white-space: pre-wrap;
+    word-break: break-word;
+    orphans: 3;
+    widows: 3;
+  }
 
   /* ── IMAGES ── */
   .print-img-grid {
@@ -423,11 +430,9 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 
   /* ── SIGNATURE: anchored above footer ── */
   .print-signature {
-    position: absolute;
-    bottom: 28mm;
-    right: 22mm;
-    text-align: right;
-    font-family: 'Times New Roman', serif;
+    margin-top: 20px;
+    padding-top: 10px;
+    border-top: 1px solid #555;
   }
   .ps-label { font-size: 9pt; }
   .ps-name  { font-size: 10pt; font-weight: bold; }
@@ -435,18 +440,14 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 
   /* ── FOOTER: anchored at bottom of each page ── */
   .print-footer {
-    position: absolute;
-    bottom: 10mm;
-    left: 22mm;
-    right: 22mm;
-    border-top: 1px solid #000;
-    padding-top: 4px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1.5px solid #000;
+    font-size: 8pt;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    font-size: 8pt;
-    line-height: 1.5;
-    font-family: 'Times New Roman', serif;
+    gap: 10px;
   }
   .pf-warn { font-size: 7pt; font-style: italic; color: #444; margin-top: 2px; }
 }
@@ -562,6 +563,11 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 </div>
 
 <script>
+
+
+
+
+
 
 
 
@@ -1793,12 +1799,36 @@ function buildPrint(data) {
 
   sections.forEach(sec => {
     if (!s[sec.key]?.ativo) return;
-    const secHtml = `<div class="print-section">
-      <h3>${sec.title}</h3>
-      ${sec.subtitle ? `<h3 style="font-size:10.5pt;margin-bottom:5px">${sec.subtitle}</h3>` : ''}
-      <p>${marcadoresParaHtml(s[sec.key].texto||'')}</p>
-    </div>`;
-    pagesHtml += `<div class="print-page"><div class="print-body">${HEADER}${PAT}${secHtml}</div>${SIGN}${FOOTER}</div>`;
+    const texto = s[sec.key].texto || '';
+    const html  = marcadoresParaHtml(texto);
+    // Split text into chunks at paragraph boundaries if it's very long
+    // Estimate: ~230 chars per line at 10pt, ~38 lines per page = ~8700 chars max
+    const MAX_CHARS = 3200; // conservative estimate for safe page fit
+    const chunks = [];
+    if (texto.length <= MAX_CHARS) {
+      chunks.push(html);
+      // Split at paragraph breaks
+      const paras = texto.split(/\n\n+/);
+      let cur = '';
+      paras.forEach(p => {
+        if ((cur + p).length > MAX_CHARS && cur.length > 0) {
+          chunks.push(marcadoresParaHtml(cur.trimEnd()));
+          cur = p + '\n\n';
+        } else {
+          cur += p + '\n\n';
+        }
+      });
+      if (cur.trim()) chunks.push(marcadoresParaHtml(cur.trim()));
+    }
+    chunks.forEach((chunk, ci) => {
+      const isFirst = ci === 0;
+      const secHtml = `<div class="print-section">
+        <h3>${sec.title}${!isFirst ? ' <span style="font-size:8pt;font-weight:normal">(continuação)</span>' : ''}</h3>
+        ${isFirst && sec.subtitle ? `<h3 style="font-size:10.5pt;margin-bottom:5px">${sec.subtitle}</h3>` : ''}
+        <p>${chunk}</p>
+      </div>`;
+      pagesHtml += `<div class="print-page"><div class="print-body">${HEADER}${isFirst?PAT:''}${secHtml}</div>${SIGN}${FOOTER}</div>`;
+    });
   });
 
   // Image pages — no patient data, just header + images + footer
@@ -2661,6 +2691,11 @@ function stopSessionTimeout() {
 
 
 
+
+
+
+
+
 </script>
 <div id="screen-app" class="screen">
   <header class="app-header">
@@ -3145,8 +3180,9 @@ function stopSessionTimeout() {
             <label for="modal-modelo-chk-venoso_d"
               style="font-size:12px;font-weight:700;color:#374151;cursor:pointer">Sistema Venoso — M.I. DIREITO</label>
           </div>
-          <textarea id="modal-modelo-txt-venoso_d" rows="4"
-            style="width:100%;padding:8px 10px;border:1.5px solid #c9cdd4;border-radius:6px;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;line-height:1.5;color:#1a2e23;background:#fff"
+          <div style="display:flex;gap:2px;padding:3px 6px;background:linear-gradient(to bottom,#f3f4f6,#eaecef);border:1.5px solid #c9cdd4;border-bottom:1px solid #d8dce2;border-radius:6px 6px 0 0;flex-wrap:wrap;align-items:center"><button type="button" onclick="fmtTa('modal-modelo-txt-venoso_d','bold')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-weight:900;font-size:14px;font-family:'Times New Roman',serif" title="Negrito">B</button><button type="button" onclick="fmtTa('modal-modelo-txt-venoso_d','italic')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-style:italic;font-weight:700;font-size:14px;font-family:'Times New Roman',serif" title="Itálico">I</button><button type="button" onclick="fmtTa('modal-modelo-txt-venoso_d','underline')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-weight:700;text-decoration:underline;font-size:13px" title="Sublinhado">S</button><div style="width:1px;height:16px;background:#b0b8c4;margin:0 3px"></div><button type="button" onclick="fmtTaMaiusculo('modal-modelo-txt-venoso_d')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-size:11px;font-weight:800" title="MAIÚSCULO/minúsculo">Aa</button><div style="width:1px;height:16px;background:#b0b8c4;margin:0 3px"></div><button type="button" onclick="fmtTaLimpar('modal-modelo-txt-venoso_d')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-size:11px;color:#6b7280" title="Limpar formatação"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
+          <textarea id="modal-modelo-txt-venoso_d" rows="5"
+            style="width:100%;padding:8px 10px;border:1.5px solid #c9cdd4;border-top:none;border-radius:0 0 6px 6px;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;line-height:1.5;color:#1a2e23;background:#fff"
             placeholder="Texto padrão para esta seção..."></textarea>
         </div>
         <div style="margin-bottom:14px">
@@ -3156,8 +3192,9 @@ function stopSessionTimeout() {
             <label for="modal-modelo-chk-venoso_e"
               style="font-size:12px;font-weight:700;color:#374151;cursor:pointer">Sistema Venoso — M.I. ESQUERDO</label>
           </div>
-          <textarea id="modal-modelo-txt-venoso_e" rows="4"
-            style="width:100%;padding:8px 10px;border:1.5px solid #c9cdd4;border-radius:6px;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;line-height:1.5;color:#1a2e23;background:#fff"
+          <div style="display:flex;gap:2px;padding:3px 6px;background:linear-gradient(to bottom,#f3f4f6,#eaecef);border:1.5px solid #c9cdd4;border-bottom:1px solid #d8dce2;border-radius:6px 6px 0 0;flex-wrap:wrap;align-items:center"><button type="button" onclick="fmtTa('modal-modelo-txt-venoso_e','bold')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-weight:900;font-size:14px;font-family:'Times New Roman',serif" title="Negrito">B</button><button type="button" onclick="fmtTa('modal-modelo-txt-venoso_e','italic')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-style:italic;font-weight:700;font-size:14px;font-family:'Times New Roman',serif" title="Itálico">I</button><button type="button" onclick="fmtTa('modal-modelo-txt-venoso_e','underline')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-weight:700;text-decoration:underline;font-size:13px" title="Sublinhado">S</button><div style="width:1px;height:16px;background:#b0b8c4;margin:0 3px"></div><button type="button" onclick="fmtTaMaiusculo('modal-modelo-txt-venoso_e')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-size:11px;font-weight:800" title="MAIÚSCULO/minúsculo">Aa</button><div style="width:1px;height:16px;background:#b0b8c4;margin:0 3px"></div><button type="button" onclick="fmtTaLimpar('modal-modelo-txt-venoso_e')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-size:11px;color:#6b7280" title="Limpar formatação"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
+          <textarea id="modal-modelo-txt-venoso_e" rows="5"
+            style="width:100%;padding:8px 10px;border:1.5px solid #c9cdd4;border-top:none;border-radius:0 0 6px 6px;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;line-height:1.5;color:#1a2e23;background:#fff"
             placeholder="Texto padrão para esta seção..."></textarea>
         </div>
         <div style="margin-bottom:14px">
@@ -3167,8 +3204,9 @@ function stopSessionTimeout() {
             <label for="modal-modelo-chk-arterial"
               style="font-size:12px;font-weight:700;color:#374151;cursor:pointer">Eco Doppler Arterial</label>
           </div>
-          <textarea id="modal-modelo-txt-arterial" rows="4"
-            style="width:100%;padding:8px 10px;border:1.5px solid #c9cdd4;border-radius:6px;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;line-height:1.5;color:#1a2e23;background:#fff"
+          <div style="display:flex;gap:2px;padding:3px 6px;background:linear-gradient(to bottom,#f3f4f6,#eaecef);border:1.5px solid #c9cdd4;border-bottom:1px solid #d8dce2;border-radius:6px 6px 0 0;flex-wrap:wrap;align-items:center"><button type="button" onclick="fmtTa('modal-modelo-txt-arterial','bold')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-weight:900;font-size:14px;font-family:'Times New Roman',serif" title="Negrito">B</button><button type="button" onclick="fmtTa('modal-modelo-txt-arterial','italic')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-style:italic;font-weight:700;font-size:14px;font-family:'Times New Roman',serif" title="Itálico">I</button><button type="button" onclick="fmtTa('modal-modelo-txt-arterial','underline')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-weight:700;text-decoration:underline;font-size:13px" title="Sublinhado">S</button><div style="width:1px;height:16px;background:#b0b8c4;margin:0 3px"></div><button type="button" onclick="fmtTaMaiusculo('modal-modelo-txt-arterial')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-size:11px;font-weight:800" title="MAIÚSCULO/minúsculo">Aa</button><div style="width:1px;height:16px;background:#b0b8c4;margin:0 3px"></div><button type="button" onclick="fmtTaLimpar('modal-modelo-txt-arterial')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-size:11px;color:#6b7280" title="Limpar formatação"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
+          <textarea id="modal-modelo-txt-arterial" rows="5"
+            style="width:100%;padding:8px 10px;border:1.5px solid #c9cdd4;border-top:none;border-radius:0 0 6px 6px;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;line-height:1.5;color:#1a2e23;background:#fff"
             placeholder="Texto padrão para esta seção..."></textarea>
         </div>
         <div style="margin-bottom:14px">
@@ -3178,8 +3216,9 @@ function stopSessionTimeout() {
             <label for="modal-modelo-chk-carotidas"
               style="font-size:12px;font-weight:700;color:#374151;cursor:pointer">Eco Doppler Carótidas</label>
           </div>
-          <textarea id="modal-modelo-txt-carotidas" rows="4"
-            style="width:100%;padding:8px 10px;border:1.5px solid #c9cdd4;border-radius:6px;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;line-height:1.5;color:#1a2e23;background:#fff"
+          <div style="display:flex;gap:2px;padding:3px 6px;background:linear-gradient(to bottom,#f3f4f6,#eaecef);border:1.5px solid #c9cdd4;border-bottom:1px solid #d8dce2;border-radius:6px 6px 0 0;flex-wrap:wrap;align-items:center"><button type="button" onclick="fmtTa('modal-modelo-txt-carotidas','bold')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-weight:900;font-size:14px;font-family:'Times New Roman',serif" title="Negrito">B</button><button type="button" onclick="fmtTa('modal-modelo-txt-carotidas','italic')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-style:italic;font-weight:700;font-size:14px;font-family:'Times New Roman',serif" title="Itálico">I</button><button type="button" onclick="fmtTa('modal-modelo-txt-carotidas','underline')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-weight:700;text-decoration:underline;font-size:13px" title="Sublinhado">S</button><div style="width:1px;height:16px;background:#b0b8c4;margin:0 3px"></div><button type="button" onclick="fmtTaMaiusculo('modal-modelo-txt-carotidas')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-size:11px;font-weight:800" title="MAIÚSCULO/minúsculo">Aa</button><div style="width:1px;height:16px;background:#b0b8c4;margin:0 3px"></div><button type="button" onclick="fmtTaLimpar('modal-modelo-txt-carotidas')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-size:11px;color:#6b7280" title="Limpar formatação"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
+          <textarea id="modal-modelo-txt-carotidas" rows="5"
+            style="width:100%;padding:8px 10px;border:1.5px solid #c9cdd4;border-top:none;border-radius:0 0 6px 6px;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;line-height:1.5;color:#1a2e23;background:#fff"
             placeholder="Texto padrão para esta seção..."></textarea>
         </div>
         <div style="margin-bottom:14px">
@@ -3189,8 +3228,9 @@ function stopSessionTimeout() {
             <label for="modal-modelo-chk-aorta"
               style="font-size:12px;font-weight:700;color:#374151;cursor:pointer">Eco Doppler Aorta Abdominal</label>
           </div>
-          <textarea id="modal-modelo-txt-aorta" rows="4"
-            style="width:100%;padding:8px 10px;border:1.5px solid #c9cdd4;border-radius:6px;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;line-height:1.5;color:#1a2e23;background:#fff"
+          <div style="display:flex;gap:2px;padding:3px 6px;background:linear-gradient(to bottom,#f3f4f6,#eaecef);border:1.5px solid #c9cdd4;border-bottom:1px solid #d8dce2;border-radius:6px 6px 0 0;flex-wrap:wrap;align-items:center"><button type="button" onclick="fmtTa('modal-modelo-txt-aorta','bold')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-weight:900;font-size:14px;font-family:'Times New Roman',serif" title="Negrito">B</button><button type="button" onclick="fmtTa('modal-modelo-txt-aorta','italic')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-style:italic;font-weight:700;font-size:14px;font-family:'Times New Roman',serif" title="Itálico">I</button><button type="button" onclick="fmtTa('modal-modelo-txt-aorta','underline')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-weight:700;text-decoration:underline;font-size:13px" title="Sublinhado">S</button><div style="width:1px;height:16px;background:#b0b8c4;margin:0 3px"></div><button type="button" onclick="fmtTaMaiusculo('modal-modelo-txt-aorta')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-size:11px;font-weight:800" title="MAIÚSCULO/minúsculo">Aa</button><div style="width:1px;height:16px;background:#b0b8c4;margin:0 3px"></div><button type="button" onclick="fmtTaLimpar('modal-modelo-txt-aorta')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-size:11px;color:#6b7280" title="Limpar formatação"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
+          <textarea id="modal-modelo-txt-aorta" rows="5"
+            style="width:100%;padding:8px 10px;border:1.5px solid #c9cdd4;border-top:none;border-radius:0 0 6px 6px;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;line-height:1.5;color:#1a2e23;background:#fff"
             placeholder="Texto padrão para esta seção..."></textarea>
         </div>
         <div style="margin-bottom:14px">
@@ -3200,8 +3240,9 @@ function stopSessionTimeout() {
             <label for="modal-modelo-chk-cava"
               style="font-size:12px;font-weight:700;color:#374151;cursor:pointer">Eco Doppler Veia Cava</label>
           </div>
-          <textarea id="modal-modelo-txt-cava" rows="4"
-            style="width:100%;padding:8px 10px;border:1.5px solid #c9cdd4;border-radius:6px;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;line-height:1.5;color:#1a2e23;background:#fff"
+          <div style="display:flex;gap:2px;padding:3px 6px;background:linear-gradient(to bottom,#f3f4f6,#eaecef);border:1.5px solid #c9cdd4;border-bottom:1px solid #d8dce2;border-radius:6px 6px 0 0;flex-wrap:wrap;align-items:center"><button type="button" onclick="fmtTa('modal-modelo-txt-cava','bold')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-weight:900;font-size:14px;font-family:'Times New Roman',serif" title="Negrito">B</button><button type="button" onclick="fmtTa('modal-modelo-txt-cava','italic')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-style:italic;font-weight:700;font-size:14px;font-family:'Times New Roman',serif" title="Itálico">I</button><button type="button" onclick="fmtTa('modal-modelo-txt-cava','underline')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-weight:700;text-decoration:underline;font-size:13px" title="Sublinhado">S</button><div style="width:1px;height:16px;background:#b0b8c4;margin:0 3px"></div><button type="button" onclick="fmtTaMaiusculo('modal-modelo-txt-cava')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-size:11px;font-weight:800" title="MAIÚSCULO/minúsculo">Aa</button><div style="width:1px;height:16px;background:#b0b8c4;margin:0 3px"></div><button type="button" onclick="fmtTaLimpar('modal-modelo-txt-cava')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-size:11px;color:#6b7280" title="Limpar formatação"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
+          <textarea id="modal-modelo-txt-cava" rows="5"
+            style="width:100%;padding:8px 10px;border:1.5px solid #c9cdd4;border-top:none;border-radius:0 0 6px 6px;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;line-height:1.5;color:#1a2e23;background:#fff"
             placeholder="Texto padrão para esta seção..."></textarea>
         </div>
         <div style="margin-bottom:14px">
@@ -3211,8 +3252,9 @@ function stopSessionTimeout() {
             <label for="modal-modelo-chk-superiores"
               style="font-size:12px;font-weight:700;color:#374151;cursor:pointer">Sistema Venoso Membros Superiores</label>
           </div>
-          <textarea id="modal-modelo-txt-superiores" rows="4"
-            style="width:100%;padding:8px 10px;border:1.5px solid #c9cdd4;border-radius:6px;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;line-height:1.5;color:#1a2e23;background:#fff"
+          <div style="display:flex;gap:2px;padding:3px 6px;background:linear-gradient(to bottom,#f3f4f6,#eaecef);border:1.5px solid #c9cdd4;border-bottom:1px solid #d8dce2;border-radius:6px 6px 0 0;flex-wrap:wrap;align-items:center"><button type="button" onclick="fmtTa('modal-modelo-txt-superiores','bold')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-weight:900;font-size:14px;font-family:'Times New Roman',serif" title="Negrito">B</button><button type="button" onclick="fmtTa('modal-modelo-txt-superiores','italic')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-style:italic;font-weight:700;font-size:14px;font-family:'Times New Roman',serif" title="Itálico">I</button><button type="button" onclick="fmtTa('modal-modelo-txt-superiores','underline')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-weight:700;text-decoration:underline;font-size:13px" title="Sublinhado">S</button><div style="width:1px;height:16px;background:#b0b8c4;margin:0 3px"></div><button type="button" onclick="fmtTaMaiusculo('modal-modelo-txt-superiores')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-size:11px;font-weight:800" title="MAIÚSCULO/minúsculo">Aa</button><div style="width:1px;height:16px;background:#b0b8c4;margin:0 3px"></div><button type="button" onclick="fmtTaLimpar('modal-modelo-txt-superiores')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-size:11px;color:#6b7280" title="Limpar formatação"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
+          <textarea id="modal-modelo-txt-superiores" rows="5"
+            style="width:100%;padding:8px 10px;border:1.5px solid #c9cdd4;border-top:none;border-radius:0 0 6px 6px;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;line-height:1.5;color:#1a2e23;background:#fff"
             placeholder="Texto padrão para esta seção..."></textarea>
         </div>
         <div style="margin-bottom:14px">
@@ -3222,8 +3264,9 @@ function stopSessionTimeout() {
             <label for="modal-modelo-chk-ecoca"
               style="font-size:12px;font-weight:700;color:#374151;cursor:pointer">Ecocardiograma com Doppler</label>
           </div>
-          <textarea id="modal-modelo-txt-ecoca" rows="4"
-            style="width:100%;padding:8px 10px;border:1.5px solid #c9cdd4;border-radius:6px;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;line-height:1.5;color:#1a2e23;background:#fff"
+          <div style="display:flex;gap:2px;padding:3px 6px;background:linear-gradient(to bottom,#f3f4f6,#eaecef);border:1.5px solid #c9cdd4;border-bottom:1px solid #d8dce2;border-radius:6px 6px 0 0;flex-wrap:wrap;align-items:center"><button type="button" onclick="fmtTa('modal-modelo-txt-ecoca','bold')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-weight:900;font-size:14px;font-family:'Times New Roman',serif" title="Negrito">B</button><button type="button" onclick="fmtTa('modal-modelo-txt-ecoca','italic')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-style:italic;font-weight:700;font-size:14px;font-family:'Times New Roman',serif" title="Itálico">I</button><button type="button" onclick="fmtTa('modal-modelo-txt-ecoca','underline')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-weight:700;text-decoration:underline;font-size:13px" title="Sublinhado">S</button><div style="width:1px;height:16px;background:#b0b8c4;margin:0 3px"></div><button type="button" onclick="fmtTaMaiusculo('modal-modelo-txt-ecoca')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-size:11px;font-weight:800" title="MAIÚSCULO/minúsculo">Aa</button><div style="width:1px;height:16px;background:#b0b8c4;margin:0 3px"></div><button type="button" onclick="fmtTaLimpar('modal-modelo-txt-ecoca')" style="min-width:26px;height:24px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;font-size:11px;color:#6b7280" title="Limpar formatação"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
+          <textarea id="modal-modelo-txt-ecoca" rows="5"
+            style="width:100%;padding:8px 10px;border:1.5px solid #c9cdd4;border-top:none;border-radius:0 0 6px 6px;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;line-height:1.5;color:#1a2e23;background:#fff"
             placeholder="Texto padrão para esta seção..."></textarea>
         </div>
       <div style="display:flex;gap:10px;margin-top:20px;padding-top:14px;border-top:1px solid var(--border)">
