@@ -418,13 +418,17 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
   .print-section { display: block; }
   .print-section h3 { font-size: 10pt; font-weight: bold; text-decoration: underline; text-transform: uppercase; margin-bottom: 5px; }
   .print-section h4 { font-size: 10pt; font-weight: bold; margin-bottom: 4px; }
-  .print-section p  {
+  .print-section p, .print-section .sec-body, .print-section .sec-body div  {
     font-size: 9.5pt;
     line-height: 1.4;
     text-align: justify;
     white-space: pre-wrap;
     word-break: break-word;
     margin: 0;
+  }
+  /* Inline line-height from editor takes priority */
+  .print-section [style*="line-height"] {
+    line-height: inherit;
   }
 
   /* ── IMAGES ── */
@@ -635,6 +639,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 
 
 
+
 const SUPA_URL = 'https://ncrsgnlyskasdjmjqhpx.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcnNnbmx5c2thc2RqbWpxaHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQ5NjYsImV4cCI6MjA4ODMwMDk2Nn0.xb1EbGvS9bvxbwW-2mqcDJ5bJ3kjAiz2vBlxHRyXB_4';
 const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -776,9 +781,14 @@ function fmtLimpar(id) { fmtCmd('removeFormat', id); }
 function fmtLineHeight(id, lh) {
   const el = document.getElementById(id);
   if (!el) return;
+  // Apply to the editor div itself (visible while editing)
   el.style.lineHeight = lh;
-  // Apply to all paragraphs/divs inside too
-  el.querySelectorAll('p,div,span').forEach(n => { if(n.style) n.style.lineHeight = lh; });
+  // Wrap ALL content in a single div that carries the line-height,
+  // so it gets captured by get()/innerHTML when saving
+  const inner = el.innerHTML;
+  // Remove existing wrapper if present
+  const clean = inner.replace(/^<div data-lh="[^"]*" style="line-height:[^"]*">([\s\S]*)<\/div>$/, '$1');
+  el.innerHTML = `<div data-lh="${lh}" style="line-height:${lh}">${clean}</div>`;
   scheduleAutosave();
 }
 
@@ -1347,12 +1357,15 @@ function setEditor(id, html) {
   const el = document.getElementById(id);
   if (!el) return;
   if (el.dataset.editor === 'true') {
-    // Convert plain text with \n to <br> if no HTML tags
-    if (html && !html.includes('<') ) {
+    if (html && !html.includes('<')) {
       el.innerHTML = html.replace(/\n/g, '<br>');
     } else {
       el.innerHTML = html || '';
     }
+    // Restore editor's visual line-height from wrapper div if present
+    const wrapper = el.querySelector('[data-lh]');
+    if (wrapper) el.style.lineHeight = wrapper.dataset.lh;
+    else el.style.lineHeight = '';
   } else if (el.value !== undefined) {
     el.value = html || '';
   }
@@ -1866,7 +1879,7 @@ function buildPrint(data) {
     const secHtml = `<div class="print-section">
       <h3>${sec.title}</h3>
       ${sec.subtitle ? `<h3 style="font-size:10pt;font-weight:bold;margin-bottom:4px">${sec.subtitle}</h3>` : ''}
-      <p>${marcadoresParaHtml(s[sec.key].texto||'')}</p>
+      <div class="sec-body">${marcadoresParaHtml(s[sec.key].texto||'')}</div>
     </div>`;
     pagesHtml += `<div class="print-page"><div class="print-body">${HEADER}${PAT}${secHtml}</div>${SIGN}${FOOTER}</div>`;
   });
@@ -2712,6 +2725,7 @@ function stopSessionTimeout() {
   const eventos = ['mousemove','keydown','click','touchstart','scroll'];
   eventos.forEach(ev => document.removeEventListener(ev, resetSessionTimer));
 }
+
 
 
 
