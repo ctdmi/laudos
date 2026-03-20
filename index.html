@@ -352,19 +352,24 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
   /* ── PAGE: exact A4 size, content positioned inside ── */
   .print-page {
     width: 210mm;
-    min-height: 297mm;
+    height: 297mm;
     box-sizing: border-box;
-    padding: 14mm 22mm 52mm 22mm;
+    padding: 14mm 22mm 0 22mm;
     font-family: 'Times New Roman', Times, serif;
     page-break-after: always;
     break-after: page;
     background: #fff;
     position: relative;
+    overflow: hidden;
   }
   .print-page:last-child { page-break-after: avoid; break-after: avoid; }
 
-  /* content area */
-  .print-body { display: block; }
+  /* content area — strict height, clips at footer zone */
+  .print-body {
+    display: block;
+    max-height: 218mm;
+    overflow: hidden;
+  }
 
   /* ── HEADER ── */
   .print-header {
@@ -410,13 +415,12 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
   .print-section h3 { font-size: 10pt; font-weight: bold; text-decoration: underline; text-transform: uppercase; margin-bottom: 5px; }
   .print-section h4 { font-size: 10pt; font-weight: bold; margin-bottom: 4px; }
   .print-section p  {
-    font-size: 10pt;
-    line-height: 1.55;
+    font-size: 9.5pt;
+    line-height: 1.4;
     text-align: justify;
     white-space: pre-wrap;
     word-break: break-word;
-    orphans: 3;
-    widows: 3;
+    margin: 0;
   }
 
   /* ── IMAGES ── */
@@ -430,8 +434,11 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 
   /* ── SIGNATURE: anchored above footer ── */
   .print-signature {
-    margin-top: 20px;
-    padding-top: 10px;
+    position: absolute;
+    bottom: 28mm;
+    left: 22mm;
+    right: 22mm;
+    padding-top: 8px;
     border-top: 1px solid #555;
   }
   .ps-label { font-size: 9pt; }
@@ -440,17 +447,17 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 
   /* ── FOOTER: anchored at bottom of each page ── */
   .print-footer {
-    margin-top: 10px;
-    padding-top: 8px;
+    position: absolute;
+    bottom: 10mm;
+    left: 22mm;
+    right: 22mm;
+    padding-top: 6px;
     border-top: 1.5px solid #000;
     font-size: 8pt;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 10px;
   }
-  .pf-warn { font-size: 7pt; font-style: italic; color: #444; margin-top: 2px; }
-}
 
 /* ══════════ EDITOR RICO (estilo Word) ══════════ */
 .fmt-wrap { display: flex; flex-direction: column; margin-bottom: 16px; }
@@ -563,6 +570,9 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 </div>
 
 <script>
+
+
+
 
 
 
@@ -965,6 +975,18 @@ function syncEditorToTextarea(editorId) {
 // Para o print: já está em HTML, só passa direto
 function marcadoresParaHtml(texto) {
   if (!texto) return '';
+  // If it contains HTML tags from contenteditable editor, return as-is
+  if (/<(b|i|u|strong|em|span|br|p|div)[\s>]/i.test(texto)) return texto;
+  // Convert markdown markers to HTML, then escape remaining < >
+  let h = texto
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
+  // Apply markers (order: bold before italic to avoid conflicts)
+  h = h.replace(/\*\*(.+?)\*\*/gs, '<strong>$1</strong>');
+  h = h.replace(/__(.+?)__/gs, '<u>$1</u>');
+  h = h.replace(/_(.+?)_/gs, '<em>$1</em>');
+  return h.replace(/\n/g,'<br>');
   // If already HTML (from rich editor contenteditable), return as-is
   if (/<[a-z]/i.test(texto)) return texto;
   // Plain text: escape and convert newlines
@@ -986,10 +1008,18 @@ function fmtTa(taId, tag) {
   if (!ta) return;
   const s = ta.selectionStart, e = ta.selectionEnd;
   const sel = ta.value.substring(s, e) || 'texto';
-  const tags = { bold: ['<b>','</b>'], italic: ['<i>','</i>'], underline: ['<u>','</u>'] };
-  const [open, close] = tags[tag];
-  ta.value = ta.value.substring(0,s) + open + sel + close + ta.value.substring(e);
-  ta.setSelectionRange(s + open.length, s + open.length + sel.length);
+  // Use markdown-style markers so they render correctly in print
+  const marks = { bold: ['**','**'], italic: ['_','_'], underline: ['__','__'] };
+  const [open, close] = marks[tag];
+  // Toggle: if already wrapped, remove markers
+  if (sel.startsWith(open) && sel.endsWith(close) && sel.length > open.length + close.length) {
+    const inner = sel.slice(open.length, sel.length - close.length);
+    ta.value = ta.value.substring(0,s) + inner + ta.value.substring(e);
+    ta.setSelectionRange(s, s + inner.length);
+  } else {
+    ta.value = ta.value.substring(0,s) + open + sel + close + ta.value.substring(e);
+    ta.setSelectionRange(s + open.length, s + open.length + sel.length);
+  }
   ta.focus();
 }
 function fmtTaMaiusculo(taId) {
@@ -1796,39 +1826,14 @@ function buildPrint(data) {
   ];
 
   let pagesHtml = '';
-
   sections.forEach(sec => {
     if (!s[sec.key]?.ativo) return;
-    const texto = s[sec.key].texto || '';
-    const html  = marcadoresParaHtml(texto);
-    // Split text into chunks at paragraph boundaries if it's very long
-    // Estimate: ~230 chars per line at 10pt, ~38 lines per page = ~8700 chars max
-    const MAX_CHARS = 3200; // conservative estimate for safe page fit
-    const chunks = [];
-    if (texto.length <= MAX_CHARS) {
-      chunks.push(html);
-      // Split at paragraph breaks
-      const paras = texto.split(/\n\n+/);
-      let cur = '';
-      paras.forEach(p => {
-        if ((cur + p).length > MAX_CHARS && cur.length > 0) {
-          chunks.push(marcadoresParaHtml(cur.trimEnd()));
-          cur = p + '\n\n';
-        } else {
-          cur += p + '\n\n';
-        }
-      });
-      if (cur.trim()) chunks.push(marcadoresParaHtml(cur.trim()));
-    }
-    chunks.forEach((chunk, ci) => {
-      const isFirst = ci === 0;
-      const secHtml = `<div class="print-section">
-        <h3>${sec.title}${!isFirst ? ' <span style="font-size:8pt;font-weight:normal">(continuação)</span>' : ''}</h3>
-        ${isFirst && sec.subtitle ? `<h3 style="font-size:10.5pt;margin-bottom:5px">${sec.subtitle}</h3>` : ''}
-        <p>${chunk}</p>
-      </div>`;
-      pagesHtml += `<div class="print-page"><div class="print-body">${HEADER}${isFirst?PAT:''}${secHtml}</div>${SIGN}${FOOTER}</div>`;
-    });
+    const secHtml = `<div class="print-section">
+      <h3>${sec.title}</h3>
+      ${sec.subtitle ? `<h3 style="font-size:10pt;font-weight:bold;margin-bottom:4px">${sec.subtitle}</h3>` : ''}
+      <p>${marcadoresParaHtml(s[sec.key].texto||'')}</p>
+    </div>`;
+    pagesHtml += `<div class="print-page"><div class="print-body">${HEADER}${PAT}${secHtml}</div>${SIGN}${FOOTER}</div>`;
   });
 
   // Image pages — no patient data, just header + images + footer
@@ -2672,6 +2677,9 @@ function stopSessionTimeout() {
   const eventos = ['mousemove','keydown','click','touchstart','scroll'];
   eventos.forEach(ev => document.removeEventListener(ev, resetSessionTimer));
 }
+
+
+
 
 
 
