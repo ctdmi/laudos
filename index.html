@@ -569,6 +569,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 
 
 
+
 const SUPA_URL = 'https://ncrsgnlyskasdjmjqhpx.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcnNnbmx5c2thc2RqbWpxaHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQ5NjYsImV4cCI6MjA4ODMwMDk2Nn0.xb1EbGvS9bvxbwW-2mqcDJ5bJ3kjAiz2vBlxHRyXB_4';
 const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -750,17 +751,14 @@ function aplicarModelo(selectId) {
   };
   Object.entries(secMap).forEach(([key, txtId]) => {
     if (!s[key]) return;
-    const txt = document.getElementById(txtId);
-    const edId = txtId.replace('txt-','ed-');
-    const ed = document.getElementById(edId);
     const chkKey = (key==='venoso_d'||key==='venoso_e') ? 'venoso' : key;
     const chk = document.getElementById('chk-'+chkKey);
     const lbl = document.getElementById('lb-'+chkKey);
-    if (chk && s[key].ativo !== undefined) { chk.checked = s[key].ativo; if (lbl) lbl.classList.toggle('on', s[key].ativo); }
-    if (s[key].texto) {
-      if (txt) txt.value = s[key].texto;
-      if (ed) textoToEditor(edId, s[key].texto);
+    if (chk && s[key].ativo !== undefined) {
+      chk.checked = s[key].ativo;
+      if (lbl) lbl.classList.toggle('on', s[key].ativo);
     }
+    if (s[key].texto) setEditor(txtId, s[key].texto);
   });
   toast('Modelo "' + modelo.nome + '" aplicado! ✓', 'ok');
   sel.value = '';
@@ -812,6 +810,10 @@ async function loadModelosAdmin() {
   cont.innerHTML = html;
 }
 
+const MODELO_KEY_MAP = {
+  venoso_d:'venoso_d', venoso_e:'venoso_e', arterial:'arterial',
+  carotidas:'carotidas', aorta:'aorta', cava:'cava', superiores:'superiores', ecoca:'ecoca'
+};
 let editingModeloId = null, editingModeloMedicoId = null;
 
 function novoModelo(medicoId, medicoNome) {
@@ -821,7 +823,7 @@ function novoModelo(medicoId, medicoNome) {
   Object.keys(MODELO_KEY_MAP).forEach(k => {
     const txt = document.getElementById('modal-modelo-txt-' + k);
     const chk = document.getElementById('modal-modelo-chk-' + k);
-    if (txt) txt.value = TEXTOS_PADRAO[k.replace('_','-')] || '';
+    const textoKey = k.replace('_','-'); if (txt) txt.value = TEXTOS_PADRAO[textoKey] || TEXTOS_PADRAO[k] || '';
     if (chk) chk.checked = true;
   });
   openModal('modal-modelo');
@@ -2391,8 +2393,10 @@ async function upsertPaciente({ cpf, nome, tel, emailRec, laudoId }) {
   const fakeEmail = cpf + '@ctdmi.pac';
 
   // Verifica se paciente já existe pelo CPF
-  const { data: existing, error: findErr } = await supa
-    .from('pacientes').select('id,laudo_ids').eq('cpf', cpf).maybeSingle();
+  // Use limit(1) instead of maybeSingle for broader compatibility
+  const { data: existingArr, error: findErr } = await supa
+    .from('pacientes').select('id,laudo_ids').eq('cpf', cpf).limit(1);
+  const existing = existingArr?.[0] || null;
   console.log('[upsert] busca existente:', existing?.id || 'não encontrado', findErr?.message || 'sem erro');
 
   if (existing) {
@@ -2638,6 +2642,7 @@ function stopSessionTimeout() {
   const eventos = ['mousemove','keydown','click','touchstart','scroll'];
   eventos.forEach(ev => document.removeEventListener(ev, resetSessionTimer));
 }
+
 
 
 
