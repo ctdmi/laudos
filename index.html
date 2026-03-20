@@ -565,6 +565,10 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 
 
 
+
+
+
+
 const SUPA_URL = 'https://ncrsgnlyskasdjmjqhpx.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcnNnbmx5c2thc2RqbWpxaHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQ5NjYsImV4cCI6MjA4ODMwMDk2Nn0.xb1EbGvS9bvxbwW-2mqcDJ5bJ3kjAiz2vBlxHRyXB_4';
 const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -718,15 +722,6 @@ function fmtCpf(el) {
   }
 }
 
-function marcadoresParaHtml(texto) {
-  if (!texto) return '';
-  if (/<[a-z][\s\S]*>/i.test(texto)) return texto; // ja e HTML
-  let h = texto.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  h = h.replace(/__(.+?)__/g, '<u>$1</u>');
-  h = h.replace(/_(.+?)_/g, '<em>$1</em>');
-  return h.replace(/\n/g,'<br>');
-}
 // ══════════ MODELOS DE LAUDO ══════════
 let modelosList = [];
 
@@ -952,6 +947,12 @@ function syncEditorToTextarea(editorId) {
 // Para o print: já está em HTML, só passa direto
 function marcadoresParaHtml(texto) {
   if (!texto) return '';
+  // If already HTML (from rich editor contenteditable), return as-is
+  if (/<[a-z]/i.test(texto)) return texto;
+  // Plain text: escape and convert newlines
+  return texto
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\n/g,'<br>');
   // Se já é HTML, retorna direto
   if (texto.trim().startsWith('<') || texto.includes('</')) return texto;
   // Se é texto puro, escapa e converte quebras
@@ -1004,18 +1005,12 @@ function fmtTaFontSize(taId, size) {
 }
 
 function initEditores() {
-  const map = {
-    'ed-venoso-d': 'txt-venoso-d', 'ed-venoso-e': 'txt-venoso-e',
-    'ed-arterial': 'txt-arterial', 'ed-carotidas': 'txt-carotidas',
-    'ed-aorta': 'txt-aorta', 'ed-cava': 'txt-cava',
-    'ed-superiores': 'txt-superiores', 'ed-ecoca': 'txt-ecoca'
-  };
-  Object.entries(map).forEach(([edId, taId]) => {
-    const ed = document.getElementById(edId);
-    const ta = document.getElementById(taId);
-    if (!ed || !ta) return;
-    textoToEditor(edId, ta.value);
-    ed.addEventListener('input', () => { ta.value = ed.innerHTML; scheduleAutosave(); });
+  // Rich editors use txt- id directly (contenteditable divs)
+  const ids = ['txt-venoso-d','txt-venoso-e','txt-arterial','txt-carotidas',
+               'txt-aorta','txt-cava','txt-superiores','txt-ecoca'];
+  ids.forEach(id => {
+    const ed = document.getElementById(id);
+    if (!ed || ed.dataset.editor !== 'true') return;
     ed.addEventListener('keydown', e => {
       if (e.key === 'Tab') { e.preventDefault(); document.execCommand('insertText', false, '    '); }
     });
@@ -1696,7 +1691,7 @@ async function loadLaudo(id) {
     nome: data.medico_responsavel_nome || data.medico_nome || currentDoctor?.nome || '',
     crm:  data.medico_responsavel_crm  || data.medico_crm  || currentDoctor?.crm  || ''
   };
-  showTab('novo',document.querySelectorAll('.tab')[0]);
+  showTab('novo',document.querySelectorAll('#screen-app nav .tab')[1]);
   
   // Track concluded status so autosave never reverts it
   laudoConcluido = (data.status === 'concluido');
@@ -1737,15 +1732,16 @@ function printLaudo() {
     medico_nome: currentDoctor?.nome||'______________________________',
     medico_crm:  currentDoctor?.crm ||'___________',
     secoes: {
-      venoso_d: { ativo: document.getElementById('chk-venoso').checked, texto: get('txt-venoso-d') },
-      venoso_e: { ativo: document.getElementById('chk-venoso').checked, texto: get('txt-venoso-e') },
-      arterial:   { ativo: document.getElementById('chk-arterial').checked,   texto: get('txt-arterial') },
-      carotidas:  { ativo: document.getElementById('chk-carotidas').checked,  texto: get('txt-carotidas') },
-      aorta:      { ativo: document.getElementById('chk-aorta').checked,      texto: get('txt-aorta') },
-      cava:       { ativo: document.getElementById('chk-cava').checked,       texto: get('txt-cava') },
-      superiores: { ativo: document.getElementById('chk-superiores').checked, texto: get('txt-superiores') },
+      venoso_d:   { ativo: document.getElementById('chk-venoso').checked,    texto: get('txt-venoso-d') },
+      venoso_e:   { ativo: document.getElementById('chk-venoso').checked,    texto: get('txt-venoso-e') },
+      arterial:   { ativo: document.getElementById('chk-arterial').checked,  texto: get('txt-arterial') },
+      carotidas:  { ativo: document.getElementById('chk-carotidas').checked, texto: get('txt-carotidas') },
+      aorta:      { ativo: document.getElementById('chk-aorta').checked,     texto: get('txt-aorta') },
+      cava:       { ativo: document.getElementById('chk-cava').checked,      texto: get('txt-cava') },
+      superiores: { ativo: document.getElementById('chk-superiores').checked,texto: get('txt-superiores') },
+      ecoca:      { ativo: document.getElementById('chk-ecoca').checked,     texto: get('txt-ecoca') },
     },
-    imagens: images.map(i=>({src:i.src})),
+    imagens: images.map(i=>({src:i.src, name:i.name||''})),
   };
   buildPrint(data);
 }
@@ -2607,7 +2603,7 @@ async function openPendente(id) {
   editingLaudoId = id;
   const retBtn = document.getElementById('btn-retornar-pendente');
   if (retBtn) retBtn.style.display = 'none';
-  showTab('novo', document.querySelectorAll('#screen-app .tab')[1]); // tab[1] = Novo Laudo
+  showTab('novo', document.querySelectorAll('#screen-app nav .tab')[1]);
 }
 
 
@@ -2642,6 +2638,10 @@ function stopSessionTimeout() {
   const eventos = ['mousemove','keydown','click','touchstart','scroll'];
   eventos.forEach(ev => document.removeEventListener(ev, resetSessionTimer));
 }
+
+
+
+
 
 
 
