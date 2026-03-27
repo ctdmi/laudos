@@ -416,7 +416,9 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 
   /* ── SECTION ── */
   .print-section { display: block; }
-  .print-section h3 { font-size: 10pt; font-weight: bold; text-decoration: underline; text-transform: uppercase; margin-bottom: 5px; }
+  .print-section h3 { font-size: 12pt; font-weight: bold; text-decoration: underline; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.3px; }
+  .print-section h3.sec-subtitle { font-size: 12pt; text-decoration: none; margin-bottom: 10px; margin-top: 2px; }
+  .print-section .sec-body { margin-top: 8px; }
   .print-section h4 { font-size: 10pt; font-weight: bold; margin-bottom: 4px; }
   .print-section p, .print-section .sec-body, .print-section .sec-body div  {
     font-size: 9.5pt;
@@ -642,6 +644,11 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 
 
 
+
+
+
+
+
 const SUPA_URL = 'https://ncrsgnlyskasdjmjqhpx.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcnNnbmx5c2thc2RqbWpxaHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQ5NjYsImV4cCI6MjA4ODMwMDk2Nn0.xb1EbGvS9bvxbwW-2mqcDJ5bJ3kjAiz2vBlxHRyXB_4';
 const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -651,7 +658,7 @@ let images = [], editingLaudoId = null, editingLaudoMedico = null;
 let isPatientLogin = false;
 
 const MODELO_KEY_MAP = {
-  venoso_d:'venoso_d', venoso_e:'venoso_e', arterial:'arterial',
+  venoso_d:'venoso_d', venoso_e:'venoso_e', venoso_mmii:'venoso_mmii', arterial:'arterial',
   carotidas:'carotidas', aorta:'aorta', cava:'cava', superiores:'superiores', ecoca:'ecoca'
 };
 let editingModeloId = null, editingModeloMedicoId = null;
@@ -835,7 +842,7 @@ function aplicarModelo(selectId) {
   if (!modelo?.secoes) return;
   const s = modelo.secoes;
   const secMap = {
-    venoso_d:'txt-venoso-d', venoso_e:'txt-venoso-e',
+    venoso_d:'txt-venoso-d', venoso_e:'txt-venoso-e', venoso_mmii:'txt-venoso-mmii',
     arterial:'txt-arterial', carotidas:'txt-carotidas',
     aorta:'txt-aorta', cava:'txt-cava', superiores:'txt-superiores', ecoca:'txt-ecoca'
   };
@@ -1038,33 +1045,21 @@ function syncEditorToTextarea(editorId) {
 // Para o print: já está em HTML, só passa direto
 function marcadoresParaHtml(texto) {
   if (!texto) return '';
-  // If it contains HTML tags from contenteditable editor, return as-is
-  if (/<(b|i|u|strong|em|span|br|p|div)[\s>]/i.test(texto)) return texto;
-  // Convert markdown markers to HTML, then escape remaining < >
+  if (/<[a-z]/i.test(texto)) {
+    let h = texto;
+    h = h.replace(/<div[^>]*><b[^>]*><br\s*\/?><\/b><\/div>/gi, '');
+    h = h.replace(/<div[^>]*><br\s*\/?><\/div>/gi, '<br>');
+    h = h.replace(/<(b|strong|i|em|u)[^>]*>\s*<\/\1>/gi, '');
+    h = h.replace(/<b>(<b>[\s\S]*?<\/b>)<\/b>/gi, '$1');
+    return h;
+  }
   let h = texto
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;');
-  // Apply markers (order: bold before italic to avoid conflicts)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   h = h.replace(/\*\*(.+?)\*\*/gs, '<strong>$1</strong>');
   h = h.replace(/__(.+?)__/gs, '<u>$1</u>');
   h = h.replace(/_(.+?)_/gs, '<em>$1</em>');
   return h.replace(/\n/g,'<br>');
-  // If already HTML (from rich editor contenteditable), return as-is
-  if (/<[a-z]/i.test(texto)) return texto;
-  // Plain text: escape and convert newlines
-  return texto
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/\n/g,'<br>');
-  // Se já é HTML, retorna direto
-  if (texto.trim().startsWith('<') || texto.includes('</')) return texto;
-  // Se é texto puro, escapa e converte quebras
-  return texto
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/\n/g,'<br>');
 }
-
-// Inicializa todos os editores a partir das textareas
 // Formatação para textareas do modal (sem contenteditable)
 function fmtTa(taId, cmd) {
   // Modal editors are now contenteditable — use same execCommand as médico
@@ -1429,9 +1424,10 @@ function renderImages() {
 // ── SAVE ──
 function buildSecoesObj() {
   return {
-    venoso_d:   { ativo: document.getElementById('chk-venoso').checked,     texto: get('txt-venoso-d') },
-    venoso_e:   { ativo: document.getElementById('chk-venoso').checked,     texto: get('txt-venoso-e') },
-    arterial:   { ativo: document.getElementById('chk-arterial').checked,   texto: get('txt-arterial') },
+    venoso_d:     { ativo: document.getElementById('chk-venoso').checked,        texto: get('txt-venoso-d') },
+    venoso_e:     { ativo: document.getElementById('chk-venoso').checked,        texto: get('txt-venoso-e') },
+    venoso_mmii:  { ativo: document.getElementById('chk-venoso-mmii')?.checked||false, texto: get('txt-venoso-mmii') },
+    arterial:     { ativo: document.getElementById('chk-arterial').checked,      texto: get('txt-arterial') },
     carotidas:  { ativo: document.getElementById('chk-carotidas').checked,  texto: get('txt-carotidas') },
     aorta:      { ativo: document.getElementById('chk-aorta').checked,      texto: get('txt-aorta') },
     cava:       { ativo: document.getElementById('chk-cava').checked,       texto: get('txt-cava') },
@@ -1514,6 +1510,13 @@ async function saveLaudo() {
 
 // Default texts for each section — used when creating new laudo or if DB has empty text
 const TEXTOS_PADRAO = {
+  'venoso-mmii': `PERVIEDADE:
+Veias do sistema superficial e profundo encontram-se pérvias, calibres normais, compressíveis, sem trombos visíveis ao mapeamento a cores, com fluxos fásicos com a respiração, sendo suas paredes lisas sem irregularidades parietais.
+COMPETÊNCIA:
+Veia Femoral Comum, Femoral Superficial, Poplítea, Tibiais Anteriores, Tibiais Posteriores, Fibulares, Gastrocnêmias e Soleares não demonstram refluxos ao Doppler espectral, com manobras provocativas.
+Veia Safena Magna apresenta calibre normal, sem tortuosidades e ou refluxos significativos, detectáveis ao Doppler espectral, com manobras provocativas.
+Veia Safena Parva apresenta calibre normal, sem tortuosidades e ou refluxos significativos, detectáveis ao Doppler espectral, com manobras provocativas.
+Não foram visualizadas veias perfurantes incompetentes.`,
   'venoso-d': `PERVIEDADE:
 
 Veias do sistema superficial e profundo encontram-se pérvias, calibres normais, compressíveis, sem trombos visíveis ao mapeamento a cores, com fluxos fásicos com a respiração, sendo suas paredes lisas sem irregularidades parietais.
@@ -1664,9 +1667,10 @@ async function autosaveLaudo() {
   if (laudoConcluido) return; // never overwrite a concluded laudo with pendente
   if (!get('p-nome')) return;
   const secoes = {
-    venoso_d: { ativo: document.getElementById('chk-venoso').checked, texto: get('txt-venoso-d') },
-    venoso_e: { ativo: document.getElementById('chk-venoso').checked, texto: get('txt-venoso-e') },
-    arterial:   { ativo: document.getElementById('chk-arterial').checked,   texto: get('txt-arterial') },
+    venoso_d:    { ativo: document.getElementById('chk-venoso').checked,         texto: get('txt-venoso-d') },
+    venoso_e:    { ativo: document.getElementById('chk-venoso').checked,         texto: get('txt-venoso-e') },
+    venoso_mmii: { ativo: document.getElementById('chk-venoso-mmii')?.checked||false, texto: get('txt-venoso-mmii') },
+    arterial:    { ativo: document.getElementById('chk-arterial').checked,       texto: get('txt-arterial') },
     carotidas:  { ativo: document.getElementById('chk-carotidas').checked,  texto: get('txt-carotidas') },
     aorta:      { ativo: document.getElementById('chk-aorta').checked,      texto: get('txt-aorta') },
     cava:       { ativo: document.getElementById('chk-cava').checked,       texto: get('txt-cava') },
@@ -1760,7 +1764,7 @@ async function loadLaudo(id) {
   const s=data.secoes||{};
   if(s.venoso_d) setEditor('txt-venoso-d', s.venoso_d?.texto || TEXTOS_PADRAO['venoso-d'] || '');
   if(s.venoso_e) setEditor('txt-venoso-e', s.venoso_e?.texto || TEXTOS_PADRAO['venoso-e'] || '');
-  ['arterial','carotidas','aorta','cava','superiores','ecoca'].forEach(k => {
+  ['venoso_mmii','arterial','carotidas','aorta','cava','superiores','ecoca'].forEach(k => {
     const chk = document.getElementById('chk-'+k);
     const lbl = document.getElementById('lb-'+k);
     const txt = document.getElementById('txt-'+k);
@@ -1865,9 +1869,10 @@ function buildPrint(data) {
   // Build pages in order: Venoso D, Venoso E, Arterial, Carótidas, then others
   // Each active section = its own page, all with header + patient + section + sign + footer
   const sections = [
-    { key: 'venoso_d',   title: 'SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES', subtitle: 'MEMBRO INFERIOR DIREITO' },
-    { key: 'venoso_e',   title: 'SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES', subtitle: 'MEMBRO INFERIOR ESQUERDO' },
-    { key: 'arterial',   title: 'ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES', subtitle: null },
+    { key: 'venoso_d',    title: 'SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES', subtitle: 'MEMBRO INFERIOR DIREITO' },
+    { key: 'venoso_e',    title: 'SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES', subtitle: 'MEMBRO INFERIOR ESQUERDO' },
+    { key: 'venoso_mmii', title: 'ECOCOLOR DOPPLER VENOSO DE MEMBROS INFERIORES', subtitle: null },
+    { key: 'arterial',    title: 'ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES', subtitle: null },
     { key: 'carotidas',  title: 'ECOCOLOR DOPPLER DAS CARÓTIDAS E VERTEBRAIS', subtitle: null },
     { key: 'aorta',      title: 'ECOCOLOR DOPPLER DE AORTA E ARTÉRIAS ILÍACAS', subtitle: null },
     { key: 'cava',       title: 'ECOCOLOR DOPPLER DA VEIA CAVA E ILÍACAS', subtitle: null },
@@ -1880,7 +1885,7 @@ function buildPrint(data) {
     if (!s[sec.key]?.ativo) return;
     const secHtml = `<div class="print-section">
       <h3>${sec.title}</h3>
-      ${sec.subtitle ? `<h3 style="font-size:10pt;font-weight:bold;margin-bottom:4px">${sec.subtitle}</h3>` : ''}
+      ${sec.subtitle ? `<h3 class="sec-subtitle">${sec.subtitle}</h3>` : ''}
       <div class="sec-body">${marcadoresParaHtml(s[sec.key].texto||'')}</div>
     </div>`;
     pagesHtml += `<div class="print-page"><div class="print-body">${HEADER}${PAT}${secHtml}</div>${SIGN}${FOOTER}</div>`;
@@ -2095,7 +2100,7 @@ function novoLaudoDireto() {
   // Reset textareas to defaults
   setEditor('txt-venoso-d', TEXTOS_PADRAO['venoso-d']);
   setEditor('txt-venoso-e', TEXTOS_PADRAO['venoso-e']);
-  ['arterial','carotidas','aorta','cava','superiores','ecoca'].forEach(k => {
+  ['venoso_mmii','arterial','carotidas','aorta','cava','superiores','ecoca'].forEach(k => {
     const txt = document.getElementById('txt-'+k);
     if (txt) txt.value = TEXTOS_PADRAO[k] || '';
   });
@@ -2428,6 +2433,9 @@ async function savePendente() {
       secoes['venoso_d'] = { ativo, texto: mod?.secoes?.venoso_d?.texto || '' };
       secoes['venoso_e'] = { ativo, texto: mod?.secoes?.venoso_e?.texto || '' };
     }
+    if (chk.value === 'venoso_mmii') {
+      secoes['venoso_mmii'] = { ativo, texto: mod?.secoes?.venoso_mmii?.texto || '' };
+    }
   });
 
   const payload = {
@@ -2757,6 +2765,11 @@ function stopSessionTimeout() {
 
 
 
+
+
+
+
+
 </script>
 <div id="screen-app" class="screen">
   <header class="app-header">
@@ -2819,19 +2832,33 @@ function stopSessionTimeout() {
         </div>
         <div class="lb-body">
           <div style="margin-bottom:10px;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">🦵 Membro Inferior Direito</div>
-          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-venoso-d')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-venoso-d')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-venoso-d')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-venoso-d',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtLineHeight('txt-venoso-d',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-venoso-d')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-venoso-d')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-venoso-d" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
+          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-venoso-d')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-venoso-d')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-venoso-d')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-venoso-d',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtLineHeight('txt-venoso-d',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-venoso-d')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-venoso-d')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-venoso-d" class="rich-editor" contenteditable="true" spellcheck="true" lang="pt-BR" data-editor="true" oninput="scheduleAutosave()"></div></div>
           <div style="margin-bottom:10px;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">🦵 Membro Inferior Esquerdo</div>
-          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-venoso-e')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-venoso-e')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-venoso-e')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-venoso-e',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtLineHeight('txt-venoso-e',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-venoso-e')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-venoso-e')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-venoso-e" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
+          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-venoso-e')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-venoso-e')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-venoso-e')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-venoso-e',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtLineHeight('txt-venoso-e',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-venoso-e')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-venoso-e')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-venoso-e" class="rich-editor" contenteditable="true" spellcheck="true" lang="pt-BR" data-editor="true" oninput="scheduleAutosave()"></div></div>
         </div>
       </div>
 
-      <div class="lb" id="lb-arterial">
+      
+  <div class="lb" id="lb-venoso-mmii">
+    <div class="lb-hdr" onclick="toggleLb('venoso-mmii')">
+      <div class="lb-title">ECOCOLOR DOPPLER VENOSO DE MEMBROS INFERIORES</div>
+      <label class="tog"><input type="checkbox" id="chk-venoso-mmii" onchange="toggleLb('venoso-mmii')"><div class="tog-track"></div><div class="tog-knob"></div></label>
+    </div>
+    <div class="lb-body">
+      <div class="fmt-wrap">
+        <div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-venoso-mmii')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-venoso-mmii')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-venoso-mmii')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-venoso-mmii',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtLineHeight('txt-venoso-mmii',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO / minúsculo" onclick="fmtMaiusculo('txt-venoso-mmii')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-venoso-mmii')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
+        <div id="txt-venoso-mmii" class="rich-editor" contenteditable="true" data-editor="true" spellcheck="true" lang="pt-BR" oninput="scheduleAutosave()" style="min-height:180px"></div>
+      </div>
+    </div>
+  </div>
+
+<div class="lb" id="lb-arterial">
         <div class="lb-hdr" onclick="toggleLb('arterial')">
           <span class="lb-title">ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES</span>
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-arterial" onchange="toggleLb('arterial')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
         <div class="lb-body">
-          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-arterial')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-arterial')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-arterial')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-arterial',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtLineHeight('txt-arterial',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-arterial')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-arterial')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-arterial" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
+          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-arterial')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-arterial')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-arterial')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-arterial',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtLineHeight('txt-arterial',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-arterial')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-arterial')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-arterial" class="rich-editor" contenteditable="true" spellcheck="true" lang="pt-BR" data-editor="true" oninput="scheduleAutosave()"></div></div>
         </div>
       </div>
 
@@ -2841,7 +2868,7 @@ function stopSessionTimeout() {
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-carotidas" onchange="toggleLb('carotidas')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
         <div class="lb-body">
-          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-carotidas')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-carotidas')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-carotidas')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-carotidas',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtLineHeight('txt-carotidas',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-carotidas')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-carotidas')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-carotidas" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
+          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-carotidas')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-carotidas')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-carotidas')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-carotidas',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtLineHeight('txt-carotidas',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-carotidas')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-carotidas')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-carotidas" class="rich-editor" contenteditable="true" spellcheck="true" lang="pt-BR" data-editor="true" oninput="scheduleAutosave()"></div></div>
         </div>
       </div>
 
@@ -2851,7 +2878,7 @@ function stopSessionTimeout() {
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-aorta" onchange="toggleLb('aorta')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
         <div class="lb-body">
-          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-aorta')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-aorta')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-aorta')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-aorta',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtLineHeight('txt-aorta',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-aorta')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-aorta')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-aorta" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
+          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-aorta')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-aorta')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-aorta')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-aorta',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtLineHeight('txt-aorta',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-aorta')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-aorta')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-aorta" class="rich-editor" contenteditable="true" spellcheck="true" lang="pt-BR" data-editor="true" oninput="scheduleAutosave()"></div></div>
         </div>
       </div>
 
@@ -2861,7 +2888,7 @@ function stopSessionTimeout() {
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-cava" onchange="toggleLb('cava')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
         <div class="lb-body">
-          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-cava')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-cava')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-cava')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-cava',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtLineHeight('txt-cava',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-cava')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-cava')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-cava" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
+          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-cava')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-cava')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-cava')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-cava',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtLineHeight('txt-cava',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-cava')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-cava')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-cava" class="rich-editor" contenteditable="true" spellcheck="true" lang="pt-BR" data-editor="true" oninput="scheduleAutosave()"></div></div>
         </div>
       </div>
 
@@ -2871,7 +2898,7 @@ function stopSessionTimeout() {
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-superiores" onchange="toggleLb('superiores')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
         <div class="lb-body">
-          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-superiores')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-superiores')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-superiores')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-superiores',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtLineHeight('txt-superiores',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-superiores')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-superiores')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-superiores" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
+          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-superiores')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-superiores')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-superiores')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-superiores',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtLineHeight('txt-superiores',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-superiores')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-superiores')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-superiores" class="rich-editor" contenteditable="true" spellcheck="true" lang="pt-BR" data-editor="true" oninput="scheduleAutosave()"></div></div>
         </div>
       </div>
 
@@ -2881,7 +2908,7 @@ function stopSessionTimeout() {
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-ecoca" onchange="toggleLb('ecoca')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
         <div class="lb-body">
-          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-ecoca')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-ecoca')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-ecoca')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-ecoca',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtLineHeight('txt-ecoca',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-ecoca')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-ecoca')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-ecoca" class="rich-editor" contenteditable="true" data-editor="true" oninput="scheduleAutosave()"></div></div>
+          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-ecoca')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-ecoca')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-ecoca')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-ecoca',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtLineHeight('txt-ecoca',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-ecoca')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-ecoca')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-ecoca" class="rich-editor" contenteditable="true" spellcheck="true" lang="pt-BR" data-editor="true" oninput="scheduleAutosave()"></div></div>
         </div>
       </div>
 
@@ -3097,6 +3124,7 @@ function stopSessionTimeout() {
       <div class="card-hdr"><div class="card-ico">🔬</div><div class="card-title">Tipos de Exame a Realizar</div></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:4px">
         <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="venoso" id="sec-chk-venoso" checked> 🩸 Eco Doppler Venoso MMII</label>
+        <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="venoso_mmii" id="sec-chk-venoso-mmii"> 🩸 Eco Doppler Venoso MMII</label>
         <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="arterial" id="sec-chk-arterial"> 🔴 Eco Doppler Arterial MMII</label>
         <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="carotidas" id="sec-chk-carotidas"> 🧠 Eco Doppler Carótidas/Vertebrais</label>
         <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="aorta" id="sec-chk-aorta"> 🔵 Eco Doppler Aorta Abdominal</label>
@@ -3242,7 +3270,7 @@ function stopSessionTimeout() {
               style="font-size:12px;font-weight:700;color:#374151;cursor:pointer">Sistema Venoso — M.I. DIREITO</label>
           </div>
           <div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtTa('modal-modelo-txt-venoso_d','bold')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtTa('modal-modelo-txt-venoso_d','italic')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtTa('modal-modelo-txt-venoso_d','underline')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho da fonte" onchange="fmtFonte('modal-modelo-txt-venoso_d',this.value);this.value='';"><option value="">pt</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="14">14</option><option value="16">16</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtTaLineHeight('modal-modelo-txt-venoso_d',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtTaMaiusculo('modal-modelo-txt-venoso_d')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtTaLimpar('modal-modelo-txt-venoso_d')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
-          <div id="modal-modelo-txt-venoso_d" contenteditable="true" data-editor="true"
+          <div id="modal-modelo-txt-venoso_d" contenteditable="true" spellcheck="true" lang="pt-BR" data-editor="true"
             style="min-height:80px;padding:8px 10px;border:1.5px solid #c9cdd4;border-top:none;border-radius:0 0 6px 6px;font-size:12px;font-family:inherit;line-height:1.5;color:#1a2e23;background:#fff;outline:none;white-space:pre-wrap;word-break:break-word;resize:none;overflow-y:auto"
             oninput="void 0"
             placeholder="Texto padrão para esta seção..."></div>
@@ -3255,9 +3283,21 @@ function stopSessionTimeout() {
               style="font-size:12px;font-weight:700;color:#374151;cursor:pointer">Sistema Venoso — M.I. ESQUERDO</label>
           </div>
           <div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtTa('modal-modelo-txt-venoso_e','bold')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtTa('modal-modelo-txt-venoso_e','italic')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtTa('modal-modelo-txt-venoso_e','underline')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho da fonte" onchange="fmtFonte('modal-modelo-txt-venoso_e',this.value);this.value='';"><option value="">pt</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="14">14</option><option value="16">16</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtTaLineHeight('modal-modelo-txt-venoso_e',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtTaMaiusculo('modal-modelo-txt-venoso_e')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtTaLimpar('modal-modelo-txt-venoso_e')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
-          <div id="modal-modelo-txt-venoso_e" contenteditable="true" data-editor="true"
+          <div id="modal-modelo-txt-venoso_e" contenteditable="true" spellcheck="true" lang="pt-BR" data-editor="true"
             style="min-height:80px;padding:8px 10px;border:1.5px solid #c9cdd4;border-top:none;border-radius:0 0 6px 6px;font-size:12px;font-family:inherit;line-height:1.5;color:#1a2e23;background:#fff;outline:none;white-space:pre-wrap;word-break:break-word;resize:none;overflow-y:auto"
             oninput="void 0"
+            placeholder="Texto padrão para esta seção..."></div>
+        </div>
+        <div style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <input type="checkbox" id="modal-modelo-chk-venoso_mmii" checked
+              style="width:14px;height:14px;accent-color:var(--green);cursor:pointer;flex-shrink:0">
+            <label for="modal-modelo-chk-venoso_mmii"
+              style="font-size:12px;font-weight:700;color:#374151;cursor:pointer">Eco Doppler Venoso de Membros Inferiores</label>
+          </div>
+          <div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtTa('modal-modelo-txt-venoso_mmii','bold')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtTa('modal-modelo-txt-venoso_mmii','italic')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtTa('modal-modelo-txt-venoso_mmii','underline')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho da fonte" onchange="fmtFonte('modal-modelo-txt-venoso_mmii',this.value);this.value='';"><option value="">pt</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="14">14</option><option value="16">16</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtTaLineHeight('modal-modelo-txt-venoso_mmii',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtTaMaiusculo('modal-modelo-txt-venoso_mmii')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtTaLimpar('modal-modelo-txt-venoso_mmii')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
+          <div id="modal-modelo-txt-venoso_mmii" contenteditable="true" data-editor="true" spellcheck="true" lang="pt-BR"
+            style="min-height:80px;padding:8px 10px;border:1.5px solid #c9cdd4;border-top:none;border-radius:0 0 6px 6px;font-size:12px;font-family:inherit;line-height:1.5;color:#1a2e23;background:#fff;outline:none;white-space:pre-wrap;word-break:break-word;overflow-y:auto"
             placeholder="Texto padrão para esta seção..."></div>
         </div>
         <div style="margin-bottom:12px">
@@ -3268,7 +3308,7 @@ function stopSessionTimeout() {
               style="font-size:12px;font-weight:700;color:#374151;cursor:pointer">Eco Doppler Arterial</label>
           </div>
           <div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtTa('modal-modelo-txt-arterial','bold')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtTa('modal-modelo-txt-arterial','italic')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtTa('modal-modelo-txt-arterial','underline')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho da fonte" onchange="fmtFonte('modal-modelo-txt-arterial',this.value);this.value='';"><option value="">pt</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="14">14</option><option value="16">16</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtTaLineHeight('modal-modelo-txt-arterial',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtTaMaiusculo('modal-modelo-txt-arterial')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtTaLimpar('modal-modelo-txt-arterial')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
-          <div id="modal-modelo-txt-arterial" contenteditable="true" data-editor="true"
+          <div id="modal-modelo-txt-arterial" contenteditable="true" spellcheck="true" lang="pt-BR" data-editor="true"
             style="min-height:80px;padding:8px 10px;border:1.5px solid #c9cdd4;border-top:none;border-radius:0 0 6px 6px;font-size:12px;font-family:inherit;line-height:1.5;color:#1a2e23;background:#fff;outline:none;white-space:pre-wrap;word-break:break-word;resize:none;overflow-y:auto"
             oninput="void 0"
             placeholder="Texto padrão para esta seção..."></div>
@@ -3281,7 +3321,7 @@ function stopSessionTimeout() {
               style="font-size:12px;font-weight:700;color:#374151;cursor:pointer">Eco Doppler Carótidas</label>
           </div>
           <div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtTa('modal-modelo-txt-carotidas','bold')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtTa('modal-modelo-txt-carotidas','italic')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtTa('modal-modelo-txt-carotidas','underline')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho da fonte" onchange="fmtFonte('modal-modelo-txt-carotidas',this.value);this.value='';"><option value="">pt</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="14">14</option><option value="16">16</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtTaLineHeight('modal-modelo-txt-carotidas',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtTaMaiusculo('modal-modelo-txt-carotidas')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtTaLimpar('modal-modelo-txt-carotidas')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
-          <div id="modal-modelo-txt-carotidas" contenteditable="true" data-editor="true"
+          <div id="modal-modelo-txt-carotidas" contenteditable="true" spellcheck="true" lang="pt-BR" data-editor="true"
             style="min-height:80px;padding:8px 10px;border:1.5px solid #c9cdd4;border-top:none;border-radius:0 0 6px 6px;font-size:12px;font-family:inherit;line-height:1.5;color:#1a2e23;background:#fff;outline:none;white-space:pre-wrap;word-break:break-word;resize:none;overflow-y:auto"
             oninput="void 0"
             placeholder="Texto padrão para esta seção..."></div>
@@ -3294,7 +3334,7 @@ function stopSessionTimeout() {
               style="font-size:12px;font-weight:700;color:#374151;cursor:pointer">Eco Doppler Aorta Abdominal</label>
           </div>
           <div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtTa('modal-modelo-txt-aorta','bold')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtTa('modal-modelo-txt-aorta','italic')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtTa('modal-modelo-txt-aorta','underline')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho da fonte" onchange="fmtFonte('modal-modelo-txt-aorta',this.value);this.value='';"><option value="">pt</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="14">14</option><option value="16">16</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtTaLineHeight('modal-modelo-txt-aorta',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtTaMaiusculo('modal-modelo-txt-aorta')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtTaLimpar('modal-modelo-txt-aorta')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
-          <div id="modal-modelo-txt-aorta" contenteditable="true" data-editor="true"
+          <div id="modal-modelo-txt-aorta" contenteditable="true" spellcheck="true" lang="pt-BR" data-editor="true"
             style="min-height:80px;padding:8px 10px;border:1.5px solid #c9cdd4;border-top:none;border-radius:0 0 6px 6px;font-size:12px;font-family:inherit;line-height:1.5;color:#1a2e23;background:#fff;outline:none;white-space:pre-wrap;word-break:break-word;resize:none;overflow-y:auto"
             oninput="void 0"
             placeholder="Texto padrão para esta seção..."></div>
@@ -3307,7 +3347,7 @@ function stopSessionTimeout() {
               style="font-size:12px;font-weight:700;color:#374151;cursor:pointer">Eco Doppler Veia Cava</label>
           </div>
           <div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtTa('modal-modelo-txt-cava','bold')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtTa('modal-modelo-txt-cava','italic')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtTa('modal-modelo-txt-cava','underline')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho da fonte" onchange="fmtFonte('modal-modelo-txt-cava',this.value);this.value='';"><option value="">pt</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="14">14</option><option value="16">16</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtTaLineHeight('modal-modelo-txt-cava',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtTaMaiusculo('modal-modelo-txt-cava')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtTaLimpar('modal-modelo-txt-cava')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
-          <div id="modal-modelo-txt-cava" contenteditable="true" data-editor="true"
+          <div id="modal-modelo-txt-cava" contenteditable="true" spellcheck="true" lang="pt-BR" data-editor="true"
             style="min-height:80px;padding:8px 10px;border:1.5px solid #c9cdd4;border-top:none;border-radius:0 0 6px 6px;font-size:12px;font-family:inherit;line-height:1.5;color:#1a2e23;background:#fff;outline:none;white-space:pre-wrap;word-break:break-word;resize:none;overflow-y:auto"
             oninput="void 0"
             placeholder="Texto padrão para esta seção..."></div>
@@ -3320,7 +3360,7 @@ function stopSessionTimeout() {
               style="font-size:12px;font-weight:700;color:#374151;cursor:pointer">Sistema Venoso Membros Superiores</label>
           </div>
           <div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtTa('modal-modelo-txt-superiores','bold')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtTa('modal-modelo-txt-superiores','italic')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtTa('modal-modelo-txt-superiores','underline')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho da fonte" onchange="fmtFonte('modal-modelo-txt-superiores',this.value);this.value='';"><option value="">pt</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="14">14</option><option value="16">16</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtTaLineHeight('modal-modelo-txt-superiores',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtTaMaiusculo('modal-modelo-txt-superiores')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtTaLimpar('modal-modelo-txt-superiores')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
-          <div id="modal-modelo-txt-superiores" contenteditable="true" data-editor="true"
+          <div id="modal-modelo-txt-superiores" contenteditable="true" spellcheck="true" lang="pt-BR" data-editor="true"
             style="min-height:80px;padding:8px 10px;border:1.5px solid #c9cdd4;border-top:none;border-radius:0 0 6px 6px;font-size:12px;font-family:inherit;line-height:1.5;color:#1a2e23;background:#fff;outline:none;white-space:pre-wrap;word-break:break-word;resize:none;overflow-y:auto"
             oninput="void 0"
             placeholder="Texto padrão para esta seção..."></div>
@@ -3333,7 +3373,7 @@ function stopSessionTimeout() {
               style="font-size:12px;font-weight:700;color:#374151;cursor:pointer">Ecocardiograma com Doppler</label>
           </div>
           <div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtTa('modal-modelo-txt-ecoca','bold')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtTa('modal-modelo-txt-ecoca','italic')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtTa('modal-modelo-txt-ecoca','underline')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho da fonte" onchange="fmtFonte('modal-modelo-txt-ecoca',this.value);this.value='';"><option value="">pt</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="14">14</option><option value="16">16</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtTaLineHeight('modal-modelo-txt-ecoca',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtTaMaiusculo('modal-modelo-txt-ecoca')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtTaLimpar('modal-modelo-txt-ecoca')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
-          <div id="modal-modelo-txt-ecoca" contenteditable="true" data-editor="true"
+          <div id="modal-modelo-txt-ecoca" contenteditable="true" spellcheck="true" lang="pt-BR" data-editor="true"
             style="min-height:80px;padding:8px 10px;border:1.5px solid #c9cdd4;border-top:none;border-radius:0 0 6px 6px;font-size:12px;font-family:inherit;line-height:1.5;color:#1a2e23;background:#fff;outline:none;white-space:pre-wrap;word-break:break-word;resize:none;overflow-y:auto"
             oninput="void 0"
             placeholder="Texto padrão para esta seção..."></div>
