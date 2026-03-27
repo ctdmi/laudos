@@ -416,9 +416,9 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 
   /* ── SECTION ── */
   .print-section { display: block; }
-  .print-section h3 { font-size: 12pt; font-weight: bold; text-decoration: underline; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.3px; }
-  .print-section h3.sec-subtitle { font-size: 12pt; text-decoration: none; margin-bottom: 10px; margin-top: 2px; }
-  .print-section .sec-body { margin-top: 8px; }
+  .print-section h3 { font-size: 12pt; font-weight: bold; text-decoration: underline; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.3px; }
+  .print-section h3.sec-subtitle { font-size: 12pt; text-decoration: none; margin-bottom: 14px; margin-top: 6px; }
+  .print-section .sec-body { margin-top: 10px; }
   .print-section h4 { font-size: 10pt; font-weight: bold; margin-bottom: 4px; }
   .print-section p, .print-section .sec-body, .print-section .sec-body div  {
     font-size: 9.5pt;
@@ -649,6 +649,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 
 
 
+
 const SUPA_URL = 'https://ncrsgnlyskasdjmjqhpx.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcnNnbmx5c2thc2RqbWpxaHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQ5NjYsImV4cCI6MjA4ODMwMDk2Nn0.xb1EbGvS9bvxbwW-2mqcDJ5bJ3kjAiz2vBlxHRyXB_4';
 const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -663,6 +664,8 @@ const MODELO_KEY_MAP = {
 };
 let editingModeloId = null, editingModeloMedicoId = null;
 let modelosList = [];
+let secoesExame = []; // loaded from DB
+let editingSecaoId = null;
 
 window.onload = async () => {
   document.getElementById('p-data').value = todayISO();
@@ -823,6 +826,159 @@ function fmtCpf(el) {
 }
 
 // ══════════ MODELOS DE LAUDO ══════════
+
+// ══════════════════════════════════════════════════════
+// SEÇÕES DE EXAME (admin)
+// ══════════════════════════════════════════════════════
+async function loadSecoesAdmin() {
+  const cont = document.getElementById('admin-secoes-cont');
+  if (!cont) return;
+  cont.innerHTML = '<p style="color:var(--text-muted);font-size:13px">Carregando...</p>';
+
+  const { data: secoes, error } = await supa.from('secoes_exame').select('*').order('ordem');
+  if (error) {
+    cont.innerHTML = `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px;font-size:13px;color:#856404">
+      ⚠️ Tabela <b>secoes_exame</b> não encontrada. Execute o SQL fornecido.<br>
+      <button class="btn btn-green" style="margin-top:8px;font-size:12px" onclick="loadSecoesAdmin()">🔄 Tentar novamente</button></div>`;
+    return;
+  }
+  secoesExame = secoes || [];
+
+  // Load medico_secoes associations
+  const { data: assocs } = await supa.from('medico_secoes').select('medico_id,secao_id');
+  const { data: medicos } = await supa.from('medicos').select('id,nome').eq('papel','medico').order('nome');
+
+  let html = `<div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn btn-green" style="padding:6px 14px;font-size:12px" onclick="novaSecao()">+ Nova seção</button>
+  </div>`;
+
+  if (!secoesExame.length) {
+    html += '<p style="color:var(--text-muted);font-size:13px">Nenhuma seção cadastrada.</p>';
+  } else {
+    html += '<div style="display:flex;flex-direction:column;gap:8px">';
+    secoesExame.forEach(sec => {
+      const medAssoc = (assocs||[]).filter(a => a.secao_id === sec.id).map(a => a.medico_id);
+      const medNames = (medicos||[]).filter(m => medAssoc.includes(m.id)).map(m => m.nome.split(' ')[0]).join(', ');
+      html += `<div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div style="flex:1">
+          <div style="font-weight:800;font-size:13px;color:var(--text)">${sec.titulo}</div>
+          ${sec.subtitulo ? `<div style="font-size:12px;color:var(--text-muted);margin-top:1px">↳ ${sec.subtitulo}</div>` : ''}
+          <div style="font-size:11px;color:var(--green);margin-top:3px">Chave: <code>${sec.chave}</code> · Ordem: ${sec.ordem}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">👨‍⚕️ ${medNames || 'Nenhum médico associado'}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn btn-outline" style="padding:5px 10px;font-size:11px" data-id="${sec.id}" onclick="editarSecao(this.dataset.id)">✏️ Editar</button>
+          <button class="btn btn-outline" style="padding:5px 10px;font-size:11px;color:var(--green);border-color:var(--green)" data-id="${sec.id}" onclick="gerenciarMedicosSecao(this.dataset.id)">👨‍⚕️ Médicos</button>
+          <button class="btn btn-red" style="padding:5px 10px;font-size:11px" data-id="${sec.id}" onclick="deletarSecao(this.dataset.id)">🗑️</button>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  cont.innerHTML = html;
+}
+
+function novaSecao() {
+  editingSecaoId = null;
+  document.getElementById('modal-secao-titulo').textContent = 'Nova seção de exame';
+  document.getElementById('secao-chave').value = '';
+  document.getElementById('secao-titulo').value = '';
+  document.getElementById('secao-subtitulo').value = '';
+  document.getElementById('secao-ordem').value = (secoesExame.length + 1) * 10;
+  document.getElementById('secao-texto-padrao').value = '';
+  openModal('modal-secao');
+}
+
+async function editarSecao(id) {
+  const sec = secoesExame.find(s => s.id === id);
+  if (!sec) return;
+  editingSecaoId = id;
+  document.getElementById('modal-secao-titulo').textContent = 'Editar seção';
+  document.getElementById('secao-chave').value = sec.chave;
+  document.getElementById('secao-titulo').value = sec.titulo;
+  document.getElementById('secao-subtitulo').value = sec.subtitulo || '';
+  document.getElementById('secao-ordem').value = sec.ordem;
+  document.getElementById('secao-texto-padrao').value = sec.texto_padrao || '';
+  openModal('modal-secao');
+}
+
+async function salvarSecao() {
+  const chave   = document.getElementById('secao-chave').value.trim().replace(/[^a-z0-9_]/gi,'_').toLowerCase();
+  const titulo  = document.getElementById('secao-titulo').value.trim().toUpperCase();
+  const sub     = document.getElementById('secao-subtitulo').value.trim().toUpperCase();
+  const ordem   = parseInt(document.getElementById('secao-ordem').value) || 0;
+  const texto   = document.getElementById('secao-texto-padrao').value;
+  if (!chave || !titulo) { toast('Chave e título são obrigatórios.','err'); return; }
+  loading(true,'Salvando...');
+  const payload = { chave, titulo, subtitulo: sub||null, ordem, texto_padrao: texto };
+  const { error } = editingSecaoId
+    ? await supa.from('secoes_exame').update(payload).eq('id', editingSecaoId)
+    : await supa.from('secoes_exame').insert(payload);
+  loading(false);
+  if (error) { toast('Erro: '+error.message,'err'); return; }
+  toast('Seção salva!','ok');
+  closeModal('modal-secao');
+  loadSecoesAdmin();
+}
+
+async function deletarSecao(id) {
+  if (!confirm('Excluir esta seção? Laudos existentes não serão afetados.')) return;
+  await supa.from('medico_secoes').delete().eq('secao_id', id);
+  await supa.from('secoes_exame').delete().eq('id', id);
+  toast('Seção excluída.','ok');
+  loadSecoesAdmin();
+}
+
+async function gerenciarMedicosSecao(secaoId) {
+  const sec = secoesExame.find(s => s.id === secaoId);
+  if (!sec) return;
+  const { data: medicos } = await supa.from('medicos').select('id,nome').eq('papel','medico').order('nome');
+  const { data: assocs } = await supa.from('medico_secoes').select('medico_id').eq('secao_id', secaoId);
+  const assocIds = (assocs||[]).map(a => a.medico_id);
+
+  const opts = (medicos||[]).map(m =>
+    `<label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer">
+      <input type="checkbox" data-medico="${m.id}" ${assocIds.includes(m.id)?'checked':''} style="width:15px;height:15px;accent-color:var(--green)">
+      <span style="font-size:13px;font-weight:600">${m.nome}</span>
+    </label>`
+  ).join('');
+
+  document.getElementById('modal-med-secao-titulo').textContent = 'Médicos — ' + sec.titulo;
+  document.getElementById('modal-med-secao-id').value = secaoId;
+  document.getElementById('modal-med-secao-list').innerHTML = opts || '<p style="color:var(--text-muted)">Nenhum médico.</p>';
+  openModal('modal-med-secao');
+}
+
+async function salvarMedicosSecao() {
+  const secaoId = document.getElementById('modal-med-secao-id').value;
+  const checks = document.querySelectorAll('#modal-med-secao-list input[type=checkbox]');
+  loading(true, 'Salvando...');
+  // Delete existing associations
+  await supa.from('medico_secoes').delete().eq('secao_id', secaoId);
+  // Insert new ones
+  const toInsert = [];
+  checks.forEach(c => { if (c.checked) toInsert.push({ medico_id: c.dataset.medico, secao_id: secaoId }); });
+  if (toInsert.length) await supa.from('medico_secoes').insert(toInsert);
+  loading(false);
+  toast('Associações salvas!','ok');
+  closeModal('modal-med-secao');
+  loadSecoesAdmin();
+}
+
+// Load sections available for a doctor (from DB or fallback to hardcoded)
+async function loadSecoesParaMedico(medicoId) {
+  const { data: assocs } = await supa.from('medico_secoes')
+    .select('secao_id, secoes_exame(id,chave,titulo,subtitulo,ordem,texto_padrao)')
+    .eq('medico_id', medicoId)
+    .order('secoes_exame(ordem)');
+  if (assocs && assocs.length) {
+    return assocs.map(a => a.secoes_exame).filter(Boolean).sort((a,b)=>a.ordem-b.ordem);
+  }
+  // Fallback: load all sections
+  const { data } = await supa.from('secoes_exame').select('*').order('ordem');
+  return data || [];
+}
+
 async function loadModelosForMedico(medicoId, targetSelectId) {
   const sel = document.getElementById(targetSelectId);
   if (!sel) return;
@@ -2770,6 +2926,7 @@ function stopSessionTimeout() {
 
 
 
+
 </script>
 <div id="screen-app" class="screen">
   <header class="app-header">
@@ -3185,6 +3342,16 @@ function stopSessionTimeout() {
     </div>
 
     <div class="card">
+      <div class="card-hdr">
+        <div class="card-ico">🗂️</div>
+        <div class="card-title">Seções de Exame</div>
+        <button class="btn btn-green" style="margin-left:auto;padding:5px 14px;font-size:12px" onclick="loadSecoesAdmin()">🔄 Atualizar</button>
+      </div>
+      <div class="tip" style="font-size:12px;margin-bottom:12px">Crie seções de exame e defina quais médicos têm acesso a cada uma.</div>
+      <div id="admin-secoes-cont"><p style="color:var(--text-muted);font-size:13px">Clique em Atualizar para carregar.</p></div>
+    </div>
+
+    <div class="card">
       <div class="card-hdr"><div class="card-ico">👤</div><div class="card-title">Pacientes com Acesso</div></div>
       <div class="tip">Pacientes conseguem fazer login e visualizar seus laudos. Pacientes podem fazer login e visualizar seus laudos.</div>
       <div id="admin-sec-patients" style="margin-top:12px"></div>
@@ -3385,5 +3552,67 @@ function stopSessionTimeout() {
     </div>
   </div>
 </div>
+<!-- ══ MODAL SEÇÃO DE EXAME ══ -->
+<div id="modal-secao" class="modal-bg" style="display:none">
+  <div class="modal" style="max-width:560px;width:100%;padding:0">
+    <div class="modal-hdr" style="padding:16px 20px;border-bottom:1px solid var(--border)">
+      <span id="modal-secao-titulo" style="font-size:15px;font-weight:800">Seção de Exame</span>
+      <button class="modal-close" onclick="closeModal('modal-secao')">✕</button>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div>
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:5px">Chave única (sem espaços) *</label>
+        <input id="secao-chave" type="text" placeholder="ex: venoso_d, arterial, ecoca"
+          style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;font-family:monospace">
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Identificador interno. Não altere após criar laudos com esta seção.</div>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:5px">Título do exame *</label>
+        <input id="secao-titulo" type="text" placeholder="ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES"
+          style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:5px">Subtítulo (opcional)</label>
+        <input id="secao-subtitulo" type="text" placeholder="ex: MEMBRO INFERIOR DIREITO"
+          style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:5px">Ordem de exibição</label>
+        <input id="secao-ordem" type="number" value="10" min="1" max="999"
+          style="width:100px;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:5px">Texto padrão</label>
+        <textarea id="secao-texto-padrao" rows="5"
+          style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box"
+          placeholder="Texto pré-preenchido quando o médico abre esta seção..."></textarea>
+      </div>
+      <div style="display:flex;gap:10px;padding-top:4px;border-top:1px solid var(--border)">
+        <button class="btn btn-green" style="flex:1;padding:11px" onclick="salvarSecao()">💾 Salvar</button>
+        <button class="btn btn-outline" style="padding:11px 20px" onclick="closeModal('modal-secao')">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL MÉDICOS DA SEÇÃO ══ -->
+<div id="modal-med-secao" class="modal-bg" style="display:none">
+  <div class="modal" style="max-width:440px;width:100%;padding:0">
+    <div class="modal-hdr" style="padding:16px 20px;border-bottom:1px solid var(--border)">
+      <span id="modal-med-secao-titulo" style="font-size:14px;font-weight:800">Médicos da seção</span>
+      <button class="modal-close" onclick="closeModal('modal-med-secao')">✕</button>
+    </div>
+    <div style="padding:20px">
+      <input type="hidden" id="modal-med-secao-id">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Selecione quais médicos têm acesso a esta seção:</div>
+      <div id="modal-med-secao-list" style="max-height:300px;overflow-y:auto"></div>
+      <div style="display:flex;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+        <button class="btn btn-green" style="flex:1;padding:11px" onclick="salvarMedicosSecao()">💾 Salvar</button>
+        <button class="btn btn-outline" style="padding:11px 20px" onclick="closeModal('modal-med-secao')">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
