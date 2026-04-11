@@ -245,6 +245,8 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 .pl-section { margin-bottom: 16px; }
 .pl-section h4 { font-size: 12px; font-weight: 700; color: var(--green); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
 .pl-section p { font-size: 13px; line-height: 1.8; color: var(--text); white-space: pre-wrap; }
+.pl-texto { font-size: 13px; line-height: 1.8; color: var(--text); }
+.pl-texto br + br { display: block; margin: 4px 0; }
 
 /* EMPTY */
 .empty { text-align: center; padding: 60px 20px; color: var(--text-muted); }
@@ -615,6 +617,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 </div>
 
 <script>
+
 
 
 
@@ -2073,7 +2076,6 @@ function buildPrint(data) {
 async function loadPatientLaudos() {
   const c = document.getElementById('patient-laudos-list');
   c.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted)">Carregando...</div>';
-  // Get patient record to find laudo_ids
   const { data: patData } = await supa.from('pacientes').select('id,laudo_ids,cpf').eq('user_id', currentUser.id).single();
   const ids = patData?.laudo_ids || [];
   if (!ids.length) {
@@ -2081,7 +2083,7 @@ async function loadPatientLaudos() {
     return;
   }
   const { data: laudos } = await supa.from('laudos')
-    .select('id,paciente_nome,data_exame,medico_nome,medico_crm,convenio,status')
+    .select('id,paciente_nome,paciente_nasc,paciente_idade,data_exame,medico_nome,medico_crm,convenio,status')
     .in('id', ids).eq('status','concluido').is('deleted_at',null)
     .order('data_exame',{ascending:false});
   if (!laudos?.length) {
@@ -2095,9 +2097,71 @@ async function loadPatientLaudos() {
         <div class="saved-meta">📅 ${l.data_exame?fmtDate(l.data_exame):'—'} &nbsp;|&nbsp; 👨‍⚕️ ${l.medico_nome||'—'} &nbsp;|&nbsp; 🏥 ${l.convenio||'—'}</div>
       </div>
       <div class="saved-actions">
-        <button class="btn btn-green" style="padding:7px 14px;font-size:12px" onclick="printById('${l.id}')">🖨️ Ver / Imprimir</button>
+        <button class="btn btn-outline" style="padding:7px 14px;font-size:12px" onclick="viewLaudoPaciente('${l.id}')">👁️ Ver</button>
+        <button class="btn btn-green" style="padding:7px 14px;font-size:12px" onclick="printById('${l.id}')">🖨️ Imprimir</button>
       </div>
     </div>`).join('');
+}
+
+// Render laudo for patient web view (no raw HTML)
+async function viewLaudoPaciente(id) {
+  loading(true,'Carregando laudo...');
+  const { data } = await supa.from('laudos').select('*').eq('id', id).single();
+  loading(false);
+  if (!data) { toast('Erro ao carregar laudo.','err'); return; }
+
+  const s = data.secoes || {};
+  const sectionLabels = {
+    venoso_d:    { title: 'Sistema Venoso — Membro Inferior Direito' },
+    venoso_e:    { title: 'Sistema Venoso — Membro Inferior Esquerdo' },
+    venoso_mmii: { title: 'Ecocolor Doppler Venoso de Membros Inferiores' },
+    arterial:    { title: 'Eco Doppler Arterial dos Membros Inferiores' },
+    carotidas:   { title: 'Eco Doppler Carótidas e Vertebrais' },
+    aorta:       { title: 'Eco Doppler Aorta Abdominal' },
+    cava:        { title: 'Eco Doppler Veia Cava e Ilíacas' },
+    superiores:  { title: 'Eco Doppler Membros Superiores' },
+    ecoca:       { title: 'Ecocardiograma com Doppler' },
+  };
+
+  const secHtml = Object.entries(sectionLabels)
+    .filter(([k]) => s[k]?.ativo && s[k]?.texto)
+    .map(([k, meta]) => `
+      <div class="pl-section">
+        <h4>${meta.title}</h4>
+        <div class="pl-texto">${marcadoresParaHtml(s[k].texto)}</div>
+      </div>`
+    ).join('');
+
+  const imgs = (data.imagens||[]).filter(i=>i?.src);
+  const imgHtml = imgs.length ? `
+    <div class="pl-section">
+      <h4>Imagens</h4>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:8px">
+        ${imgs.map(i=>`<img src="${i.src}" style="width:100%;border-radius:6px;border:1px solid var(--border)">`).join('')}
+      </div>
+    </div>` : '';
+
+  document.getElementById('modal-laudo-pac-body').innerHTML = `
+    <div class="pl-header">
+      <div class="pl-clinic">C.T.D.M.I.</div>
+      <div class="pl-sub">Angiologia e Cirurgia Vascular</div>
+    </div>
+    <div class="pl-patient">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:13px">
+        <div><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px">Paciente</div><div style="font-weight:700">${data.paciente_nome||'—'}</div></div>
+        <div><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px">Data</div><div>${data.data_exame?fmtDate(data.data_exame):'—'}</div></div>
+        <div><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px">Idade</div><div>${data.paciente_idade||'—'}</div></div>
+        <div><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px">Convênio</div><div>${data.convenio||'—'}</div></div>
+        <div style="grid-column:span 2"><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px">Médico</div><div>${data.medico_nome||'—'}${data.medico_crm?' — CRM '+data.medico_crm:''}</div></div>
+      </div>
+    </div>
+    ${secHtml}
+    ${imgHtml}
+    <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted);font-style:italic">
+      Atenção: Somente seu médico possui o conjunto de informações necessárias para qualquer conclusão diagnóstica ou indicação terapêutica sobre os resultados.
+    </div>`;
+
+  openModal('modal-laudo-pac');
 }
 
 // ── DASHBOARD ──
@@ -2927,6 +2991,7 @@ function stopSessionTimeout() {
 
 
 
+
 </script>
 <div id="screen-app" class="screen">
   <header class="app-header">
@@ -3611,6 +3676,19 @@ function stopSessionTimeout() {
         <button class="btn btn-outline" style="padding:11px 20px" onclick="closeModal('modal-med-secao')">Cancelar</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ══ MODAL VER LAUDO (PACIENTE) ══ -->
+<div id="modal-laudo-pac" class="modal-bg" style="display:none">
+  <div class="modal" style="max-width:680px;width:100%;max-height:90vh;overflow-y:auto;padding:0">
+    <div class="modal-hdr" style="padding:14px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;z-index:10">
+      <span style="font-size:14px;font-weight:800;color:var(--green)">📄 Laudo</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-green" style="padding:6px 14px;font-size:12px" onclick="closeModal('modal-laudo-pac')">✕ Fechar</button>
+      </div>
+    </div>
+    <div id="modal-laudo-pac-body" style="padding:20px"></div>
   </div>
 </div>
 
