@@ -653,6 +653,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 
 
 
+
 const SUPA_URL = 'https://ncrsgnlyskasdjmjqhpx.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcnNnbmx5c2thc2RqbWpxaHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQ5NjYsImV4cCI6MjA4ODMwMDk2Nn0.xb1EbGvS9bvxbwW-2mqcDJ5bJ3kjAiz2vBlxHRyXB_4';
 const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -2111,55 +2112,83 @@ async function viewLaudoPaciente(id) {
   if (!data) { toast('Erro ao carregar laudo.','err'); return; }
 
   const s = data.secoes || {};
-  const sectionLabels = {
-    venoso_d:    { title: 'Sistema Venoso — Membro Inferior Direito' },
-    venoso_e:    { title: 'Sistema Venoso — Membro Inferior Esquerdo' },
-    venoso_mmii: { title: 'Ecocolor Doppler Venoso de Membros Inferiores' },
-    arterial:    { title: 'Eco Doppler Arterial dos Membros Inferiores' },
-    carotidas:   { title: 'Eco Doppler Carótidas e Vertebrais' },
-    aorta:       { title: 'Eco Doppler Aorta Abdominal' },
-    cava:        { title: 'Eco Doppler Veia Cava e Ilíacas' },
-    superiores:  { title: 'Eco Doppler Membros Superiores' },
-    ecoca:       { title: 'Ecocardiograma com Doppler' },
+  const sectionOrder = ['venoso_d','venoso_e','venoso_mmii','arterial','carotidas','aorta','cava','superiores','ecoca'];
+  const sectionTitles = {
+    venoso_d:'Sistema Venoso — Membro Inferior Direito',
+    venoso_e:'Sistema Venoso — Membro Inferior Esquerdo',
+    venoso_mmii:'Ecocolor Doppler Venoso de Membros Inferiores',
+    arterial:'Eco Doppler Arterial dos Membros Inferiores',
+    carotidas:'Eco Doppler Carótidas e Vertebrais',
+    aorta:'Eco Doppler Aorta Abdominal',
+    cava:'Eco Doppler Veia Cava e Ilíacas',
+    superiores:'Eco Doppler Membros Superiores',
+    ecoca:'Ecocardiograma com Doppler',
   };
 
-  const secHtml = Object.entries(sectionLabels)
-    .filter(([k]) => s[k]?.ativo && s[k]?.texto)
-    .map(([k, meta]) => `
-      <div class="pl-section">
-        <h4>${meta.title}</h4>
-        <div class="pl-texto">${marcadoresParaHtml(s[k].texto)}</div>
-      </div>`
-    ).join('');
+  const body = document.getElementById('modal-laudo-pac-body');
+  body.innerHTML = '';
 
-  const imgs = (data.imagens||[]).filter(i=>i?.src);
-  const imgHtml = imgs.length ? `
-    <div class="pl-section">
-      <h4>Imagens</h4>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:8px">
-        ${imgs.map(i=>`<img src="${i.src}" style="width:100%;border-radius:6px;border:1px solid var(--border)">`).join('')}
-      </div>
-    </div>` : '';
+  // Header
+  const hdr = document.createElement('div');
+  hdr.className = 'pl-header';
+  hdr.innerHTML = '<div class="pl-clinic">C.T.D.M.I.</div><div class="pl-sub">Angiologia e Cirurgia Vascular</div>';
+  body.appendChild(hdr);
 
-  document.getElementById('modal-laudo-pac-body').innerHTML = `
-    <div class="pl-header">
-      <div class="pl-clinic">C.T.D.M.I.</div>
-      <div class="pl-sub">Angiologia e Cirurgia Vascular</div>
-    </div>
-    <div class="pl-patient">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:13px">
-        <div><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px">Paciente</div><div style="font-weight:700">${data.paciente_nome||'—'}</div></div>
-        <div><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px">Data</div><div>${data.data_exame?fmtDate(data.data_exame):'—'}</div></div>
-        <div><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px">Idade</div><div>${data.paciente_idade||'—'}</div></div>
-        <div><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px">Convênio</div><div>${data.convenio||'—'}</div></div>
-        <div style="grid-column:span 2"><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px">Médico</div><div>${data.medico_nome||'—'}${data.medico_crm?' — CRM '+data.medico_crm:''}</div></div>
-      </div>
-    </div>
-    ${secHtml}
-    ${imgHtml}
-    <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted);font-style:italic">
-      Atenção: Somente seu médico possui o conjunto de informações necessárias para qualquer conclusão diagnóstica ou indicação terapêutica sobre os resultados.
-    </div>`;
+  // Patient info
+  const pat = document.createElement('div');
+  pat.className = 'pl-patient';
+  pat.innerHTML = [
+    ['Paciente', data.paciente_nome||'—'],
+    ['Data', data.data_exame?fmtDate(data.data_exame):'—'],
+    ['Idade', data.paciente_idade||'—'],
+    ['Convênio', data.convenio||'—'],
+    ['Médico', (data.medico_nome||'—') + (data.medico_crm?' — CRM '+data.medico_crm:'')],
+  ].map(([lbl,val]) =>
+    '<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">'+lbl+'</div>'+
+    '<div style="font-size:13px;font-weight:600">'+val+'</div></div>'
+  ).join('');
+  body.appendChild(pat);
+
+  // Sections
+  sectionOrder.forEach(k => {
+    if (!s[k]?.ativo || !s[k]?.texto) return;
+    const sec = document.createElement('div');
+    sec.className = 'pl-section';
+    // Title
+    const h4 = document.createElement('h4');
+    h4.textContent = sectionTitles[k] || k;
+    sec.appendChild(h4);
+    // Content — use innerHTML so HTML tags render correctly
+    const txt = document.createElement('div');
+    txt.className = 'pl-texto';
+    txt.innerHTML = s[k].texto; // raw HTML from contenteditable — renders correctly
+    sec.appendChild(txt);
+    body.appendChild(sec);
+  });
+
+  // Images
+  const imgs = (data.imagens||[]).filter(i=>i&&i.src);
+  if (imgs.length) {
+    const imgSec = document.createElement('div');
+    imgSec.className = 'pl-section';
+    imgSec.innerHTML = '<h4>Imagens</h4>';
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:8px';
+    imgs.forEach(img => {
+      const el = document.createElement('img');
+      el.src = img.src;
+      el.style.cssText = 'width:100%;border-radius:6px;border:1px solid var(--border)';
+      grid.appendChild(el);
+    });
+    imgSec.appendChild(grid);
+    body.appendChild(imgSec);
+  }
+
+  // Disclaimer
+  const disc = document.createElement('div');
+  disc.style.cssText = 'margin-top:20px;padding-top:14px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted);font-style:italic';
+  disc.textContent = 'Atenção: Somente seu médico possui o conjunto de informações necessárias para qualquer conclusão diagnóstica ou indicação terapêutica sobre os resultados.';
+  body.appendChild(disc);
 
   openModal('modal-laudo-pac');
 }
@@ -2955,6 +2984,7 @@ function stopSessionTimeout() {
   const eventos = ['mousemove','keydown','click','touchstart','scroll'];
   eventos.forEach(ev => document.removeEventListener(ev, resetSessionTimer));
 }
+
 
 
 
