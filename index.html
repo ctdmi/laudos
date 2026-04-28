@@ -568,7 +568,32 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
   color: #aaa;
   pointer-events: none;
 }
-</style>
+
+.img-over { position: absolute; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; gap: 6px; opacity: 0; transition: opacity 0.18s; border-radius: 6px; }
+.img-item:hover .img-over { opacity: 1; }
+/* Always-visible controls bar below image */
+.img-controls {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 4px 2px 2px;
+  background: #f8f9fa; border-top: 1px solid #e2e8f0;
+}
+.ib-ctrl {
+  width: 26px; height: 22px; border: 1px solid #d1d5db; border-radius: 4px;
+  background: #fff; cursor: pointer; font-size: 10px; color: #374151;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.1s; padding: 0; opacity: 1; transform: none;
+}
+.ib-ctrl:hover { background: var(--green-pale); border-color: var(--green); color: var(--green); }
+.ib-ctrl.ib-disabled { opacity: 0.3; cursor: default; pointer-events: none; }
+.ib-del.ib-ctrl { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
+.ib-del.ib-ctrl:hover { background: #dc2626; color: #fff; }
+/* Drag states */
+.img-draggable { cursor: grab; }
+.img-draggable:active { cursor: grabbing; }
+.img-drag-over { outline: 2px dashed var(--green); outline-offset: 2px; background: var(--green-pale); }
+/* Adjust img-item to accommodate controls */
+.img-item.img-draggable { display: flex; flex-direction: column; overflow: visible; padding-bottom: 0; }
+.img-item.img-draggable img { flex: 1; object-fit: cover; width: 100%; aspect-ratio: 4/3; }</style>
 </head>
 <body>
 
@@ -617,6 +642,7 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 </div>
 
 <script>
+
 
 
 
@@ -1435,10 +1461,39 @@ async function secAddImages(id, nome) {
 
 function renderSecEditImages() {
   const cont = document.getElementById('sec-edit-img-grid');
-  if (!secEditImages.length) { cont.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:20px">Nenhuma imagem.</div>'; return; }
-  cont.innerHTML = '<div class="img-grid">' + secEditImages.map((img,i) =>
-    `<div class="img-item"><img src="${img.src}"><span class="img-num">${i+1}</span><div class="img-over"><button class="ib-del" onclick="secRemoveEditImg(${img.id})">✕</button></div></div>`
+  if (!secEditImages.length) {
+    cont.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:20px">Nenhuma imagem.</div>';
+    return;
+  }
+  cont.innerHTML = '<div class="img-grid">' + secEditImages.map((img, i) =>
+    `<div class="img-item img-draggable" draggable="true"
+      data-idx="${i}"
+      ondragstart="secDragStart(event,${i})"
+      ondragover="imgDragOver(event)"
+      ondrop="secDrop(event,${i})"
+      ondragleave="imgDragLeave(event)">
+      <img src="${img.src}">
+      <span class="img-num">${i+1}</span>
+      <div class="img-controls">
+        <button class="ib-ctrl ${i===0?'ib-disabled':''}" onclick="${i>0?`moveSecImg(${i},${i-1})`:'void 0'}">◀</button>
+        <button class="ib-del ib-ctrl" onclick="secRemoveEditImg(${img.id})">✕</button>
+        <button class="ib-ctrl ${i===secEditImages.length-1?'ib-disabled':''}" onclick="${i<secEditImages.length-1?`moveSecImg(${i},${i+1})`:'void 0'}">▶</button>
+      </div>
+    </div>`
   ).join('') + '</div>';
+}
+
+let _secDragIdx = null;
+function secDragStart(e, idx) { _secDragIdx = idx; e.dataTransfer.effectAllowed='move'; e.currentTarget.style.opacity='0.5'; }
+function secDrop(e, toIdx) {
+  e.preventDefault(); e.currentTarget.classList.remove('img-drag-over');
+  if (_secDragIdx === null || _secDragIdx === toIdx) return;
+  moveSecImg(_secDragIdx, toIdx); _secDragIdx = null;
+}
+function moveSecImg(from, to) {
+  if (to < 0 || to >= secEditImages.length) return;
+  const a = [...secEditImages]; const [x] = a.splice(from,1); a.splice(to,0,x);
+  secEditImages = a; renderSecEditImages();
 }
 
 function secRemoveEditImg(id) { secEditImages = secEditImages.filter(i=>i.id!==id); renderSecEditImages(); }
@@ -1591,20 +1646,55 @@ function addImages(files) { files.forEach((f,idx) => { const r=new FileReader();
 function removeImg(id) { images=images.filter(i=>i.id!==id); renderImages(); }
 function moveImg(from, to) { if(to<0||to>=images.length) return; const a=[...images]; const [x]=a.splice(from,1); a.splice(to,0,x); images=a; renderImages(); }
 function renderImages() {
-  const c=document.getElementById('img-container');
-  if (!images.length) { c.innerHTML=''; return; }
-  let html='';
-  const pages=Math.ceil(images.length/6);
-  for (let p=0;p<pages;p++) {
-    const slice=images.slice(p*6,p*6+6);
-    html+=`<div class="page-lbl">Página ${p+1} — ${slice.length} imagem(ns)</div><div class="img-grid">`;
-    slice.forEach((img,ii) => {
-      const gi=p*6+ii;
-      html+=`<div class="img-item"><img src="${img.src}"><span class="img-num">${gi+1}</span><div class="img-over">${gi>0?`<button class="ib-lr" onclick="moveImg(${gi},${gi-1})">◀</button>`:''}<button class="ib-del" onclick="removeImg(${img.id})">✕</button>${gi<images.length-1?`<button class="ib-lr" onclick="moveImg(${gi},${gi+1})">▶</button>`:''}</div></div>`;
+  const c = document.getElementById('img-container');
+  if (!images.length) { c.innerHTML = ''; return; }
+  const pages = Math.ceil(images.length / 6);
+  let html = '';
+  for (let p = 0; p < pages; p++) {
+    const slice = images.slice(p*6, p*6+6);
+    html += `<div class="page-lbl">Página ${p+1} — ${slice.length} imagem(ns)</div><div class="img-grid" id="img-grid-${p}">`;
+    slice.forEach((img, ii) => {
+      const gi = p*6 + ii;
+      html += `<div class="img-item img-draggable" draggable="true"
+        data-idx="${gi}" data-id="${img.id}"
+        ondragstart="imgDragStart(event,${gi})"
+        ondragover="imgDragOver(event)"
+        ondrop="imgDrop(event,${gi})"
+        ondragleave="imgDragLeave(event)">
+        <img src="${img.src}">
+        <span class="img-num">${gi+1}</span>
+        <div class="img-controls">
+          <button class="ib-ctrl ${gi===0?'ib-disabled':''}" onclick="${gi>0?`moveImg(${gi},${gi-1})`:'void 0'}" title="Mover para esquerda">◀</button>
+          <button class="ib-del ib-ctrl" onclick="removeImg(${img.id})" title="Remover">✕</button>
+          <button class="ib-ctrl ${gi===images.length-1?'ib-disabled':''}" onclick="${gi<images.length-1?`moveImg(${gi},${gi+1})`:'void 0'}" title="Mover para direita">▶</button>
+        </div>
+      </div>`;
     });
-    html+='</div>';
+    html += '</div>';
   }
-  c.innerHTML=html;
+  c.innerHTML = html;
+}
+
+let _dragSrcIdx = null;
+function imgDragStart(e, idx) {
+  _dragSrcIdx = idx;
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.style.opacity = '0.5';
+}
+function imgDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('img-drag-over');
+}
+function imgDragLeave(e) {
+  e.currentTarget.classList.remove('img-drag-over');
+}
+function imgDrop(e, toIdx) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('img-drag-over');
+  if (_dragSrcIdx === null || _dragSrcIdx === toIdx) return;
+  moveImg(_dragSrcIdx, toIdx);
+  _dragSrcIdx = null;
 }
 
 // ── SAVE ──
@@ -2681,12 +2771,28 @@ function renderSecImages() {
   const cont = document.getElementById('img-container-sec');
   if (!secImages.length) { cont.innerHTML=''; return; }
   let html = '<div class="img-grid" style="margin-top:12px">';
-  secImages.forEach((img,i) => {
-    html += `<div class="img-item"><img src="${img.src}"><span class="img-num">${i+1}</span><div class="img-over"><button class="ib-del" onclick="removeSecImg(${img.id})">✕</button></div></div>`;
+  secImages.forEach((img, i) => {
+    html += `<div class="img-item img-draggable" draggable="true"
+      ondragstart="secNewDragStart(event,${i})"
+      ondragover="imgDragOver(event)"
+      ondrop="secNewDrop(event,${i})"
+      ondragleave="imgDragLeave(event)">
+      <img src="${img.src}">
+      <span class="img-num">${i+1}</span>
+      <div class="img-controls">
+        <button class="ib-ctrl ${i===0?'ib-disabled':''}" onclick="${i>0?`moveSecNewImg(${i},${i-1})`:'void 0'}">◀</button>
+        <button class="ib-del ib-ctrl" onclick="removeSecImg(${img.id})">✕</button>
+        <button class="ib-ctrl ${i===secImages.length-1?'ib-disabled':''}" onclick="${i<secImages.length-1?`moveSecNewImg(${i},${i+1})`:'void 0'}">▶</button>
+      </div>
+    </div>`;
   });
   html += '</div>';
   cont.innerHTML = html;
 }
+let _secNewDragIdx = null;
+function secNewDragStart(e,i){_secNewDragIdx=i;e.dataTransfer.effectAllowed='move';e.currentTarget.style.opacity='0.5';}
+function secNewDrop(e,to){e.preventDefault();e.currentTarget.classList.remove('img-drag-over');if(_secNewDragIdx===null||_secNewDragIdx===to)return;moveSecNewImg(_secNewDragIdx,to);_secNewDragIdx=null;}
+function moveSecNewImg(from,to){if(to<0||to>=secImages.length)return;const a=[...secImages];const[x]=a.splice(from,1);a.splice(to,0,x);secImages=a;renderSecImages();}
 function removeSecImg(id) { secImages=secImages.filter(i=>i.id!==id); renderSecImages(); }
 
 async function savePendente() {
@@ -2901,7 +3007,6 @@ function renderSecConcluidos(list) {
       <div class="saved-actions">
         ${isAdmin ? `<button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="secOpenEditor('${r.id}')">✏️ Editar</button>` : ''}
         <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="secAddImages('${r.id}','${r.paciente_nome}')">🖼️ Imagens</button>
-        <button class="btn btn-outline" style="padding:7px 12px;font-size:12px;color:var(--green)" onclick="linkLaudoToPatient('${r.id}','${r.paciente_nome}')">🔗 Vincular</button>
         <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="printById('${r.id}')">🖨️ Imprimir</button>
       </div>
     </div>`).join('') + '</div>';
@@ -3010,6 +3115,7 @@ function stopSessionTimeout() {
   const eventos = ['mousemove','keydown','click','touchstart','scroll'];
   eventos.forEach(ev => document.removeEventListener(ev, resetSessionTimer));
 }
+
 
 
 
