@@ -683,6 +683,8 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 
 
 
+
+
 const SUPA_URL = 'https://ncrsgnlyskasdjmjqhpx.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcnNnbmx5c2thc2RqbWpxaHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQ5NjYsImV4cCI6MjA4ODMwMDk2Nn0.xb1EbGvS9bvxbwW-2mqcDJ5bJ3kjAiz2vBlxHRyXB_4';
 const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -2011,6 +2013,7 @@ function renderSaved(list) {
         <div class="saved-actions">
           <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="loadLaudo('${r.id}')">✏️ Abrir</button>
           <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="printById('${r.id}')">🖨️</button>
+          <button class="btn btn-outline" style="padding:7px 12px;font-size:12px;color:var(--green);border-color:var(--green)" onclick="linkLaudoToPatient('${r.id}','${r.paciente_nome}')">🔗</button>
 
           <button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deleteLaudo('${r.id}')">🗑️</button>
         </div>
@@ -2183,11 +2186,33 @@ function buildPrint(data) {
   }
 
   const pc = document.getElementById('print-container');
-  pc.innerHTML = pagesHtml; pc.style.display = 'block';
-  setTimeout(() => {
-    window.print();
-    setTimeout(() => { pc.style.display='none'; pc.innerHTML=''; }, 2000);
-  }, 200);
+  pc.innerHTML = pagesHtml;
+  pc.style.display = 'block';
+
+  // Wait for ALL images to finish loading before printing
+  const allImgs = Array.from(pc.querySelectorAll('img'));
+  if (!allImgs.length) {
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => { pc.style.display='none'; pc.innerHTML=''; }, 2000);
+    }, 200);
+  } else {
+    let loaded = 0;
+    const total = allImgs.length;
+    const tryPrint = () => {
+      loaded++;
+      if (loaded >= total) {
+        setTimeout(() => {
+          window.print();
+          setTimeout(() => { pc.style.display='none'; pc.innerHTML=''; }, 2000);
+        }, 150);
+      }
+    };
+    allImgs.forEach(img => {
+      if (img.complete) { tryPrint(); }
+      else { img.onload = tryPrint; img.onerror = tryPrint; }
+    });
+  }
 }
 
 // ── PATIENT LAUDOS ──
@@ -2309,7 +2334,20 @@ async function viewLaudoPaciente(id) {
     // Content — use innerHTML so HTML tags render correctly
     const txt = document.createElement('div');
     txt.className = 'pl-texto';
-    txt.innerHTML = s[k].texto; // raw HTML from contenteditable — renders correctly
+    // Render HTML content — handle both raw HTML and escaped/plain text
+    const rawTexto = s[k].texto || '';
+    if (rawTexto.includes('&lt;') || rawTexto.includes('&amp;')) {
+      // Escaped HTML — decode it first
+      const tmp = document.createElement('div');
+      tmp.innerHTML = rawTexto;
+      txt.innerHTML = tmp.textContent;
+    } else if (/<[a-z]/i.test(rawTexto)) {
+      // Already proper HTML — use directly
+      txt.innerHTML = rawTexto;
+    } else {
+      // Plain text — convert newlines to <br>
+      txt.innerHTML = rawTexto.replace(/\n/g, '<br>');
+    }
     sec.appendChild(txt);
     body.appendChild(sec);
   });
@@ -3039,6 +3077,7 @@ function renderSecConcluidos(list) {
       <div class="saved-actions">
         ${isAdmin ? `<button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="secOpenEditor('${r.id}')">✏️ Editar</button>` : ''}
         <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="secAddImages('${r.id}','${r.paciente_nome}')">🖼️ Imagens</button>
+        <button class="btn btn-outline" style="padding:7px 12px;font-size:12px;color:var(--green);border-color:var(--green)" onclick="linkLaudoToPatient('${r.id}','${r.paciente_nome}')">🔗 Vincular</button>
         <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="printById('${r.id}')">🖨️ Imprimir</button>
       </div>
     </div>`).join('') + '</div>';
@@ -3147,6 +3186,8 @@ function stopSessionTimeout() {
   const eventos = ['mousemove','keydown','click','touchstart','scroll'];
   eventos.forEach(ev => document.removeEventListener(ev, resetSessionTimer));
 }
+
+
 
 
 
