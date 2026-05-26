@@ -1706,20 +1706,25 @@ function moveImg(from, to) { if(to<0||to>=images.length) return; const a=[...ima
 function renderImages() {
   const c = document.getElementById('img-container');
   if (!images.length) { c.innerHTML = ''; return; }
+
   const pages = Math.ceil(images.length / 6);
   let html = '';
+
   for (let p = 0; p < pages; p++) {
-    const slice = images.slice(p*6, p*6+6);
-    html += `<div class="page-lbl">Página ${p+1} — ${slice.length} imagem(ns)</div><div class="img-grid" id="img-grid-${p}">`;
+    const slice = images.slice(p * 6, p * 6 + 6);
+    html += `<div class="page-lbl">Página ${p+1} — ${slice.length} imagem(ns)</div>
+             <div class="img-grid" id="img-grid-${p}">`;
+
     slice.forEach((img, ii) => {
-      const gi = p*6 + ii;
+      const gi = p * 6 + ii;
+      const src = typeof img.src === 'string' ? img.src : (img.src?.publicUrl || '');
       html += `<div class="img-item img-draggable" draggable="true"
         data-idx="${gi}" data-id="${img.id}"
         ondragstart="imgDragStart(event,${gi})"
         ondragover="imgDragOver(event)"
         ondrop="imgDrop(event,${gi})"
         ondragleave="imgDragLeave(event)">
-        const src = typeof img.src === 'string' ? img.src : (img.src?.publicUrl || '');
+        <img src="${src}">
         <span class="img-num">${gi+1}</span>
         <div class="img-controls">
           <button class="ib-ctrl ${gi===0?'ib-disabled':''}" onclick="${gi>0?`moveImg(${gi},${gi-1})`:'void 0'}" title="Mover para esquerda">◀</button>
@@ -1728,8 +1733,10 @@ function renderImages() {
         </div>
       </div>`;
     });
+
     html += '</div>';
   }
+
   c.innerHTML = html;
 }
 
@@ -2314,14 +2321,21 @@ function buildPrint(data) {
   });
 
   // Image pages — no patient data, just header + images + footer
-  const imgs = data.imagens||[];
+   const imgs = data.imagens || [];
   if (imgs.length) {
-    const pages = Math.ceil(imgs.length/6);
-    for (let p=0; p<pages; p++) {
-      const slice = [...imgs.slice(p*6, p*6+6)];
-      while(slice.length<6) slice.push(null);
+    const pages = Math.ceil(imgs.length / 6);
+    for (let p = 0; p < pages; p++) {
+      const slice = [...imgs.slice(p * 6, p * 6 + 6)];
+      while (slice.length < 6) slice.push(null);
       let grid = '<div class="print-img-grid">';
-      slice.forEach(img => { grid += img ? `<div class="print-img-cell">const src = typeof img.src === 'string' ? img.src : (img.src?.publicUrl || '');</div>` : `<div class="print-img-cell"></div>`; });
+      slice.forEach(img => {
+        if (!img) {
+          grid += `<div class="print-img-cell"></div>`;
+        } else {
+          const src = typeof img.src === 'string' ? img.src : (img.src?.publicUrl || '');
+          grid += `<div class="print-img-cell"><img src="${src}"></div>`;
+        }
+      });
       grid += '</div>';
       pagesHtml += `<div class="print-page">${HEADER}${grid}${FOOTER}</div>`;
     }
@@ -3003,15 +3017,17 @@ function onFileSelectSec(e) { addImagesSec(Array.from(e.target.files)); e.target
 function addImagesSec(files) { files.forEach(f => { const r=new FileReader(); r.onload=ev=>{ secImages.push({id:Date.now()+Math.random(),src:ev.target.result,name:f.name,ordem:secImages.length}); renderSecImages(); }; r.readAsDataURL(f); }); }
 function renderSecImages() {
   const cont = document.getElementById('img-container-sec');
-  if (!secImages.length) { cont.innerHTML=''; return; }
+  if (!secImages.length) { cont.innerHTML = ''; return; }
+
   let html = '<div class="img-grid" style="margin-top:12px">';
   secImages.forEach((img, i) => {
+    const src = typeof img.src === 'string' ? img.src : (img.src?.publicUrl || '');
     html += `<div class="img-item img-draggable" draggable="true"
       ondragstart="secNewDragStart(event,${i})"
       ondragover="imgDragOver(event)"
       ondrop="secNewDrop(event,${i})"
       ondragleave="imgDragLeave(event)">
-      const src = typeof img.src === 'string' ? img.src : (img.src?.publicUrl || '');
+      <img src="${src}">
       <span class="img-num">${i+1}</span>
       <div class="img-controls">
         <button class="ib-ctrl ${i===0?'ib-disabled':''}" onclick="${i>0?`moveSecNewImg(${i},${i-1})`:'void 0'}">◀</button>
