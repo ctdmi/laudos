@@ -1443,26 +1443,6 @@ async function uploadImageToStorage(base64DataUrl, fileName) {
   }
 }
 
-    const { data: urlData } = supa
-      .storage
-      .from(STORAGE_BUCKET)
-      .getPublicUrl(path);
-
-    return {
-      publicUrl: urlData.publicUrl, // igual era antes
-      path      : path              // NOVO: guarda o path interno
-    };
-  } catch (e) {
-    try {
-      const fallback = await compressImage(base64DataUrl);
-      return { publicUrl: fallback, path: null };
-    } catch {
-      return { publicUrl: base64DataUrl, path: null };
-    }
-  }
-}
-
-
 async function processImagesForStorage(imageObjects) {
   // Sequential upload to preserve order (not parallel)
   const results = [];
@@ -1477,40 +1457,16 @@ async function processImagesForStorage(imageObjects) {
   }
   return results.filter(r => r.src);
 }
-    } else {
-      // Já enviada antes (pode ser string ou objeto com {publicUrl, path})
-      const existingSrc = typeof img.src === 'string'
-        ? img.src
-        : (img.src && img.src.publicUrl) || '';
-
-      const existingPath = img.path
-        || (typeof img.src === 'object' ? img.src.path : null)
-        || null;
-
-      if (!existingSrc) continue;
-
-      results.push({
-        src  : existingSrc,
-        path : existingPath,
-        name : img.name || '',
-        ordem: img.ordem ?? results.length
-      });
-    }
-  }
-  return results.filter(r => r.src);
-}
 
 async function secAddImages(id, nome) {
   secEditId = id;
   secEditImages = [];
   // Load existing images
   const { data } = await supa.from('laudos').select('imagens').eq('id', id).single();
- secEditImages = (data?.imagens || []).map(i => ({
-  id  : Math.random(),
-  src : typeof i.src === 'string' ? i.src : (i.src?.publicUrl || ''),
-  path: i.path || (typeof i.src === 'object' ? i.src.path : null) || null,
-  name: i.name || ''
-}));
+  secEditImages = (data?.imagens || []).map(i => ({id: Math.random(), src: i.src, name: i.name||''}));
+  document.getElementById('sec-img-modal-title').textContent = '🖼️ Imagens — ' + nome;
+  renderSecEditImages();
+  openModal('modal-sec-images');
 }
 
 function renderSecEditImages() {
@@ -1526,7 +1482,7 @@ function renderSecEditImages() {
       ondragover="imgDragOver(event)"
       ondrop="secDrop(event,${i})"
       ondragleave="imgDragLeave(event)">
-     <img src="${typeof img.src === 'string' ? img.src : (img.src?.publicUrl || '')}">
+      <img src="${img.src}">
       <span class="img-num">${i+1}</span>
       <div class="img-controls">
         <button class="ib-ctrl ${i===0?'ib-disabled':''}" onclick="${i>0?`moveSecImg(${i},${i-1})`:'void 0'}">◀</button>
@@ -1702,25 +1658,20 @@ function moveImg(from, to) { if(to<0||to>=images.length) return; const a=[...ima
 function renderImages() {
   const c = document.getElementById('img-container');
   if (!images.length) { c.innerHTML = ''; return; }
-
   const pages = Math.ceil(images.length / 6);
   let html = '';
-
   for (let p = 0; p < pages; p++) {
-    const slice = images.slice(p * 6, p * 6 + 6);
-    html += `<div class="page-lbl">Página ${p+1} — ${slice.length} imagem(ns)</div>
-             <div class="img-grid" id="img-grid-${p}">`;
-
+    const slice = images.slice(p*6, p*6+6);
+    html += `<div class="page-lbl">Página ${p+1} — ${slice.length} imagem(ns)</div><div class="img-grid" id="img-grid-${p}">`;
     slice.forEach((img, ii) => {
-      const gi = p * 6 + ii;
-      const src = typeof img.src === 'string' ? img.src : (img.src?.publicUrl || '');
+      const gi = p*6 + ii;
       html += `<div class="img-item img-draggable" draggable="true"
         data-idx="${gi}" data-id="${img.id}"
         ondragstart="imgDragStart(event,${gi})"
         ondragover="imgDragOver(event)"
         ondrop="imgDrop(event,${gi})"
         ondragleave="imgDragLeave(event)">
-        <img src="${src}">
+        <img src="${img.src}">
         <span class="img-num">${gi+1}</span>
         <div class="img-controls">
           <button class="ib-ctrl ${gi===0?'ib-disabled':''}" onclick="${gi>0?`moveImg(${gi},${gi-1})`:'void 0'}" title="Mover para esquerda">◀</button>
@@ -1729,10 +1680,8 @@ function renderImages() {
         </div>
       </div>`;
     });
-
     html += '</div>';
   }
-
   c.innerHTML = html;
 }
 
@@ -2317,21 +2266,14 @@ function buildPrint(data) {
   });
 
   // Image pages — no patient data, just header + images + footer
-   const imgs = data.imagens || [];
+  const imgs = data.imagens||[];
   if (imgs.length) {
-    const pages = Math.ceil(imgs.length / 6);
-    for (let p = 0; p < pages; p++) {
-      const slice = [...imgs.slice(p * 6, p * 6 + 6)];
-      while (slice.length < 6) slice.push(null);
+    const pages = Math.ceil(imgs.length/6);
+    for (let p=0; p<pages; p++) {
+      const slice = [...imgs.slice(p*6, p*6+6)];
+      while(slice.length<6) slice.push(null);
       let grid = '<div class="print-img-grid">';
-      slice.forEach(img => {
-        if (!img) {
-          grid += `<div class="print-img-cell"></div>`;
-        } else {
-          const src = typeof img.src === 'string' ? img.src : (img.src?.publicUrl || '');
-          grid += `<div class="print-img-cell"><img src="${src}"></div>`;
-        }
-      });
+      slice.forEach(img => { grid += img ? `<div class="print-img-cell"><img src="${img.src}"></div>` : `<div class="print-img-cell"></div>`; });
       grid += '</div>';
       pagesHtml += `<div class="print-page">${HEADER}${grid}${FOOTER}</div>`;
     }
@@ -3013,17 +2955,15 @@ function onFileSelectSec(e) { addImagesSec(Array.from(e.target.files)); e.target
 function addImagesSec(files) { files.forEach(f => { const r=new FileReader(); r.onload=ev=>{ secImages.push({id:Date.now()+Math.random(),src:ev.target.result,name:f.name,ordem:secImages.length}); renderSecImages(); }; r.readAsDataURL(f); }); }
 function renderSecImages() {
   const cont = document.getElementById('img-container-sec');
-  if (!secImages.length) { cont.innerHTML = ''; return; }
-
+  if (!secImages.length) { cont.innerHTML=''; return; }
   let html = '<div class="img-grid" style="margin-top:12px">';
   secImages.forEach((img, i) => {
-    const src = typeof img.src === 'string' ? img.src : (img.src?.publicUrl || '');
     html += `<div class="img-item img-draggable" draggable="true"
       ondragstart="secNewDragStart(event,${i})"
       ondragover="imgDragOver(event)"
       ondrop="secNewDrop(event,${i})"
       ondragleave="imgDragLeave(event)">
-      <img src="${src}">
+      <img src="${img.src}">
       <span class="img-num">${i+1}</span>
       <div class="img-controls">
         <button class="ib-ctrl ${i===0?'ib-disabled':''}" onclick="${i>0?`moveSecNewImg(${i},${i-1})`:'void 0'}">◀</button>
