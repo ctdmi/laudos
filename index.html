@@ -1471,20 +1471,31 @@ async function processImagesForStorage(imageObjects) {
     if (!img.src) continue;
 
     if (img.src.startsWith('data:')) {
-      // Novo: recebe objeto com { publicUrl, path }
       const uploaded = await uploadImageToStorage(img.src, img.name || 'imagem');
 
       results.push({
-        src  : uploaded.publicUrl || img.src,        // mantém compatibilidade
-        path : uploaded.path || null,                // NOVO campo
+        // SEMPRE string
+        src  : uploaded.publicUrl || img.src,
+        // path separado
+        path : uploaded.path || null,
         name : img.name || '',
         ordem: img.ordem ?? results.length
       });
     } else {
-      // Imagem já enviada antes (URL pública antiga ou já com path)
+      // Já enviada antes (pode ser string ou objeto com {publicUrl, path})
+      const existingSrc = typeof img.src === 'string'
+        ? img.src
+        : (img.src && img.src.publicUrl) || '';
+
+      const existingPath = img.path
+        || (typeof img.src === 'object' ? img.src.path : null)
+        || null;
+
+      if (!existingSrc) continue;
+
       results.push({
-        src  : img.src,
-        path : img.path || null,                    // se já existir, mantém
+        src  : existingSrc,
+        path : existingPath,
         name : img.name || '',
         ordem: img.ordem ?? results.length
       });
@@ -1498,10 +1509,12 @@ async function secAddImages(id, nome) {
   secEditImages = [];
   // Load existing images
   const { data } = await supa.from('laudos').select('imagens').eq('id', id).single();
-  secEditImages = (data?.imagens || []).map(i => ({id: Math.random(), src: i.src, name: i.name||''}));
-  document.getElementById('sec-img-modal-title').textContent = '🖼️ Imagens — ' + nome;
-  renderSecEditImages();
-  openModal('modal-sec-images');
+ secEditImages = (data?.imagens || []).map(i => ({
+  id  : Math.random(),
+  src : typeof i.src === 'string' ? i.src : (i.src?.publicUrl || ''),
+  path: i.path || (typeof i.src === 'object' ? i.src.path : null) || null,
+  name: i.name || ''
+}));
 }
 
 function renderSecEditImages() {
@@ -1517,7 +1530,7 @@ function renderSecEditImages() {
       ondragover="imgDragOver(event)"
       ondrop="secDrop(event,${i})"
       ondragleave="imgDragLeave(event)">
-      <img src="${img.src}">
+     <img src="${typeof img.src === 'string' ? img.src : (img.src?.publicUrl || '')}">
       <span class="img-num">${i+1}</span>
       <div class="img-controls">
         <button class="ib-ctrl ${i===0?'ib-disabled':''}" onclick="${i>0?`moveSecImg(${i},${i-1})`:'void 0'}">◀</button>
@@ -1706,7 +1719,7 @@ function renderImages() {
         ondragover="imgDragOver(event)"
         ondrop="imgDrop(event,${gi})"
         ondragleave="imgDragLeave(event)">
-        <img src="${img.src}">
+        const src = typeof img.src === 'string' ? img.src : (img.src?.publicUrl || '');
         <span class="img-num">${gi+1}</span>
         <div class="img-controls">
           <button class="ib-ctrl ${gi===0?'ib-disabled':''}" onclick="${gi>0?`moveImg(${gi},${gi-1})`:'void 0'}" title="Mover para esquerda">◀</button>
@@ -2308,7 +2321,7 @@ function buildPrint(data) {
       const slice = [...imgs.slice(p*6, p*6+6)];
       while(slice.length<6) slice.push(null);
       let grid = '<div class="print-img-grid">';
-      slice.forEach(img => { grid += img ? `<div class="print-img-cell"><img src="${img.src}"></div>` : `<div class="print-img-cell"></div>`; });
+      slice.forEach(img => { grid += img ? `<div class="print-img-cell">const src = typeof img.src === 'string' ? img.src : (img.src?.publicUrl || '');</div>` : `<div class="print-img-cell"></div>`; });
       grid += '</div>';
       pagesHtml += `<div class="print-page">${HEADER}${grid}${FOOTER}</div>`;
     }
@@ -2998,7 +3011,7 @@ function renderSecImages() {
       ondragover="imgDragOver(event)"
       ondrop="secNewDrop(event,${i})"
       ondragleave="imgDragLeave(event)">
-      <img src="${img.src}">
+      const src = typeof img.src === 'string' ? img.src : (img.src?.publicUrl || '');
       <span class="img-num">${i+1}</span>
       <div class="img-controls">
         <button class="ib-ctrl ${i===0?'ib-disabled':''}" onclick="${i>0?`moveSecNewImg(${i},${i-1})`:'void 0'}">◀</button>
