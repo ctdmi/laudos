@@ -690,6 +690,8 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
 
 
 
+
+
 const SUPA_URL = 'https://ncrsgnlyskasdjmjqhpx.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcnNnbmx5c2thc2RqbWpxaHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQ5NjYsImV4cCI6MjA4ODMwMDk2Nn0.xb1EbGvS9bvxbwW-2mqcDJ5bJ3kjAiz2vBlxHRyXB_4';
 const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -1745,22 +1747,26 @@ async function saveLaudo() {
   } catch(e) {
     imagensFinais = snapImages.filter(i => i.src && !i.src.startsWith('data:')).map(i => ({src:i.src, name:i.name||''}));
   }
+  // Build payload — never overwrite medico_responsavel when editing existing laudo
   const payload = {
-    paciente_nome:           snapNome,
-    paciente_nasc:           snapNasc,
-    paciente_idade:          snapIdade,
-    data_exame:              snapData,
-    convenio:                snapConv,
-    solicitante:             snapSolic,
-    medico_nome:             snapMedNome,
-    medico_crm:              snapMedCrm,
-    medico_responsavel_id:   snapMedId,
-    medico_responsavel_nome: snapMedResp,
-    status:                  'concluido',
-    criado_por:              snapPapel,
+    paciente_nome:  snapNome,
+    paciente_nasc:  snapNasc,
+    paciente_idade: snapIdade,
+    data_exame:     snapData,
+    convenio:       snapConv,
+    solicitante:    snapSolic,
+    medico_nome:    snapMedNome,
+    medico_crm:     snapMedCrm,
+    status:         'concluido',
+    criado_por:     snapPapel,
     secoes,
     imagens: imagensFinais,
   };
+  // Only set medico_responsavel on NEW laudos — never overwrite on edits
+  if (!editingLaudoId) {
+    payload.medico_responsavel_id   = snapMedId;
+    payload.medico_responsavel_nome = snapMedResp;
+  }
   loading(true,'Salvando...');
   let result;
   if (editingLaudoId) {
@@ -2168,7 +2174,18 @@ async function deleteLaudo(id) {
 }
 
 // ── PRINT ──
-function printLaudo() {
+async function printLaudo() {
+  // If editing an existing laudo, fetch from DB to get the locked medico_responsavel
+  let respNome = editingLaudoMedico?.nome || currentDoctor?.nome || '______________________________';
+  let respCrm  = editingLaudoMedico?.crm  || currentDoctor?.crm  || '___________';
+  if (editingLaudoId) {
+    const { data: dbRow } = await supa.from('laudos')
+      .select('medico_responsavel_nome,medico_responsavel_crm,medico_crm')
+      .eq('id', editingLaudoId).single();
+    if (dbRow?.medico_responsavel_nome) respNome = dbRow.medico_responsavel_nome;
+    if (dbRow?.medico_responsavel_crm)  respCrm  = dbRow.medico_responsavel_crm;
+    else if (dbRow?.medico_crm)         respCrm  = dbRow.medico_crm;
+  }
   const data = {
     paciente_nome: get('p-nome')||'______________________________',
     paciente_nasc: get('p-nasc'),
@@ -2176,9 +2193,8 @@ function printLaudo() {
     convenio: get('p-convenio')||'______________________________',
     data_exame: get('p-data'),
     solicitante: get('p-solicitante'),
-    // Use the responsible doctor set when laudo was created, not the current user
-    medico_nome: editingLaudoMedico?.nome || currentDoctor?.nome || '______________________________',
-    medico_crm:  editingLaudoMedico?.crm  || currentDoctor?.crm  || '___________',
+    medico_nome: respNome,
+    medico_crm:  respCrm,
     secoes: {
       venoso_d:   { ativo: document.getElementById('chk-venoso').checked,    texto: get('txt-venoso-d') },
       venoso_e:   { ativo: document.getElementById('chk-venoso').checked,    texto: get('txt-venoso-e') },
@@ -2199,8 +2215,10 @@ function buildPrint(data) {
   
   const dateEx = data.data_exame ? fmtDate(data.data_exame) : todayBR();
   // Signature: use medico_responsavel (the assigned real doctor), not the editor
+  // Signature: strict priority — responsavel > medico, never fall through to editor's current user
   const signNome = data.medico_responsavel_nome || data.medico_nome || '';
   const signCrm  = data.medico_responsavel_crm  || data.medico_crm  || '';
+  // Guard: if signNome looks like an admin/secretary name without CRM, hide CRM line
   // Only show CRM line if there's a real CRM
   const signLine = signCrm
     ? `${signNome} &nbsp;CRM: ${signCrm}`
@@ -2358,21 +2376,32 @@ async function loadPatientLaudos() {
 // Normaliza texto do laudo para exibição web — trata HTML, texto puro e <br> literais
 function normalizeTextoLaudo(texto) {
   if (!texto) return '';
-  // Parse through DOMParser to guarantee HTML tags are interpreted correctly
-  // regardless of how the text was stored (raw HTML, escaped, or plain text)
+
+  // 1. Se o texto contém tags HTML literais escapadas como &lt;div&gt;, decodifica primeiro
+  let decoded = texto;
+  if (texto.includes('&lt;') || texto.includes('&amp;')) {
+    const tmp = document.createElement('textarea');
+    tmp.innerHTML = texto;
+    decoded = tmp.value;
+  }
+
+  // 2. Processa o HTML via DOMParser para garantir renderização correta
   const parser = new DOMParser();
-  const doc = parser.parseFromString('<div>' + texto + '</div>', 'text/html');
+  const doc = parser.parseFromString('<div>' + decoded + '</div>', 'text/html');
   const root = doc.body.firstChild;
-  if (!root) return texto;
-  // Remove empty line-height wrapper divs
+  if (!root) return decoded;
+
+  // 3. Remove wrappers data-lh (espaçamento de linha), mantendo o conteúdo interno
   root.querySelectorAll('[data-lh]').forEach(el => {
     el.replaceWith(...el.childNodes);
   });
-  // Convert remaining block divs to line breaks
+
+  // 4. Converte divs de bloco em <br> para manter quebras de linha
   root.querySelectorAll('div').forEach(el => {
     const br = doc.createElement('br');
     el.replaceWith(br, ...el.childNodes);
   });
+
   return root.innerHTML;
 }
 
@@ -2408,16 +2437,17 @@ async function viewLaudoPaciente(id) {
   // Patient info
   const pat = document.createElement('div');
   pat.className = 'pl-patient';
+  pat.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px 16px;';
   pat.innerHTML = [
     ['Paciente', data.paciente_nome||'—'],
     ['Data', data.data_exame?fmtDate(data.data_exame):'—'],
     ['Idade', data.paciente_idade||'—'],
     ['Convênio', data.convenio||'—'],
-    ['Médico', (data.medico_nome||'—') + (data.medico_crm?' — CRM '+data.medico_crm:'')],
   ].map(([lbl,val]) =>
-    '<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">'+lbl+'</div>'+
+    '<div><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">'+lbl+'</div>'+
     '<div style="font-size:13px;font-weight:600">'+val+'</div></div>'
-  ).join('');
+  ).join('') +
+  (data.medico_nome ? '<div style="grid-column:1/-1"><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Médico</div><div style="font-size:13px;font-weight:600">'+(data.medico_nome||'—')+(data.medico_crm?' — CRM '+data.medico_crm:'')+'</div></div>' : '');
   body.appendChild(pat);
 
   // Sections
@@ -3278,6 +3308,8 @@ function stopSessionTimeout() {
   const eventos = ['mousemove','keydown','click','touchstart','scroll'];
   eventos.forEach(ev => document.removeEventListener(ev, resetSessionTimer));
 }
+
+
 
 
 
