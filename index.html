@@ -1431,17 +1431,38 @@ async function uploadImageToStorage(base64DataUrl, fileName) {
     const compressed = await compressImage(base64DataUrl);
     const res = await fetch(compressed);
     const blob = await res.blob();
+
     const path = `laudos/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
-    const { data, error } = await supa.storage.from(STORAGE_BUCKET).upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+
+    const { error } = await supa
+      .storage
+      .from(STORAGE_BUCKET)
+      .upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+
     if (error) {
-      return compressed;
+      // Falhou upload → volta para fluxo antigo (data URL)
+      return { publicUrl: compressed, path: null };
     }
-    const { data: urlData } = supa.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-    return urlData.publicUrl;
-  } catch(e) {
-    try { return await compressImage(base64DataUrl); } catch { return base64DataUrl; }
+
+    const { data: urlData } = supa
+      .storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(path);
+
+    return {
+      publicUrl: urlData.publicUrl, // igual era antes
+      path      : path              // NOVO: guarda o path interno
+    };
+  } catch (e) {
+    try {
+      const fallback = await compressImage(base64DataUrl);
+      return { publicUrl: fallback, path: null };
+    } catch {
+      return { publicUrl: base64DataUrl, path: null };
+    }
   }
 }
+
 
 async function processImagesForStorage(imageObjects) {
   // Sequential upload to preserve order (not parallel)
