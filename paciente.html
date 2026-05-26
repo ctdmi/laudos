@@ -87,7 +87,7 @@ body { background: var(--off-white); color: var(--text); font-family: 'Lato', sa
   position: absolute; inset: 0; border: 2px solid rgba(0,212,255,0.5);
   border-radius: 50%; animation: pulse-ring 2s ease-out infinite;
 }
-@keyframes pulse-ring { 0%{transform:scale(1);opacity:0.8} 100%{transform:scale(1.8);opacity:0} }
+@keyframes pulse-ring { 0%{transform:sc  ale(1);opacity:0.8} 100%{transform:scale(1.8);opacity:0} }
 .lc-logo-icon { font-size: 28px; position: relative; z-index: 1; }
 .lc-brand { font-family: 'Merriweather', serif; font-size: 26px; font-weight: 700; color: #ffffff; letter-spacing: 3px; text-shadow: 0 0 20px rgba(0,212,255,0.5); }
 .lc-brand-sub { font-size: 11px; font-weight: 700; color: #f0c040; letter-spacing: 2px; margin-top: 6px; text-transform: uppercase; }
@@ -1154,7 +1154,7 @@ function buildPrint(data) {
     const secHtml = `<div class="print-section">
       <h3>${sec.title}</h3>
       ${sec.subtitle ? `<h3 style="font-size:10.5pt;margin-bottom:5px">${sec.subtitle}</h3>` : ''}
-      <p>${s[sec.key].texto||''}</p>
+        <p>${normalizeTextoLaudo(s[sec.key].texto||'')}</p>
     </div>`;
     pagesHtml += `<div class="print-page"><div class="print-body">${HEADER}${PAT}${secHtml}</div>${SIGN}${FOOTER}</div>`;
   });
