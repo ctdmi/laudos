@@ -927,7 +927,6 @@ document.getElementById('laudo-viewer-overlay').addEventListener('click', functi
   if (e.target === this) closeLaudo();
 });
 
-// Normaliza texto do laudo para exibição web — trata HTML, texto puro e <br> literais
 function normalizeTextoLaudo(texto) {
   if (!texto) return '';
   // Decodifica entidades HTML escapadas (&lt;div&gt; → <div>)
@@ -937,20 +936,12 @@ function normalizeTextoLaudo(texto) {
     tmp.innerHTML = texto;
     decoded = tmp.value;
   }
-  // Processa via DOMParser para renderização correta
   const parser = new DOMParser();
   const doc = parser.parseFromString('<div>' + decoded + '</div>', 'text/html');
   const root = doc.body.firstChild;
   if (!root) return decoded;
-  // Remove wrappers data-lh, mantendo conteúdo interno
-  root.querySelectorAll('[data-lh]').forEach(el => {
-    el.replaceWith(...el.childNodes);
-  });
-  // Converte divs de bloco em <br> para manter quebras de linha
-  root.querySelectorAll('div').forEach(el => {
-    const br = doc.createElement('br');
-    el.replaceWith(br, ...el.childNodes);
-  });
+  root.querySelectorAll('[data-lh]').forEach(el => el.replaceWith(...el.childNodes));
+  root.querySelectorAll('div').forEach(el => { const br = doc.createElement('br'); el.replaceWith(br, ...el.childNodes); });
   return root.innerHTML;
 }
 
