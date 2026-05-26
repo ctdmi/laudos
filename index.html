@@ -1469,11 +1469,25 @@ async function processImagesForStorage(imageObjects) {
   const results = [];
   for (const img of imageObjects) {
     if (!img.src) continue;
+
     if (img.src.startsWith('data:')) {
-      const url = await uploadImageToStorage(img.src, img.name || 'imagem');
-      results.push({ src: url || img.src, name: img.name || '', ordem: img.ordem ?? results.length });
+      // Novo: recebe objeto com { publicUrl, path }
+      const uploaded = await uploadImageToStorage(img.src, img.name || 'imagem');
+
+      results.push({
+        src  : uploaded.publicUrl || img.src,        // mantém compatibilidade
+        path : uploaded.path || null,                // NOVO campo
+        name : img.name || '',
+        ordem: img.ordem ?? results.length
+      });
     } else {
-      results.push({ src: img.src, name: img.name || '', ordem: img.ordem ?? results.length });
+      // Imagem já enviada antes (URL pública antiga ou já com path)
+      results.push({
+        src  : img.src,
+        path : img.path || null,                    // se já existir, mantém
+        name : img.name || '',
+        ordem: img.ordem ?? results.length
+      });
     }
   }
   return results.filter(r => r.src);
