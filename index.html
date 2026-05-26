@@ -1431,18 +1431,17 @@ async function uploadImageToStorage(base64DataUrl, fileName) {
     const compressed = await compressImage(base64DataUrl);
     const res = await fetch(compressed);
     const blob = await res.blob();
-
     const path = `laudos/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
-
-    const { error } = await supa
-      .storage
-      .from(STORAGE_BUCKET)
-      .upload(path, blob, { contentType: 'image/jpeg', upsert: false });
-
+    const { data, error } = await supa.storage.from(STORAGE_BUCKET).upload(path, blob, { contentType: 'image/jpeg', upsert: false });
     if (error) {
-      // Falhou upload → volta para fluxo antigo (data URL)
-      return { publicUrl: compressed, path: null };
+      return compressed;
     }
+    const { data: urlData } = supa.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+    return urlData.publicUrl;
+  } catch(e) {
+    try { return await compressImage(base64DataUrl); } catch { return base64DataUrl; }
+  }
+}
 
     const { data: urlData } = supa
       .storage
@@ -1469,18 +1468,15 @@ async function processImagesForStorage(imageObjects) {
   const results = [];
   for (const img of imageObjects) {
     if (!img.src) continue;
-
     if (img.src.startsWith('data:')) {
-      const uploaded = await uploadImageToStorage(img.src, img.name || 'imagem');
-
-      results.push({
-        // SEMPRE string
-        src  : uploaded.publicUrl || img.src,
-        // path separado
-        path : uploaded.path || null,
-        name : img.name || '',
-        ordem: img.ordem ?? results.length
-      });
+      const url = await uploadImageToStorage(img.src, img.name || 'imagem');
+      results.push({ src: url || img.src, name: img.name || '', ordem: img.ordem ?? results.length });
+    } else {
+      results.push({ src: img.src, name: img.name || '', ordem: img.ordem ?? results.length });
+    }
+  }
+  return results.filter(r => r.src);
+}
     } else {
       // Já enviada antes (pode ser string ou objeto com {publicUrl, path})
       const existingSrc = typeof img.src === 'string'
