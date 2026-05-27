@@ -977,7 +977,6 @@ function renderLaudo(data, container) {
       <div class="lv-section-text">${normalizeTextoLaudo(s[k].texto||'')}</div>
     </div>`;
   });
-  });
   if (imgs.length) {
     html += `<div class="lv-section"><div class="lv-section-title">Imagens</div><div class="lv-images">`;
     imgs.forEach(img => { html += `<div class="lv-img"><img src="${img.src}" loading="lazy"></div>`; });
