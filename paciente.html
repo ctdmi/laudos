@@ -87,7 +87,7 @@ body { background: var(--off-white); color: var(--text); font-family: 'Lato', sa
   position: absolute; inset: 0; border: 2px solid rgba(0,212,255,0.5);
   border-radius: 50%; animation: pulse-ring 2s ease-out infinite;
 }
-@keyframes pulse-ring { 0%{transform:sc  ale(1);opacity:0.8} 100%{transform:scale(1.8);opacity:0} }
+@keyframes pulse-ring { 0%{transform:scale(1);opacity:0.8} 100%{transform:scale(1.8);opacity:0} }
 .lc-logo-icon { font-size: 28px; position: relative; z-index: 1; }
 .lc-brand { font-family: 'Merriweather', serif; font-size: 26px; font-weight: 700; color: #ffffff; letter-spacing: 3px; text-shadow: 0 0 20px rgba(0,212,255,0.5); }
 .lc-brand-sub { font-size: 11px; font-weight: 700; color: #f0c040; letter-spacing: 2px; margin-top: 6px; text-transform: uppercase; }
@@ -636,7 +636,11 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
     font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .5px;
     color: #1a5fa8;
     border-bottom: 2px solid #e2eaf4;
-    padding-bottom: 6px; margin-bottom: 12px;
+    padding-bottom: 6px; margin-bottom: 4px;
+  }
+  .lv-section-subtitle {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; color: #1e2e40;
+    margin-bottom: 10px; margin-top: 2px;
   }
   .lv-section-text {
     font-size: 13px; line-height: 1.85; color: #1e2e40; white-space: pre-wrap;
@@ -929,7 +933,6 @@ document.getElementById('laudo-viewer-overlay').addEventListener('click', functi
 
 function normalizeTextoLaudo(texto) {
   if (!texto) return '';
-  // Decodifica entidades HTML escapadas (&lt;div&gt; → <div>)
   let decoded = texto;
   if (texto.includes('&lt;') || texto.includes('&amp;')) {
     const tmp = document.createElement('textarea');
@@ -948,14 +951,14 @@ function normalizeTextoLaudo(texto) {
 function renderLaudo(data, container) {
   const s = data.secoes || {};
   const TITLES = {
-    venoso_d:'Sistema Venoso — Membro Inferior Direito',
-    venoso_e:'Sistema Venoso — Membro Inferior Esquerdo',
-    arterial:'Ecocolor Doppler Arterial dos Membros Inferiores',
-    carotidas:'Ecocolor Doppler das Carótidas e Vertebrais',
-    aorta:'Ecocolor Doppler de Aorta e Artérias Ilíacas',
-    cava:'Ecocolor Doppler da Veia Cava e Ilíacas',
-    superiores:'Ecocolor Doppler dos Membros Superiores',
-    ecoca:'Ecocardiograma com Doppler'
+    venoso_d:  { main:'Sistema Venoso Superficial e Profundo dos Membros Inferiores', sub:'Membro Inferior Direito' },
+    venoso_e:  { main:'Sistema Venoso Superficial e Profundo dos Membros Inferiores', sub:'Membro Inferior Esquerdo' },
+    arterial:  { main:'Ecocolor Doppler Arterial dos Membros Inferiores', sub:'' },
+    carotidas: { main:'Ecocolor Doppler de Carótidas e Vertebrais', sub:'' },
+    aorta:     { main:'Ecocolor Doppler de Aorta e Artérias Ilíacas', sub:'' },
+    cava:      { main:'Ecocolor Doppler da Veia Cava e Ilíacas', sub:'' },
+    superiores:{ main:'Ecocolor Doppler dos Membros Superiores', sub:'' },
+    ecoca:     { main:'Ecocardiograma com Doppler', sub:'' },
   };
   const secs = ['venoso_d','venoso_e','arterial','carotidas','aorta','cava','superiores','ecoca'].filter(k=>s[k]?.ativo);
   const imgs = data.imagens || [];
@@ -967,10 +970,13 @@ function renderLaudo(data, container) {
     ${data.solicitante?`<div><div class="lv-label">Solicitante</div><div class="lv-value">${data.solicitante}</div></div>`:''}
   </div>`;
   secs.forEach(k => {
+    const t = TITLES[k];
     html += `<div class="lv-section">
-      <div class="lv-section-title">${TITLES[k]}</div>
+      <div class="lv-section-title">${t.main}</div>
+      ${t.sub ? `<div class="lv-section-subtitle">${t.sub}</div>` : ''}
       <div class="lv-section-text">${normalizeTextoLaudo(s[k].texto||'')}</div>
     </div>`;
+  });
   });
   if (imgs.length) {
     html += `<div class="lv-section"><div class="lv-section-title">Imagens</div><div class="lv-images">`;
@@ -1017,24 +1023,43 @@ function abrirLaudoMobile(data) {
 
   const s = data.secoes || {};
   const TITLES = {
-    venoso_d:'Sistema Venoso — Membro Inferior Direito',
-    venoso_e:'Sistema Venoso — Membro Inferior Esquerdo',
-    arterial:'Ecocolor Doppler Arterial dos Membros Inferiores',
-    carotidas:'Ecocolor Doppler das Carótidas e Vertebrais',
-    aorta:'Ecocolor Doppler de Aorta e Artérias Ilíacas',
-    cava:'Ecocolor Doppler da Veia Cava e Ilíacas',
-    superiores:'Ecocolor Doppler dos Membros Superiores',
-    ecoca:'Ecocardiograma com Doppler'
+    venoso_d:  { main:'SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES', sub:'MEMBRO INFERIOR DIREITO' },
+    venoso_e:  { main:'SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES', sub:'MEMBRO INFERIOR ESQUERDO' },
+    arterial:  { main:'ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES', sub:'' },
+    carotidas: { main:'ECOCOLOR DOPPLER DE CARÓTIDAS E VERTEBRAIS', sub:'' },
+    aorta:     { main:'ECOCOLOR DOPPLER DE AORTA E ARTÉRIAS ILÍACAS', sub:'' },
+    cava:      { main:'ECOCOLOR DOPPLER DA VEIA CAVA E ILÍACAS', sub:'' },
+    superiores:{ main:'ECOCOLOR DOPPLER DOS MEMBROS SUPERIORES', sub:'' },
+    ecoca:     { main:'ECOCARDIOGRAMA COM DOPPLER', sub:'' },
   };
   const ORDER = ['venoso_d','venoso_e','arterial','carotidas','aorta','cava','superiores','ecoca'];
   const active = ORDER.filter(k => s[k]?.ativo);
   const imgs = data.imagens || [];
 
-  const sections = active.map(k => `
-    <div class="sec">
-      <div class="sec-title">${TITLES[k]}</div>
-      <div class="sec-text">${normalizeTextoLaudo(s[k].texto||'')}</div>
-    </div>`).join('');
+  function normalizeTexto(texto) {
+    if (!texto) return '';
+    let decoded = texto;
+    if (texto.includes('&lt;') || texto.includes('&amp;')) {
+      const tmp = document.createElement('textarea');
+      tmp.innerHTML = texto;
+      decoded = tmp.value;
+    }
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<div>' + decoded + '</div>', 'text/html');
+    const root = doc.body.firstChild;
+    if (!root) return decoded;
+    root.querySelectorAll('[data-lh]').forEach(el => el.replaceWith(...el.childNodes));
+    root.querySelectorAll('div').forEach(el => { const br = doc.createElement('br'); el.replaceWith(br, ...el.childNodes); });
+    return root.innerHTML;
+  }
+
+  const sections = active.map(k => {
+    const t = TITLES[k];
+    const titleHtml = t.sub
+      ? `<div class="sec-title">${t.main}</div><div class="sec-subtitle">${t.sub}</div>`
+      : `<div class="sec-title">${t.main}</div>`;
+    return `<div class="sec">${titleHtml}<div class="sec-text">${normalizeTexto(s[k].texto||'')}</div></div>`;
+  }).join('');
 
   const imgGrid = imgs.length ? `
     <div class="sec">
@@ -1062,7 +1087,8 @@ function abrirLaudoMobile(data) {
     .pat-cell .lbl { font-size:10px; font-weight:800; text-transform:uppercase; color:#888; letter-spacing:.5px; }
     .pat-cell .val { font-size:14px; font-weight:700; margin-top:2px; }
     .sec { margin-bottom:22px; }
-    .sec-title { font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:.5px; color:#1a6b3c; border-bottom:2px solid #ddd; padding-bottom:6px; margin-bottom:10px; }
+    .sec-title { font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:.5px; color:#1a6b3c; border-bottom:2px solid #ddd; padding-bottom:6px; margin-bottom:4px; }
+    .sec-subtitle { font-size:12px; font-weight:700; text-transform:uppercase; color:#111; margin-bottom:10px; margin-top:4px; }
     .sec-text { font-size:14px; line-height:1.85; white-space:pre-wrap; }
     .img-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
     .img-grid img { width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:8px; border:1px solid #ddd; }
@@ -1154,7 +1180,7 @@ function buildPrint(data) {
     const secHtml = `<div class="print-section">
       <h3>${sec.title}</h3>
       ${sec.subtitle ? `<h3 style="font-size:10.5pt;margin-bottom:5px">${sec.subtitle}</h3>` : ''}
-        <p>${normalizeTextoLaudo(s[sec.key].texto||'')}</p>
+      <p>${s[sec.key].texto||''}</p>
     </div>`;
     pagesHtml += `<div class="print-page"><div class="print-body">${HEADER}${PAT}${secHtml}</div>${SIGN}${FOOTER}</div>`;
   });
