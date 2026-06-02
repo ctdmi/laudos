@@ -2376,32 +2376,21 @@ async function loadPatientLaudos() {
 // Normaliza texto do laudo para exibição web — trata HTML, texto puro e <br> literais
 function normalizeTextoLaudo(texto) {
   if (!texto) return '';
-
-  // 1. Se o texto contém tags HTML literais escapadas como &lt;div&gt;, decodifica primeiro
-  let decoded = texto;
-  if (texto.includes('&lt;') || texto.includes('&amp;')) {
-    const tmp = document.createElement('textarea');
-    tmp.innerHTML = texto;
-    decoded = tmp.value;
-  }
-
-  // 2. Processa o HTML via DOMParser para garantir renderização correta
+  // Parse through DOMParser to guarantee HTML tags are interpreted correctly
+  // regardless of how the text was stored (raw HTML, escaped, or plain text)
   const parser = new DOMParser();
-  const doc = parser.parseFromString('<div>' + decoded + '</div>', 'text/html');
+  const doc = parser.parseFromString('<div>' + texto + '</div>', 'text/html');
   const root = doc.body.firstChild;
-  if (!root) return decoded;
-
-  // 3. Remove wrappers data-lh (espaçamento de linha), mantendo o conteúdo interno
+  if (!root) return texto;
+  // Remove empty line-height wrapper divs
   root.querySelectorAll('[data-lh]').forEach(el => {
     el.replaceWith(...el.childNodes);
   });
-
-  // 4. Converte divs de bloco em <br> para manter quebras de linha
+  // Convert remaining block divs to line breaks
   root.querySelectorAll('div').forEach(el => {
     const br = doc.createElement('br');
     el.replaceWith(br, ...el.childNodes);
   });
-
   return root.innerHTML;
 }
 
@@ -2437,17 +2426,16 @@ async function viewLaudoPaciente(id) {
   // Patient info
   const pat = document.createElement('div');
   pat.className = 'pl-patient';
-  pat.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px 16px;';
   pat.innerHTML = [
     ['Paciente', data.paciente_nome||'—'],
     ['Data', data.data_exame?fmtDate(data.data_exame):'—'],
     ['Idade', data.paciente_idade||'—'],
     ['Convênio', data.convenio||'—'],
+    ['Médico', (data.medico_nome||'—') + (data.medico_crm?' — CRM '+data.medico_crm:'')],
   ].map(([lbl,val]) =>
-    '<div><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">'+lbl+'</div>'+
+    '<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">'+lbl+'</div>'+
     '<div style="font-size:13px;font-weight:600">'+val+'</div></div>'
-  ).join('') +
-  (data.medico_nome ? '<div style="grid-column:1/-1"><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Médico</div><div style="font-size:13px;font-weight:600">'+(data.medico_nome||'—')+(data.medico_crm?' — CRM '+data.medico_crm:'')+'</div></div>' : '');
+  ).join('');
   body.appendChild(pat);
 
   // Sections
@@ -2849,13 +2837,30 @@ async function savePatient() {
   loading(true,'Cadastrando...');
   // Use CPF as username (email format: cpf@ctdmi.pac) and CPF as password
   const fakeEmail = cpf + '@ctdmi.pac';
+  const tel = document.getElementById('pat-tel')?.value?.trim() || '';
+  let uid = null;
   const { data, error } = await supa.auth.signUp({ email: fakeEmail, password: cpf, options: { data: { recovery_email: email } } });
-  if (!error && data.user) {
-    const tel = document.getElementById('pat-tel')?.value?.trim() || '';
-    await supa.from('pacientes').insert({ user_id: data.user.id, nome, email: fakeEmail, cpf, email_recuperacao: email, telefone: tel });
-  } else if (error) {
-    loading(false); showErr(err,'Erro: '+error.message); return;
+  if (error) {
+    const jaExiste = error.message.toLowerCase().includes('already registered') ||
+                     error.message.toLowerCase().includes('already been registered');
+    if (jaExiste) {
+      // Conta já existe — verifica tabela pacientes
+      const { data: pacExiste } = await supa.from('pacientes').select('id').eq('cpf', cpf).limit(1);
+      if (pacExiste?.[0]) {
+        loading(false);
+        showErr(err, 'Este CPF já está cadastrado no sistema.');
+        return;
+      }
+      // Tem Auth mas sem linha — busca uid
+      const { data: si } = await supa.auth.signInWithPassword({ email: fakeEmail, password: cpf });
+      uid = si?.user?.id || null;
+    } else {
+      loading(false); showErr(err,'Erro: '+error.message); return;
+    }
+  } else {
+    uid = data?.user?.id || null;
   }
+  await supa.from('pacientes').insert({ user_id: uid, nome, email: fakeEmail, cpf, email_recuperacao: email, telefone: tel });
   loading(false);
   toast('Paciente cadastrado! Login: CPF / Senha: CPF','ok');
   closeModal('modal-patient');
@@ -3075,17 +3080,39 @@ async function upsertPaciente({ cpf, nome, tel, emailRec, laudoId }) {
     if (updErr) toast('Erro ao atualizar paciente: ' + updErr.message, 'err');
   } else {
     // Cria conta auth
+    let uid = null;
     const { data: authData, error: authErr } = await supa.auth.signUp({
       email: fakeEmail,
       password: cpf,
     });
 
     if (authErr) {
-      toast('Aviso: conta do paciente não criada (' + authErr.message + ')', 'warn');
-      // Mesmo sem auth, tenta inserir na tabela com user_id nulo
+      const jaExiste = authErr.message.toLowerCase().includes('already registered') ||
+                       authErr.message.toLowerCase().includes('already been registered');
+      if (jaExiste) {
+        // Conta Auth já existe — verifica se tem linha na tabela pacientes
+        const { data: pacExiste } = await supa
+          .from('pacientes').select('id,laudo_ids,user_id').eq('cpf', cpf).limit(1);
+        if (pacExiste?.[0]) {
+          // Linha já existe — só adiciona o laudo_id e atualiza dados
+          const ids = Array.isArray(pacExiste[0].laudo_ids) ? pacExiste[0].laudo_ids : [];
+          if (laudoId && !ids.includes(laudoId)) ids.push(laudoId);
+          const upd = { nome, laudo_ids: ids };
+          if (tel) upd.telefone = tel;
+          if (emailRec) upd.email_recuperacao = emailRec;
+          await supa.from('pacientes').update(upd).eq('id', pacExiste[0].id);
+          return;
+        }
+        // Tem conta Auth mas sem linha em pacientes — busca uid
+        const { data: si } = await supa.auth.signInWithPassword({ email: fakeEmail, password: cpf });
+        uid = si?.user?.id || null;
+      } else {
+        toast('Aviso: conta do paciente não criada (' + authErr.message + ')', 'warn');
+      }
+    } else {
+      uid = authData?.user?.id || null;
     }
 
-    const uid = authData?.user?.id || null;
     const { error: insErr } = await supa.from('pacientes').insert({
       user_id:            uid,
       nome,
