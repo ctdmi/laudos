@@ -1354,6 +1354,8 @@ async function afterLogin() {
       document.getElementById('sec-screen-title').textContent = 'Administrador';
       const adminTab = document.getElementById('sec-admin-tab');
       if (adminTab) adminTab.style.display = 'flex';
+      const prodTab = document.getElementById('sec-producao-tab');
+      if (prodTab) prodTab.style.display = 'flex';
       const btnAdm = document.querySelector('.lc-btn');
       if (btnAdm) { btnAdm.textContent = 'ENTRAR'; btnAdm.disabled = false; }
       showScreen('screen-sec');
@@ -2376,21 +2378,32 @@ async function loadPatientLaudos() {
 // Normaliza texto do laudo para exibição web — trata HTML, texto puro e <br> literais
 function normalizeTextoLaudo(texto) {
   if (!texto) return '';
-  // Parse through DOMParser to guarantee HTML tags are interpreted correctly
-  // regardless of how the text was stored (raw HTML, escaped, or plain text)
+
+  // 1. Se o texto contém tags HTML literais escapadas como &lt;div&gt;, decodifica primeiro
+  let decoded = texto;
+  if (texto.includes('&lt;') || texto.includes('&amp;')) {
+    const tmp = document.createElement('textarea');
+    tmp.innerHTML = texto;
+    decoded = tmp.value;
+  }
+
+  // 2. Processa o HTML via DOMParser para garantir renderização correta
   const parser = new DOMParser();
-  const doc = parser.parseFromString('<div>' + texto + '</div>', 'text/html');
+  const doc = parser.parseFromString('<div>' + decoded + '</div>', 'text/html');
   const root = doc.body.firstChild;
-  if (!root) return texto;
-  // Remove empty line-height wrapper divs
+  if (!root) return decoded;
+
+  // 3. Remove wrappers data-lh (espaçamento de linha), mantendo o conteúdo interno
   root.querySelectorAll('[data-lh]').forEach(el => {
     el.replaceWith(...el.childNodes);
   });
-  // Convert remaining block divs to line breaks
+
+  // 4. Converte divs de bloco em <br> para manter quebras de linha
   root.querySelectorAll('div').forEach(el => {
     const br = doc.createElement('br');
     el.replaceWith(br, ...el.childNodes);
   });
+
   return root.innerHTML;
 }
 
@@ -2426,16 +2439,17 @@ async function viewLaudoPaciente(id) {
   // Patient info
   const pat = document.createElement('div');
   pat.className = 'pl-patient';
+  pat.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px 16px;';
   pat.innerHTML = [
     ['Paciente', data.paciente_nome||'—'],
     ['Data', data.data_exame?fmtDate(data.data_exame):'—'],
     ['Idade', data.paciente_idade||'—'],
     ['Convênio', data.convenio||'—'],
-    ['Médico', (data.medico_nome||'—') + (data.medico_crm?' — CRM '+data.medico_crm:'')],
   ].map(([lbl,val]) =>
-    '<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">'+lbl+'</div>'+
+    '<div><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">'+lbl+'</div>'+
     '<div style="font-size:13px;font-weight:600">'+val+'</div></div>'
-  ).join('');
+  ).join('') +
+  (data.medico_nome ? '<div style="grid-column:1/-1"><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Médico</div><div style="font-size:13px;font-weight:600">'+(data.medico_nome||'—')+(data.medico_crm?' — CRM '+data.medico_crm:'')+'</div></div>' : '');
   body.appendChild(pat);
 
   // Sections
@@ -2837,30 +2851,13 @@ async function savePatient() {
   loading(true,'Cadastrando...');
   // Use CPF as username (email format: cpf@ctdmi.pac) and CPF as password
   const fakeEmail = cpf + '@ctdmi.pac';
-  const tel = document.getElementById('pat-tel')?.value?.trim() || '';
-  let uid = null;
   const { data, error } = await supa.auth.signUp({ email: fakeEmail, password: cpf, options: { data: { recovery_email: email } } });
-  if (error) {
-    const jaExiste = error.message.toLowerCase().includes('already registered') ||
-                     error.message.toLowerCase().includes('already been registered');
-    if (jaExiste) {
-      // Conta já existe — verifica tabela pacientes
-      const { data: pacExiste } = await supa.from('pacientes').select('id').eq('cpf', cpf).limit(1);
-      if (pacExiste?.[0]) {
-        loading(false);
-        showErr(err, 'Este CPF já está cadastrado no sistema.');
-        return;
-      }
-      // Tem Auth mas sem linha — busca uid
-      const { data: si } = await supa.auth.signInWithPassword({ email: fakeEmail, password: cpf });
-      uid = si?.user?.id || null;
-    } else {
-      loading(false); showErr(err,'Erro: '+error.message); return;
-    }
-  } else {
-    uid = data?.user?.id || null;
+  if (!error && data.user) {
+    const tel = document.getElementById('pat-tel')?.value?.trim() || '';
+    await supa.from('pacientes').insert({ user_id: data.user.id, nome, email: fakeEmail, cpf, email_recuperacao: email, telefone: tel });
+  } else if (error) {
+    loading(false); showErr(err,'Erro: '+error.message); return;
   }
-  await supa.from('pacientes').insert({ user_id: uid, nome, email: fakeEmail, cpf, email_recuperacao: email, telefone: tel });
   loading(false);
   toast('Paciente cadastrado! Login: CPF / Senha: CPF','ok');
   closeModal('modal-patient');
@@ -3080,39 +3077,17 @@ async function upsertPaciente({ cpf, nome, tel, emailRec, laudoId }) {
     if (updErr) toast('Erro ao atualizar paciente: ' + updErr.message, 'err');
   } else {
     // Cria conta auth
-    let uid = null;
     const { data: authData, error: authErr } = await supa.auth.signUp({
       email: fakeEmail,
       password: cpf,
     });
 
     if (authErr) {
-      const jaExiste = authErr.message.toLowerCase().includes('already registered') ||
-                       authErr.message.toLowerCase().includes('already been registered');
-      if (jaExiste) {
-        // Conta Auth já existe — verifica se tem linha na tabela pacientes
-        const { data: pacExiste } = await supa
-          .from('pacientes').select('id,laudo_ids,user_id').eq('cpf', cpf).limit(1);
-        if (pacExiste?.[0]) {
-          // Linha já existe — só adiciona o laudo_id e atualiza dados
-          const ids = Array.isArray(pacExiste[0].laudo_ids) ? pacExiste[0].laudo_ids : [];
-          if (laudoId && !ids.includes(laudoId)) ids.push(laudoId);
-          const upd = { nome, laudo_ids: ids };
-          if (tel) upd.telefone = tel;
-          if (emailRec) upd.email_recuperacao = emailRec;
-          await supa.from('pacientes').update(upd).eq('id', pacExiste[0].id);
-          return;
-        }
-        // Tem conta Auth mas sem linha em pacientes — busca uid
-        const { data: si } = await supa.auth.signInWithPassword({ email: fakeEmail, password: cpf });
-        uid = si?.user?.id || null;
-      } else {
-        toast('Aviso: conta do paciente não criada (' + authErr.message + ')', 'warn');
-      }
-    } else {
-      uid = authData?.user?.id || null;
+      toast('Aviso: conta do paciente não criada (' + authErr.message + ')', 'warn');
+      // Mesmo sem auth, tenta inserir na tabela com user_id nulo
     }
 
+    const uid = authData?.user?.id || null;
     const { error: insErr } = await supa.from('pacientes').insert({
       user_id:            uid,
       nome,
@@ -3385,6 +3360,393 @@ function stopSessionTimeout() {
 
 
 
+
+
+// ══════════════════════════════════════════════════════
+// DASHBOARD DE PRODUÇÃO MÉDICA
+// ══════════════════════════════════════════════════════
+
+const EXAME_PESO = {
+  'venoso':      2,
+  'venoso-mmii': 2,
+  'arterial':    2,
+  'superiores':  2,
+  'carotidas':   1,
+  'aorta':       1,
+  'cava':        1,
+};
+
+const EXAME_LABEL = {
+  'venoso':      'Eco Doppler Venoso MMII',
+  'venoso-mmii': 'Eco Doppler Venoso MMII (simples)',
+  'arterial':    'Eco Doppler Arterial MMII',
+  'superiores':  'Sistema Venoso MMSS',
+  'carotidas':   'Eco Doppler Carótidas',
+  'aorta':       'Eco Doppler Aorta Abdominal',
+  'cava':        'Eco Doppler Veia Cava',
+  'ecoca':       'Ecocardiograma com Doppler',
+};
+
+function contarExamesDeLaudo(secoes) {
+  let total = 0;
+  for (const [chave, dados] of Object.entries(secoes || {})) {
+    if (dados?.ativo) total += EXAME_PESO[chave] ?? 1;
+  }
+  return total;
+}
+
+async function preencherSelectMedicosProducao() {
+  const sel = document.getElementById('dash-medico-sel');
+  if (!sel) return;
+  const { data } = await supa.from('medicos').select('id,nome').eq('papel','medico').order('nome');
+  sel.innerHTML = '<option value="">— Todos —</option>' +
+    (data||[]).map(d => `<option value="${d.id}">${d.nome}</option>`).join('');
+}
+
+function lerFiltrosDashboard() {
+  return {
+    dataIni:  document.getElementById('dash-data-ini')?.value || null,
+    dataFim:  document.getElementById('dash-data-fim')?.value || null,
+    medicoId: document.getElementById('dash-medico-sel')?.value || null,
+    convenio: document.getElementById('dash-convenio')?.value || null,
+  };
+}
+
+function setDashPeriodo(tipo) {
+  const hoje = new Date();
+  const fmt  = d => d.toISOString().slice(0,10);
+  let ini, fim = fmt(hoje);
+  if      (tipo === 'hoje')    { ini = fmt(hoje); }
+  else if (tipo === 'semana')  { const d = new Date(hoje); d.setDate(d.getDate() - d.getDay()); ini = fmt(d); }
+  else if (tipo === 'mes')     { ini = fmt(new Date(hoje.getFullYear(), hoje.getMonth(), 1)); }
+  else if (tipo === 'mes-ant') {
+    ini = fmt(new Date(hoje.getFullYear(), hoje.getMonth()-1, 1));
+    fim = fmt(new Date(hoje.getFullYear(), hoje.getMonth(), 0));
+  }
+  document.getElementById('dash-data-ini').value = ini;
+  document.getElementById('dash-data-fim').value = fim;
+  carregarDashboardProducao();
+}
+
+async function fetchProducao({ dataIni, dataFim, medicoId, convenio }) {
+  let q = supa
+    .from('laudos')
+    .select('id, data_exame, convenio, medico_responsavel_id, medico_nome, secoes, paciente_nome')
+    .eq('status', 'concluido')
+    .is('deleted_at', null)
+    .order('data_exame', { ascending: false });
+
+  if (dataIni)   q = q.gte('data_exame', dataIni);
+  if (dataFim)   q = q.lte('data_exame', dataFim);
+  if (medicoId)  q = q.eq('medico_responsavel_id', medicoId);
+  if (convenio && convenio.trim())  q = q.ilike('convenio', `%${convenio.trim()}%`);
+
+  const { data, error } = await q;
+  if (error) { console.error('fetchProducao error:', error); return null; }
+  return data || [];
+}
+
+function agregarProducao(laudos) {
+  const porMedico = {};
+  laudos.forEach(l => {
+    const medId   = l.medico_responsavel_id || 'sem-medico';
+    const medNome = l.medico_nome || 'Não informado';
+    const conv    = (l.convenio || 'Não informado').toUpperCase().trim();
+    const qtd     = contarExamesDeLaudo(l.secoes);
+
+    if (!porMedico[medId]) {
+      porMedico[medId] = { medico_id: medId, medico_nome: medNome, total: 0, por_convenio: {}, laudos: [] };
+    }
+    porMedico[medId].total += qtd;
+    porMedico[medId].por_convenio[conv] = (porMedico[medId].por_convenio[conv] || 0) + qtd;
+    porMedico[medId].laudos.push({
+      id: l.id,
+      paciente: l.paciente_nome || '—',
+      data: l.data_exame,
+      convenio: conv,
+      qtd_exames: qtd,
+      secoes_ativas: Object.entries(l.secoes || {}).filter(([,v]) => v?.ativo).map(([k]) => k),
+    });
+  });
+  return Object.values(porMedico).sort((a, b) => b.total - a.total);
+}
+
+function calcTotaisGerais(laudos) {
+  let totalExames = 0;
+  const convenios = {}, porDia = {};
+  laudos.forEach(l => {
+    const qtd  = contarExamesDeLaudo(l.secoes);
+    const conv = (l.convenio || 'Não informado').toUpperCase().trim();
+    const dia  = l.data_exame || 'sem-data';
+    totalExames += qtd;
+    convenios[conv] = (convenios[conv] || 0) + qtd;
+    porDia[dia] = (porDia[dia] || 0) + qtd;
+  });
+  const diasComExame = Object.keys(porDia).length;
+  const mediaDia = diasComExame ? (totalExames / diasComExame).toFixed(1) : 0;
+  const topConvenio = Object.entries(convenios).sort((a,b) => b[1]-a[1])[0] || ['—', 0];
+  return { totalExames, totalLaudos: laudos.length, mediaDia, topConvenio, convenios };
+}
+
+function renderCardsTotais(totais) {
+  const cont = document.getElementById('dash-cards');
+  if (!cont) return;
+  const verde = 'var(--green)';
+  cont.innerHTML = `
+    <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+      <div style="font-size:32px;font-weight:900;color:${verde}">${totais.totalExames}</div>
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Total de Exames</div>
+    </div>
+    <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+      <div style="font-size:32px;font-weight:900;color:${verde}">${totais.totalLaudos}</div>
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Laudos Concluídos</div>
+    </div>
+    <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+      <div style="font-size:32px;font-weight:900;color:${verde}">${totais.mediaDia}</div>
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Média / Dia</div>
+    </div>
+    <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+      <div style="font-size:18px;font-weight:900;color:${verde};word-break:break-word">${totais.topConvenio[0]}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${totais.topConvenio[1]} exames</div>
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Top Convênio</div>
+    </div>`;
+}
+
+function renderTabelaMedicos(agregado) {
+  const cont = document.getElementById('dash-tabela-medicos');
+  if (!cont) return;
+  if (!agregado.length) {
+    cont.innerHTML = '<div class="empty"><div class="ei">📭</div><p>Nenhum laudo encontrado para os filtros selecionados.</p></div>';
+    return;
+  }
+  let html = `<div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="background:var(--green-pale);text-align:left">
+          <th style="padding:10px 12px;font-weight:800;color:var(--green-dark);border-bottom:2px solid var(--border)">#</th>
+          <th style="padding:10px 12px;font-weight:800;color:var(--green-dark);border-bottom:2px solid var(--border)">Médico</th>
+          <th style="padding:10px 12px;font-weight:800;color:var(--green-dark);border-bottom:2px solid var(--border);text-align:center">Laudos</th>
+          <th style="padding:10px 12px;font-weight:800;color:var(--green-dark);border-bottom:2px solid var(--border);text-align:center">Exames</th>
+          <th style="padding:10px 12px;font-weight:800;color:var(--green-dark);border-bottom:2px solid var(--border)">Convênios</th>
+          <th style="padding:10px 12px;font-weight:800;color:var(--green-dark);border-bottom:2px solid var(--border)"></th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  agregado.forEach((m, i) => {
+    const convResumo = Object.entries(m.por_convenio)
+      .sort((a,b) => b[1]-a[1])
+      .slice(0,3)
+      .map(([k,v]) => `<span style="background:var(--green-pale);color:var(--green-dark);border-radius:10px;padding:2px 8px;font-size:11px;font-weight:700;white-space:nowrap">${k}: ${v}</span>`)
+      .join(' ');
+    const stripe = i % 2 === 0 ? '#fff' : '#f9fafb';
+    html += `<tr style="background:${stripe};border-bottom:1px solid var(--border)">
+      <td style="padding:10px 12px;color:var(--text-muted);font-weight:700">${i+1}º</td>
+      <td style="padding:10px 12px;font-weight:700">${m.medico_nome}</td>
+      <td style="padding:10px 12px;text-align:center;font-weight:700">${m.laudos.length}</td>
+      <td style="padding:10px 12px;text-align:center;font-size:18px;font-weight:900;color:var(--green)">${m.total}</td>
+      <td style="padding:10px 12px">${convResumo || '—'}</td>
+      <td style="padding:10px 12px">
+        <button class="btn btn-outline" style="padding:4px 10px;font-size:11px"
+          onclick='mostrarDetalheMedico(${JSON.stringify(m.medico_nome)}, ${JSON.stringify(m.laudos)})'>
+          🔍 Detalhe
+        </button>
+      </td>
+    </tr>`;
+  });
+
+  html += '</tbody></table></div>';
+  cont.innerHTML = html;
+}
+
+function renderTabelaConvenios(totais) {
+  const cont = document.getElementById('dash-tabela-convenios');
+  const card = document.getElementById('dash-card-convenios');
+  if (!cont || !card) return;
+
+  const entries = Object.entries(totais.convenios).sort((a,b) => b[1]-a[1]);
+  if (!entries.length) { card.style.display = 'none'; return; }
+  card.style.display = '';
+
+  const max = entries[0][1];
+  let html = '<div style="display:flex;flex-direction:column;gap:8px">';
+  entries.forEach(([conv, qtd]) => {
+    const pct = Math.round((qtd / max) * 100);
+    html += `<div style="display:flex;align-items:center;gap:10px">
+      <div style="min-width:130px;font-size:12px;font-weight:700;color:var(--text);text-align:right">${conv}</div>
+      <div style="flex:1;background:#e8f5e9;border-radius:6px;height:20px;overflow:hidden">
+        <div style="width:${pct}%;background:var(--green);height:100%;border-radius:6px;transition:width 0.4s"></div>
+      </div>
+      <div style="min-width:50px;font-size:13px;font-weight:900;color:var(--green)">${qtd}</div>
+    </div>`;
+  });
+  html += '</div>';
+  cont.innerHTML = html;
+}
+
+function mostrarDetalheMedico(nome, laudos) {
+  const card  = document.getElementById('dash-card-detalhe');
+  const titulo = document.getElementById('dash-detalhe-titulo');
+  const cont  = document.getElementById('dash-tabela-detalhe');
+  if (!card || !cont) return;
+
+  titulo.textContent = '🔍 ' + nome;
+  card.style.display = '';
+
+  let html = `<div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead>
+        <tr style="background:var(--green-pale)">
+          <th style="padding:8px 10px;font-weight:800;color:var(--green-dark);border-bottom:2px solid var(--border)">Data</th>
+          <th style="padding:8px 10px;font-weight:800;color:var(--green-dark);border-bottom:2px solid var(--border)">Paciente</th>
+          <th style="padding:8px 10px;font-weight:800;color:var(--green-dark);border-bottom:2px solid var(--border)">Convênio</th>
+          <th style="padding:8px 10px;font-weight:800;color:var(--green-dark);border-bottom:2px solid var(--border)">Seções</th>
+          <th style="padding:8px 10px;font-weight:800;color:var(--green-dark);border-bottom:2px solid var(--border);text-align:center">Exames</th>
+        </tr>
+      </thead><tbody>`;
+
+  laudos.forEach((l, i) => {
+    const stripe = i % 2 === 0 ? '#fff' : '#f9fafb';
+    const secsLabel = l.secoes_ativas.map(k => EXAME_LABEL[k] || k).join(', ') || '—';
+    html += `<tr style="background:${stripe};border-bottom:1px solid var(--border)">
+      <td style="padding:7px 10px;white-space:nowrap">${l.data ? fmtDate(l.data) : '—'}</td>
+      <td style="padding:7px 10px;font-weight:600">${l.paciente}</td>
+      <td style="padding:7px 10px">${l.convenio}</td>
+      <td style="padding:7px 10px;font-size:11px;color:var(--text-muted)">${secsLabel}</td>
+      <td style="padding:7px 10px;text-align:center;font-weight:900;color:var(--green)">${l.qtd_exames}</td>
+    </tr>`;
+  });
+
+  // Total
+  const totalExames = laudos.reduce((s, l) => s + l.qtd_exames, 0);
+  html += `<tr style="background:var(--green-pale);font-weight:900">
+    <td colspan="4" style="padding:8px 10px;text-align:right;color:var(--green-dark)">TOTAL</td>
+    <td style="padding:8px 10px;text-align:center;font-size:16px;color:var(--green)">${totalExames}</td>
+  </tr>`;
+
+  html += '</tbody></table></div>';
+  cont.innerHTML = html;
+
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Função principal do dashboard ──
+let _producaoCache = [];
+
+async function carregarDashboardProducao() {
+  const filtros = lerFiltrosDashboard();
+
+  // Preenche select de médicos na 1ª vez
+  const sel = document.getElementById('dash-medico-sel');
+  if (sel && sel.options.length <= 1) await preencherSelectMedicosProducao();
+
+  loading(true, 'Carregando produção...');
+  const laudos = await fetchProducao(filtros);
+  loading(false);
+
+  if (!laudos) { toast('Erro ao carregar dados.', 'err'); return; }
+  _producaoCache = laudos;
+
+  const totais   = calcTotaisGerais(laudos);
+  const agregado = agregarProducao(laudos);
+
+  renderCardsTotais(totais);
+  renderTabelaMedicos(agregado);
+  renderTabelaConvenios(totais);
+
+  // Fecha detalhe anterior
+  const cardDet = document.getElementById('dash-card-detalhe');
+  if (cardDet) cardDet.style.display = 'none';
+}
+
+// ══════════════════════════════════════════════════════
+// EXPORT XLSX
+// ══════════════════════════════════════════════════════
+
+async function exportarProducaoXLSX() {
+  if (!_producaoCache.length) {
+    toast('Carregue os dados primeiro clicando em Filtrar.', 'err');
+    return;
+  }
+
+  loading(true, 'Gerando planilha...');
+
+  // Carrega SheetJS dinamicamente
+  if (!window.XLSX) {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  const filtros  = lerFiltrosDashboard();
+  const agregado = agregarProducao(_producaoCache);
+  const wb       = window.XLSX.utils.book_new();
+
+  // ── Aba 1: Resumo por médico ──
+  const resumoRows = [
+    ['Médico', 'Laudos', 'Total de Exames', ...Object.keys(
+      agregado.reduce((acc, m) => { Object.keys(m.por_convenio).forEach(k => acc[k]=1); return acc; }, {})
+    )]
+  ];
+  const convenioKeys = resumoRows[0].slice(3);
+  agregado.forEach(m => {
+    resumoRows.push([
+      m.medico_nome,
+      m.laudos.length,
+      m.total,
+      ...convenioKeys.map(k => m.por_convenio[k] || 0)
+    ]);
+  });
+  // Linha de totais
+  const totaisGerais = calcTotaisGerais(_producaoCache);
+  resumoRows.push([
+    'TOTAL GERAL', _producaoCache.length, totaisGerais.totalExames,
+    ...convenioKeys.map(k => totaisGerais.convenios[k] || 0)
+  ]);
+  const wsResumo = window.XLSX.utils.aoa_to_sheet(resumoRows);
+  window.XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo por Médico');
+
+  // ── Aba 2: Detalhe individual ──
+  const detalheRows = [
+    ['Data', 'Médico', 'Paciente', 'Convênio', 'Seções', 'Qtd. Exames']
+  ];
+  _producaoCache.forEach(l => {
+    const secsLabel = Object.entries(l.secoes || {})
+      .filter(([,v]) => v?.ativo)
+      .map(([k]) => EXAME_LABEL[k] || k)
+      .join('; ');
+    detalheRows.push([
+      l.data_exame || '—',
+      l.medico_nome || '—',
+      l.paciente_nome || '—',
+      (l.convenio || '—').toUpperCase(),
+      secsLabel,
+      contarExamesDeLaudo(l.secoes)
+    ]);
+  });
+  const wsDetalhe = window.XLSX.utils.aoa_to_sheet(detalheRows);
+  window.XLSX.utils.book_append_sheet(wb, wsDetalhe, 'Detalhe por Laudo');
+
+  // ── Aba 3: Por convênio ──
+  const convRows = [['Convênio', 'Total de Exames']];
+  Object.entries(totaisGerais.convenios)
+    .sort((a,b) => b[1]-a[1])
+    .forEach(([k,v]) => convRows.push([k, v]));
+  const wsConv = window.XLSX.utils.aoa_to_sheet(convRows);
+  window.XLSX.utils.book_append_sheet(wb, wsConv, 'Por Convênio');
+
+  // Nome do arquivo com filtros de data
+  const de  = filtros.dataIni ? filtros.dataIni.replace(/-/g,'') : 'inicio';
+  const ate = filtros.dataFim ? filtros.dataFim.replace(/-/g,'') : 'fim';
+  const filename = `producao_ctdmi_${de}_${ate}.xlsx`;
+
+  window.XLSX.writeFile(wb, filename);
+  loading(false);
+  toast('Planilha exportada com sucesso! ✓', 'ok');
+}
 
 </script>
 <div id="screen-app" class="screen">
@@ -3696,6 +4058,7 @@ function stopSessionTimeout() {
     <div class="tab" onclick="showSecTab('concluidos-sec',this)">✅ Concluídos</div>
     <div class="tab" onclick="showSecTab('lixeira-sec',this)">🗑️ Lixeira <span class="tab-badge" id="sec-lixeira-count" style="background:#9ca3af;display:none">0</span></div>
     <div class="tab" id="sec-admin-tab" onclick="showSecTab('admin-sec',this)" style="display:none">⚙️ Administração</div>
+    <div class="tab" id="sec-producao-tab" onclick="showSecTab('producao-sec',this);carregarDashboardProducao()" style="display:none">📊 Produção</div>
   </nav>
 
   <!-- NOVO PACIENTE (Secretaria) -->
@@ -3819,6 +4182,101 @@ function stopSessionTimeout() {
       <div id="admin-sec-patients" style="margin-top:12px"></div>
       <button class="btn btn-green" style="margin-top:12px" onclick="openModal('modal-patient')">+ Cadastrar Paciente</button>
     </div>
+  </div>
+
+  <!-- ═══════════ TAB PRODUÇÃO MÉDICA (admin only) ═══════════ -->
+  <div id="tab-producao-sec" class="app-main" style="display:none">
+
+    <!-- Filtros -->
+    <div class="card" style="padding:14px 16px">
+      <div class="card-hdr" style="margin-bottom:12px">
+        <div class="card-ico">📊</div>
+        <div class="card-title">Produção Médica</div>
+        <button class="btn btn-outline" style="margin-left:auto;padding:5px 14px;font-size:12px" onclick="exportarProducaoXLSX()">⬇️ Exportar XLSX</button>
+      </div>
+
+      <!-- Atalhos de período -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+        <button class="btn btn-outline" style="padding:5px 12px;font-size:12px" onclick="setDashPeriodo('hoje')">Hoje</button>
+        <button class="btn btn-outline" style="padding:5px 12px;font-size:12px" onclick="setDashPeriodo('semana')">Esta semana</button>
+        <button class="btn btn-outline" style="padding:5px 12px;font-size:12px" onclick="setDashPeriodo('mes')">Este mês</button>
+        <button class="btn btn-outline" style="padding:5px 12px;font-size:12px" onclick="setDashPeriodo('mes-ant')">Mês anterior</button>
+      </div>
+
+      <!-- Inputs de filtro -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;align-items:end;flex-wrap:wrap">
+        <div>
+          <label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--green-mid);display:block;margin-bottom:4px">De</label>
+          <input type="date" id="dash-data-ini" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:Lato,sans-serif;font-size:13px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--green-mid);display:block;margin-bottom:4px">Até</label>
+          <input type="date" id="dash-data-fim" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:Lato,sans-serif;font-size:13px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--green-mid);display:block;margin-bottom:4px">Médico</label>
+          <select id="dash-medico-sel" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:#fff;box-sizing:border-box">
+            <option value="">— Todos —</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--green-mid);display:block;margin-bottom:4px">Convênio</label>
+          <input type="text" id="dash-convenio" placeholder="Ex: UNIMED" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:Lato,sans-serif;font-size:13px;box-sizing:border-box">
+        </div>
+        <button class="btn btn-green" style="padding:8px 18px;font-size:13px;height:38px" onclick="carregarDashboardProducao()">🔍 Filtrar</button>
+      </div>
+    </div>
+
+    <!-- Cards de totais -->
+    <div id="dash-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:4px">
+      <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#d1d5db">—</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Total de Exames</div>
+      </div>
+      <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#d1d5db">—</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Laudos Concluídos</div>
+      </div>
+      <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#d1d5db">—</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Média / Dia</div>
+      </div>
+      <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#d1d5db">—</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Top Convênio</div>
+      </div>
+    </div>
+
+    <!-- Tabela por médico -->
+    <div class="card">
+      <div class="card-hdr" style="margin-bottom:12px">
+        <div class="card-ico">👨‍⚕️</div>
+        <div class="card-title">Produção por Médico</div>
+      </div>
+      <div id="dash-tabela-medicos">
+        <div class="empty"><div class="ei">📊</div><p>Use os filtros acima e clique em Filtrar.</p></div>
+      </div>
+    </div>
+
+    <!-- Detalhamento por convênio -->
+    <div class="card" id="dash-card-convenios" style="display:none">
+      <div class="card-hdr" style="margin-bottom:12px">
+        <div class="card-ico">🏥</div>
+        <div class="card-title">Exames por Convênio</div>
+      </div>
+      <div id="dash-tabela-convenios"></div>
+    </div>
+
+    <!-- Detalhamento individual (expandido ao clicar em médico) -->
+    <div class="card" id="dash-card-detalhe" style="display:none">
+      <div class="card-hdr" style="margin-bottom:12px">
+        <div class="card-ico">🔍</div>
+        <div class="card-title" id="dash-detalhe-titulo">Detalhe</div>
+        <button class="btn btn-outline" style="margin-left:auto;padding:4px 10px;font-size:11px" onclick="document.getElementById('dash-card-detalhe').style.display='none'">✕ Fechar</button>
+      </div>
+      <div id="dash-tabela-detalhe"></div>
+    </div>
+
   </div>
 
   <!-- CONCLUÍDOS (leitura) -->
