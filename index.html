@@ -11,30 +11,53 @@
 <title>C.T.D.M.I. — Sistema de Laudos v2.1</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Lato:wght@300;400;700;900&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
 <style>
 :root {
-  --green: #1a6b3a;
-  --green-mid: #2d8a50;
+  /* Paleta principal — verde mais sóbrio como acento único */
+  --green: #1a4d3a;
+  --green-mid: #2a6149;
   --green-light: #4caf72;
-  --green-pale: #e8f5ee;
-  --green-dim: rgba(26,107,58,0.08);
+  --green-pale: #f0f5f1;
+  --green-dim: rgba(26,77,58,0.06);
+
+  /* Neutros — off-white + cinzas quentes */
   --white: #ffffff;
-  --off-white: #f7f9f8;
-  --border: #d4e3da;
-  --border-dark: #b0c9bc;
-  --text: #1a2e23;
-  --text-mid: #3d5a47;
-  --text-muted: #7a9986;
-  --red: #c0392b;
-  --amber: #d4850a;
-  --shadow-sm: 0 1px 4px rgba(26,107,58,0.08);
-  --shadow: 0 4px 16px rgba(26,107,58,0.1);
-  --shadow-lg: 0 8px 32px rgba(26,107,58,0.15);
-  --radius: 10px;
+  --off-white: #fafaf8;
+  --bg-soft: #f5f4f0;
+  --border: #e8e6e0;
+  --border-dark: #d8d5cc;
+  --border-strong: #bbb8ae;
+
+  /* Texto */
+  --text: #1a1a18;
+  --text-mid: #444441;
+  --text-muted: #7a7770;
+  --text-faint: #a8a59c;
+
+  /* Semânticos */
+  --red: #a32d2d;
+  --red-pale: #fcebeb;
+  --amber: #bb6b1a;
+  --amber-pale: #fdf2dc;
+  --blue: #185fa5;
+  --blue-pale: #e6f1fb;
+
+  /* Sombras neutras (não mais verdes) */
+  --shadow-sm: 0 1px 2px rgba(20,20,18,0.04);
+  --shadow: 0 2px 8px rgba(20,20,18,0.06);
+  --shadow-lg: 0 8px 24px rgba(20,20,18,0.1);
+  --radius: 8px;
+  --radius-lg: 10px;
+
+  /* Tipografia */
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-serif: 'Fraunces', Georgia, serif;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--off-white); color: var(--text); font-family: 'Lato', sans-serif; font-size: 14px; min-height: 100vh; }
+body { background: var(--off-white); color: var(--text); font-family: var(--font-sans); font-size: 14px; min-height: 100vh; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
 /* ── TOAST ── */
 #toast { position: fixed; bottom: 24px; right: 24px; z-index: 9999; background: var(--white); border: 1px solid var(--border-dark); border-radius: var(--radius); padding: 13px 18px; font-size: 13px; display: none; align-items: center; gap: 10px; box-shadow: var(--shadow-lg); max-width: 320px; color: var(--text); }
@@ -125,132 +148,133 @@ body { background: var(--off-white); color: var(--text); font-family: 'Lato', sa
 /* ══════════ APP ══════════ */
 .app-header {
   background: var(--white);
-  border-bottom: 2px solid var(--green-pale);
-  padding: 0 32px; height: 62px;
+  border-bottom: 0.5px solid var(--border);
+  padding: 0 24px; height: 58px;
   display: flex; align-items: center; justify-content: space-between;
   position: sticky; top: 0; z-index: 100;
-  box-shadow: var(--shadow-sm);
 }
-.hdr-left { display: flex; align-items: center; gap: 14px; }
-.hdr-logo { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, var(--green), var(--green-mid)); display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 2px 8px rgba(26,107,58,0.25); }
-.hdr-title { font-family: 'Merriweather', serif; font-size: 16px; color: var(--green); font-weight: 700; }
-.hdr-sub { font-size: 10px; color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; margin-top: 1px; }
+.hdr-left { display: flex; align-items: baseline; gap: 12px; }
+.hdr-logo { width: 32px; height: 32px; border-radius: 7px; background: var(--green); display: flex; align-items: center; justify-content: center; font-size: 14px; color: #fff; font-family: var(--font-serif); font-weight: 600; align-self: center; }
+.hdr-title { font-family: var(--font-serif); font-size: 18px; color: var(--green); font-weight: 600; letter-spacing: -0.3px; }
+.hdr-sub { font-size: 10px; color: var(--text-muted); letter-spacing: 1.2px; text-transform: uppercase; font-weight: 500; }
 .hdr-right { display: flex; align-items: center; gap: 10px; }
-.doctor-badge { background: var(--green-pale); border: 1px solid var(--border); border-radius: 8px; padding: 6px 13px; font-size: 12px; color: var(--green); font-weight: 700; }
-.patient-badge { background: #e8f0fe; border: 1px solid #c5d5f8; border-radius: 8px; padding: 6px 13px; font-size: 12px; color: #1a4b8c; font-weight: 700; }
+.doctor-badge { background: var(--green-pale); border: 0.5px solid var(--border); border-radius: 7px; padding: 5px 12px; font-size: 12px; color: var(--green); font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+.patient-badge { background: var(--blue-pale); border: 0.5px solid #d8e3f1; border-radius: 7px; padding: 5px 12px; font-size: 12px; color: var(--blue); font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
 
 /* TABS */
-nav { background: var(--white); border-bottom: 1px solid var(--border); display: flex; padding: 0 32px; overflow-x: auto; }
-.tab { padding: 14px 20px; cursor: pointer; border-bottom: 3px solid transparent; font-size: 13px; font-weight: 700; color: var(--text-muted); transition: all 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 7px; user-select: none; letter-spacing: 0.3px; }
-.tab:hover { color: var(--green-mid); }
-.tab.active { color: var(--green); border-bottom-color: var(--green); }
-.tab-badge { background: var(--green); color: #fff; border-radius: 10px; padding: 1px 8px; font-size: 10px; }
+nav { background: var(--white); border-bottom: 0.5px solid var(--border); display: flex; padding: 0 24px; overflow-x: auto; gap: 2px; }
+.tab { padding: 11px 14px; cursor: pointer; border-bottom: 2px solid transparent; font-size: 13px; font-weight: 400; color: var(--text-muted); transition: color 0.15s; white-space: nowrap; display: flex; align-items: center; gap: 6px; user-select: none; }
+.tab i { font-size: 15px; }
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--green); border-bottom-color: var(--green); font-weight: 500; }
+.tab-badge { background: var(--amber); color: #fff; border-radius: 99px; padding: 1px 7px; font-size: 10px; font-weight: 500; }
 
 /* MAIN */
-.app-main { max-width: 1000px; margin: 0 auto; padding: 28px 28px 100px; }
+.app-main { max-width: 1000px; margin: 0 auto; padding: 24px 24px 80px; }
 
 /* CARD */
-.card { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 24px 28px; margin-bottom: 18px; box-shadow: var(--shadow-sm); }
-.card-hdr { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
-.card-ico { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; background: var(--green-pale); border: 1px solid var(--border); flex-shrink: 0; }
-.card-title { font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: 0.3px; }
+.card { background: var(--white); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 22px 24px; margin-bottom: 14px; }
+.card-hdr { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 0.5px solid var(--border); }
+.card-ico { width: 32px; height: 32px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 16px; background: var(--green-pale); color: var(--green); flex-shrink: 0; }
+.card-title { font-size: 14px; font-weight: 500; color: var(--text); letter-spacing: -0.1px; }
 
 /* GRID */
-.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
 .s2 { grid-column: 1 / -1; }
 
 /* LAUDO BLOCKS */
-.lb { background: var(--white); border: 1.5px solid var(--border); border-radius: 12px; margin-bottom: 12px; overflow: hidden; transition: all 0.3s; }
-.lb.on { border-color: var(--green-mid); box-shadow: 0 2px 10px rgba(26,107,58,0.08); }
-.lb-hdr { display: flex; align-items: center; justify-content: space-between; padding: 13px 18px; cursor: pointer; user-select: none; background: var(--off-white); gap: 12px; border-bottom: 1px solid transparent; transition: all 0.2s; }
+.lb { background: var(--white); border: 0.5px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 10px; overflow: hidden; transition: border-color 0.15s; }
+.lb.on { border-color: var(--green-mid); }
+.lb-hdr { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; cursor: pointer; user-select: none; background: var(--off-white); gap: 12px; border-bottom: 0.5px solid transparent; transition: background 0.15s; }
 .lb.on .lb-hdr { background: var(--green-pale); border-bottom-color: var(--border); }
-.lb-title { font-size: 12px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; transition: color 0.2s; }
+.lb-title { font-size: 12px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.3px; transition: color 0.15s; }
 .lb.on .lb-title { color: var(--green); }
-.lb-body { padding: 16px 18px; display: none; }
+.lb-body { padding: 16px; display: none; }
 .lb.on .lb-body { display: block; }
-.lb-body textarea { width: 100%; background: var(--off-white); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Lato', sans-serif; font-size: 13px; line-height: 1.8; padding: 12px 14px; outline: none; resize: vertical; min-height: 170px; transition: all 0.2s; }
-.lb-body textarea:focus { border-color: var(--green-mid); background: var(--white); }
+.lb-body textarea { width: 100%; background: var(--off-white); border: 0.5px solid var(--border); border-radius: 7px; color: var(--text); font-family: var(--font-sans); font-size: 13px; line-height: 1.8; padding: 12px 14px; outline: none; resize: vertical; min-height: 170px; transition: all 0.15s; }
+.lb-body textarea:focus { border-color: var(--green-mid); background: var(--white); box-shadow: 0 0 0 3px var(--green-dim); }
 
 /* TOGGLE */
-.tog { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+.tog { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
 .tog input { display: none; }
-.tog-track { position: absolute; inset: 0; background: var(--border-dark); border-radius: 12px; transition: background 0.3s; cursor: pointer; }
-.tog input:checked + .tog-track { background: var(--green-mid); }
-.tog-knob { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: left 0.3s; pointer-events: none; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-.tog input:checked ~ .tog-knob { left: 23px; }
+.tog-track { position: absolute; inset: 0; background: var(--border-dark); border-radius: 99px; transition: background 0.2s; cursor: pointer; }
+.tog input:checked + .tog-track { background: var(--green); }
+.tog-knob { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: left 0.2s; pointer-events: none; box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+.tog input:checked ~ .tog-knob { left: 20px; }
 
 /* IMAGES */
-.drop-zone { border: 2px dashed var(--border-dark); border-radius: 12px; padding: 36px 24px; text-align: center; cursor: pointer; transition: all 0.3s; margin-bottom: 20px; background: var(--off-white); }
+.drop-zone { border: 1.5px dashed var(--border-dark); border-radius: var(--radius-lg); padding: 32px 24px; text-align: center; cursor: pointer; transition: all 0.15s; margin-bottom: 20px; background: var(--off-white); }
 .drop-zone:hover, .drop-zone.over { border-color: var(--green-mid); background: var(--green-pale); }
-.dz-icon { font-size: 36px; margin-bottom: 10px; }
-.dz-main { font-size: 15px; color: var(--green-mid); font-weight: 700; margin-bottom: 4px; }
+.dz-icon { font-size: 32px; margin-bottom: 8px; color: var(--green); }
+.dz-main { font-size: 14px; color: var(--green); font-weight: 500; margin-bottom: 3px; }
 .dz-sub { font-size: 12px; color: var(--text-muted); }
-.page-lbl { font-size: 11px; color: var(--green); letter-spacing: 2px; text-transform: uppercase; font-weight: 700; margin-bottom: 10px; padding-bottom: 7px; border-bottom: 1px solid var(--border); }
+.page-lbl { font-size: 10px; color: var(--green); letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; margin-bottom: 10px; padding-bottom: 7px; border-bottom: 0.5px solid var(--border); }
 .img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-.img-item { position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 4/3; background: var(--off-white); border: 1px solid var(--border); }
+.img-item { position: relative; border-radius: 7px; overflow: hidden; aspect-ratio: 4/3; background: var(--off-white); border: 0.5px solid var(--border); }
 .img-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.img-over { position: absolute; inset: 0; background: rgba(0,0,0,0); display: flex; align-items: center; justify-content: center; gap: 5px; transition: background 0.2s; }
+.img-over { position: absolute; inset: 0; background: rgba(0,0,0,0); display: flex; align-items: center; justify-content: center; gap: 5px; transition: background 0.15s; }
 .img-item:hover .img-over { background: rgba(0,0,0,0.6); }
-.img-over .img-over button { padding: 5px 9px; border: none; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 700; opacity: 0; transform: translateY(5px); transition: all 0.2s; }
+.img-over .img-over button { padding: 5px 9px; border: none; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 500; opacity: 0; transform: translateY(5px); transition: all 0.15s; }
 .img-item:hover .img-over button { opacity: 1; transform: translateY(0); }
-.ib-del { background: #dc2626; color: #fff; }
-.ib-lr { background: rgba(255,255,255,0.9); color: #333; }
-.img-num { position: absolute; top: 6px; left: 7px; background: rgba(0,0,0,0.6); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 6px; font-weight: 700; }
+.ib-del { background: var(--red); color: #fff; }
+.ib-lr { background: rgba(255,255,255,0.95); color: var(--text); }
+.img-num { position: absolute; top: 6px; left: 7px; background: rgba(0,0,0,0.65); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 6px; font-weight: 500; }
 
 /* BUTTONS */
-.btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 20px; border: none; border-radius: 8px; font-family: 'Lato', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: 0.5px solid transparent; border-radius: 7px; font-family: var(--font-sans); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; letter-spacing: 0; }
+.btn i { font-size: 15px; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.btn-green { background: linear-gradient(135deg, var(--green), var(--green-mid)); color: #fff; box-shadow: 0 3px 10px rgba(26,107,58,0.25); }
-.btn-green:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(26,107,58,0.35); }
-.btn-outline { background: var(--white); border: 1.5px solid var(--border-dark); color: var(--text-mid); }
+.btn-green { background: var(--green); color: #fff; border-color: var(--green); }
+.btn-green:hover:not(:disabled) { background: var(--green-mid); border-color: var(--green-mid); }
+.btn-outline { background: var(--white); border: 0.5px solid var(--border-dark); color: var(--text); }
 .btn-outline:hover { border-color: var(--green-mid); color: var(--green); background: var(--green-pale); }
-.btn-red { background: #fdf2f2; border: 1.5px solid #f5c6c6; color: var(--red); }
-.btn-red:hover { background: #fce4e4; }
-.btn-print { background: linear-gradient(135deg, #2c5282, #3b82f6); color: #fff; box-shadow: 0 3px 10px rgba(59,130,246,0.25); }
-.btn-print:hover { transform: translateY(-1px); }
-.btn-big { width: 100%; justify-content: center; padding: 14px; font-size: 15px; border-radius: 10px; }
+.btn-red { background: var(--red-pale); border: 0.5px solid #f0c4c4; color: var(--red); }
+.btn-red:hover { background: #f9dedf; border-color: #e5a8a8; }
+.btn-print { background: var(--blue); color: #fff; border-color: var(--blue); }
+.btn-print:hover { background: #154d87; border-color: #154d87; }
+.btn-big { width: 100%; justify-content: center; padding: 13px; font-size: 14px; border-radius: 8px; }
 .abar { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
 
 /* SAVED LIST */
 .saved-list { display: flex; flex-direction: column; gap: 6px; }
-.saved-group-hdr { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; padding: 12px 4px 6px; border-bottom: 1px solid var(--border); margin-top: 8px; display: flex; align-items: center; gap: 8px; }
-.saved-row { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; transition: all 0.2s; }
-.saved-row:hover { border-color: var(--green-mid); box-shadow: var(--shadow-sm); }
-.saved-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.saved-group-hdr { font-size: 10px; font-weight: 600; color: var(--text-muted); letter-spacing: 1.2px; text-transform: uppercase; padding: 12px 4px 6px; border-bottom: 0.5px solid var(--border); margin-top: 8px; display: flex; align-items: center; gap: 8px; }
+.saved-row { background: var(--white); border: 0.5px solid var(--border); border-radius: 8px; padding: 13px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; transition: border-color 0.15s; }
+.saved-row:hover { border-color: var(--border-strong); }
+.saved-name { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
 .saved-meta { font-size: 12px; color: var(--text-muted); }
-.saved-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.saved-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
 /* ADMIN */
-.doc-row { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
-.doc-name { font-size: 14px; font-weight: 700; color: var(--text); }
+.doc-row { background: var(--white); border: 0.5px solid var(--border); border-radius: 8px; padding: 13px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.doc-name { font-size: 13px; font-weight: 500; color: var(--text); }
 .doc-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
 /* MODAL */
-.modal-bg { position: fixed; inset: 0; background: rgba(26,107,58,0.15); backdrop-filter: blur(3px); z-index: 500; display: none; align-items: center; justify-content: center; }
+.modal-bg { position: fixed; inset: 0; background: rgba(20,20,18,0.35); backdrop-filter: blur(2px); z-index: 500; display: none; align-items: center; justify-content: center; }
 .modal-bg.show { display: flex; }
-.modal { background: var(--white); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 100%; max-width: 480px; box-shadow: var(--shadow-lg); }
-.modal h3 { font-family: 'Merriweather', serif; font-size: 17px; color: var(--green); margin-bottom: 20px; }
+.modal { background: var(--white); border: 0.5px solid var(--border); border-radius: 12px; padding: 28px; width: 100%; max-width: 460px; box-shadow: var(--shadow-lg); }
+.modal h3 { font-family: var(--font-serif); font-size: 18px; color: var(--green); margin-bottom: 18px; font-weight: 600; letter-spacing: -0.2px; }
 .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
 
 /* TIP */
-.tip { background: var(--green-pale); border: 1px solid var(--border); border-radius: 10px; padding: 13px 17px; font-size: 13px; color: var(--green); margin-bottom: 18px; line-height: 1.7; border-left: 4px solid var(--green-mid); }
+.tip { background: var(--green-pale); border: 0.5px solid var(--border); border-radius: 8px; padding: 12px 16px; font-size: 13px; color: var(--green); margin-bottom: 16px; line-height: 1.6; border-left: 3px solid var(--green); }
 
 /* PATIENT VIEW */
-.patient-laudo { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 28px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
-.pl-header { text-align: center; border-bottom: 2px solid var(--green); padding-bottom: 14px; margin-bottom: 18px; }
-.pl-clinic { font-family: 'Merriweather', serif; font-size: 18px; font-weight: 700; color: var(--green); }
+.patient-laudo { background: var(--white); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 28px; margin-bottom: 14px; }
+.pl-header { text-align: center; border-bottom: 1.5px solid var(--green); padding-bottom: 14px; margin-bottom: 18px; }
+.pl-clinic { font-family: var(--font-serif); font-size: 20px; font-weight: 600; color: var(--green); letter-spacing: -0.3px; }
 .pl-sub { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
 .pl-patient { background: var(--green-pale); border-radius: 8px; padding: 14px 16px; margin-bottom: 18px; }
 .pl-section { margin-bottom: 16px; }
-.pl-section h4 { font-size: 12px; font-weight: 700; color: var(--green); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
+.pl-section h4 { font-size: 11px; font-weight: 600; color: var(--green); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 0.5px solid var(--border); }
 .pl-section p { font-size: 13px; line-height: 1.8; color: var(--text); white-space: pre-wrap; }
 .pl-texto { font-size: 13px; line-height: 1.8; color: var(--text); }
 .pl-texto br + br { display: block; margin: 4px 0; }
 
 /* EMPTY */
-.empty { text-align: center; padding: 60px 20px; color: var(--text-muted); }
-.empty .ei { font-size: 48px; margin-bottom: 14px; }
+.empty { text-align: center; padding: 56px 20px; color: var(--text-muted); }
+.empty .ei { font-size: 36px; margin-bottom: 12px; color: var(--text-faint); }
 
 /* RESPONSIVE */
 @media(max-width:700px) {
@@ -398,16 +422,19 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
     font-size: 9.5pt;
     font-family: 'Times New Roman', serif;
     background: #fff;
-    display: grid;
-    grid-template-columns: 3fr 1.2fr 0.8fr;
-    gap: 0;
   }
-  .ppb-row { display: contents; }
-  .pp-cell { padding: 2px 4px; }
+  .ppb-top-row {
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+  }
+  .ppb-top-row .pp-cell:nth-child(1) { flex: 3; }
+  .ppb-top-row .pp-cell:nth-child(2) { flex: 1.2; }
+  .ppb-top-row .pp-cell:nth-child(3) { flex: 0.8; }
+  .pp-cell { padding: 2px 4px; min-width: 0; }
   .pp-label { font-size: 7.5pt; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
-  .pp-value { font-weight: bold; font-size: 10pt; }
+  .pp-value { font-weight: bold; font-size: 10pt; word-wrap: break-word; }
   .ppb-bot-wrap {
-    grid-column: 1 / -1;
     display: flex;
     gap: 0;
     margin-top: 4px;
@@ -429,7 +456,13 @@ nav { background: var(--white); border-bottom: 1px solid var(--border); display:
     white-space: pre-wrap;
     word-break: break-word;
     margin: 0;
+    font-weight: normal;
   }
+  /* Mantém negrito explícito via <b> e <strong> */
+  .print-section .sec-body b,
+  .print-section .sec-body strong { font-weight: bold; }
+  /* Spans só ficam bold se tiverem font-weight explícito */
+  .print-section .sec-body span:not([style*="font-weight"]) { font-weight: normal; }
   /* Inline line-height from editor takes priority */
   .print-section [style*="line-height"] {
     line-height: inherit;
@@ -899,47 +932,50 @@ async function loadSecoesAdmin() {
   if (!cont) return;
   cont.innerHTML = '<p style="color:var(--text-muted);font-size:13px">Carregando...</p>';
 
-  const { data: secoes, error } = await supa.from('secoes_exame').select('*').order('ordem');
-  if (error) {
-    cont.innerHTML = `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px;font-size:13px;color:#856404">
-      ⚠️ Tabela <b>secoes_exame</b> não encontrada. Execute o SQL fornecido.<br>
-      <button class="btn btn-green" style="margin-top:8px;font-size:12px" onclick="loadSecoesAdmin()">🔄 Tentar novamente</button></div>`;
-    return;
+  try {
+    const { data: secoes, error } = await supa.from('secoes_exame').select('*').order('ordem');
+    if (error) throw error;
+    secoesExame = secoes || [];
+
+    const [{ data: assocs }, { data: medicos }] = await Promise.all([
+      supa.from('medico_secoes').select('medico_id,secao_id'),
+      supa.from('medicos').select('id,nome,papel').in('papel',['medico','admin']).order('nome'),
+    ]);
+
+    let html = `<div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-green" style="padding:6px 14px;font-size:12px" onclick="novaSecao()"><i class="ti ti-plus" aria-hidden="true"></i>Nova seção</button>
+    </div>`;
+
+    if (!secoesExame.length) {
+      html += '<p style="color:var(--text-muted);font-size:13px;padding:14px 4px">Nenhuma seção cadastrada ainda.</p>';
+    } else {
+      html += '<div style="display:flex;flex-direction:column;gap:8px">';
+      secoesExame.forEach(sec => {
+        const medAssoc = (assocs||[]).filter(a => a.secao_id === sec.id).map(a => a.medico_id);
+        const medNames = (medicos||[]).filter(m => medAssoc.includes(m.id)).map(m => m.nome.split(' ')[0]).join(', ');
+        html += `<div style="background:#fff;border:0.5px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div style="flex:1">
+            <div style="font-weight:500;font-size:13px;color:var(--text)">${sec.titulo}</div>
+            ${sec.subtitulo ? `<div style="font-size:12px;color:var(--text-muted);margin-top:1px">↳ ${sec.subtitulo}</div>` : ''}
+            <div style="font-size:11px;color:var(--green);margin-top:3px;font-family:var(--font-sans)">Chave: <code style="font-family:'SFMono-Regular',Consolas,monospace">${sec.chave}</code> · Ordem: ${sec.ordem}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px"><i class="ti ti-stethoscope" aria-hidden="true" style="font-size:13px;vertical-align:-2px"></i> ${medNames || 'Nenhum médico associado'}</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button class="btn btn-outline" style="padding:5px 10px;font-size:11px" data-id="${sec.id}" onclick="editarSecao(this.dataset.id)" title="Editar"><i class="ti ti-edit" aria-hidden="true"></i></button>
+            <button class="btn btn-outline" style="padding:5px 10px;font-size:11px;color:var(--green);border-color:var(--green)" data-id="${sec.id}" onclick="gerenciarMedicosSecao(this.dataset.id)" title="Médicos"><i class="ti ti-stethoscope" aria-hidden="true"></i></button>
+            <button class="btn btn-red" style="padding:5px 10px;font-size:11px" data-id="${sec.id}" onclick="deletarSecao(this.dataset.id)" title="Excluir"><i class="ti ti-trash" aria-hidden="true"></i></button>
+          </div>
+        </div>`;
+      });
+      html += '</div>';
+    }
+    cont.innerHTML = html;
+  } catch (e) {
+    cont.innerHTML = `<div style="background:var(--amber-pale);border:0.5px solid #f0d9a8;border-radius:8px;padding:14px;font-size:13px;color:var(--amber)">
+      <i class="ti ti-alert-triangle" aria-hidden="true"></i> Erro ao carregar seções: ${e.message||e}<br>
+      <button class="btn btn-green" style="margin-top:8px;font-size:12px" onclick="loadSecoesAdmin()"><i class="ti ti-refresh" aria-hidden="true"></i>Tentar novamente</button>
+    </div>`;
   }
-  secoesExame = secoes || [];
-
-  // Load medico_secoes associations
-  const { data: assocs } = await supa.from('medico_secoes').select('medico_id,secao_id');
-  const { data: medicos } = await supa.from('medicos').select('id,nome').eq('papel','medico').order('nome');
-
-  let html = `<div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap">
-    <button class="btn btn-green" style="padding:6px 14px;font-size:12px" onclick="novaSecao()">+ Nova seção</button>
-  </div>`;
-
-  if (!secoesExame.length) {
-    html += '<p style="color:var(--text-muted);font-size:13px">Nenhuma seção cadastrada.</p>';
-  } else {
-    html += '<div style="display:flex;flex-direction:column;gap:8px">';
-    secoesExame.forEach(sec => {
-      const medAssoc = (assocs||[]).filter(a => a.secao_id === sec.id).map(a => a.medico_id);
-      const medNames = (medicos||[]).filter(m => medAssoc.includes(m.id)).map(m => m.nome.split(' ')[0]).join(', ');
-      html += `<div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
-        <div style="flex:1">
-          <div style="font-weight:800;font-size:13px;color:var(--text)">${sec.titulo}</div>
-          ${sec.subtitulo ? `<div style="font-size:12px;color:var(--text-muted);margin-top:1px">↳ ${sec.subtitulo}</div>` : ''}
-          <div style="font-size:11px;color:var(--green);margin-top:3px">Chave: <code>${sec.chave}</code> · Ordem: ${sec.ordem}</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">👨‍⚕️ ${medNames || 'Nenhum médico associado'}</div>
-        </div>
-        <div style="display:flex;gap:6px;flex-shrink:0">
-          <button class="btn btn-outline" style="padding:5px 10px;font-size:11px" data-id="${sec.id}" onclick="editarSecao(this.dataset.id)">✏️ Editar</button>
-          <button class="btn btn-outline" style="padding:5px 10px;font-size:11px;color:var(--green);border-color:var(--green)" data-id="${sec.id}" onclick="gerenciarMedicosSecao(this.dataset.id)">👨‍⚕️ Médicos</button>
-          <button class="btn btn-red" style="padding:5px 10px;font-size:11px" data-id="${sec.id}" onclick="deletarSecao(this.dataset.id)">🗑️</button>
-        </div>
-      </div>`;
-    });
-    html += '</div>';
-  }
-  cont.innerHTML = html;
 }
 
 function novaSecao() {
@@ -975,12 +1011,23 @@ async function salvarSecao() {
   if (!chave || !titulo) { toast('Chave e título são obrigatórios.','err'); return; }
   loading(true,'Salvando...');
   const payload = { chave, titulo, subtitulo: sub||null, ordem, texto_padrao: texto };
-  const { error } = editingSecaoId
-    ? await supa.from('secoes_exame').update(payload).eq('id', editingSecaoId)
-    : await supa.from('secoes_exame').insert(payload);
+  let secaoIdSalva = editingSecaoId;
+  if (editingSecaoId) {
+    const { error } = await supa.from('secoes_exame').update(payload).eq('id', editingSecaoId);
+    if (error) { loading(false); toast('Erro: '+error.message,'err'); return; }
+  } else {
+    const { data, error } = await supa.from('secoes_exame').insert(payload).select('id').single();
+    if (error) { loading(false); toast('Erro: '+error.message,'err'); return; }
+    secaoIdSalva = data.id;
+    // ──── vincula automaticamente a todos os médicos (e admins) ────
+    const { data: meds } = await supa.from('medicos').select('id').in('papel',['medico','admin']);
+    if (meds?.length) {
+      const links = meds.map(m => ({ medico_id: m.id, secao_id: secaoIdSalva }));
+      await supa.from('medico_secoes').insert(links);
+    }
+  }
   loading(false);
-  if (error) { toast('Erro: '+error.message,'err'); return; }
-  toast('Seção salva!','ok');
+  toast('Seção salva e vinculada aos médicos!','ok');
   closeModal('modal-secao');
   loadSecoesAdmin();
 }
@@ -1085,46 +1132,44 @@ async function loadModelosAdmin() {
   const cont = document.getElementById('admin-modelos-cont');
   if (!cont) return;
   cont.innerHTML = '<p style="color:var(--text-muted);font-size:13px">Carregando...</p>';
-  const { data: medicos, error: medErr } = await supa.from('medicos').select('id,nome').eq('papel','medico').order('nome');
-  if (medErr) { cont.innerHTML = '<p style="color:red;font-size:13px">Erro: '+medErr.message+'</p>'; return; }
-  if (!medicos?.length) { cont.innerHTML = '<p style="color:var(--text-muted)">Nenhum médico.</p>'; return; }
-  const { data: modData, error: modErr } = await supa.from('modelos').select('*').order('nome');
-  if (modErr) {
-    cont.innerHTML = '<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px;font-size:13px;color:#856404">'+
-      '⚠️ Tabela <b>modelos</b> não encontrada. Execute no Supabase SQL Editor:<br><br>'+
-      '<code style="background:#f8f9fa;padding:6px 10px;border-radius:4px;display:block;margin-top:6px;font-size:11px">'+
-      'create table modelos (id uuid primary key default gen_random_uuid(), medico_id uuid references medicos(id) on delete cascade, nome text not null, secoes jsonb default \'{}\',' +
-      ' criado_em timestamptz default now());\nalter table modelos enable row level security;\ncreate policy \"modelos_all\" on modelos for all to authenticated using (true) with check (true);'+
-      '</code>'+
-      '<button class="btn btn-green" style="margin-top:10px;font-size:12px" onclick="loadModelosAdmin()">🔄 Tentar novamente</button></div>';
-    return;
+  try {
+    const { data: medicos, error: medErr } = await supa.from('medicos').select('id,nome,papel').in('papel',['medico','admin']).order('nome');
+    if (medErr) throw medErr;
+    if (!medicos?.length) { cont.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:8px 4px">Nenhum médico cadastrado.</p>'; return; }
+    const { data: modData, error: modErr } = await supa.from('modelos').select('*').order('nome');
+    if (modErr) throw modErr;
+    const modelos = modData || [];
+    let html = '';
+    medicos.forEach(med => {
+      const meus = modelos.filter(m => m.medico_id === med.id);
+      html += `<div style="margin-bottom:12px;border:0.5px solid var(--border);border-radius:8px;overflow:hidden">
+        <div style="background:var(--green-pale);padding:10px 14px;font-weight:500;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <span><i class="ti ti-stethoscope" aria-hidden="true" style="vertical-align:-2px;margin-right:4px"></i>${med.nome}</span>
+          <button class="btn btn-green" style="padding:5px 12px;font-size:12px"
+            data-med-id="${med.id}" data-med-nome="${med.nome.replace(/"/g,'&quot;')}"
+            onclick="novoModelo(this.dataset.medId,this.dataset.medNome)"><i class="ti ti-plus" aria-hidden="true"></i>Novo modelo</button>
+        </div><div style="padding:8px 14px">`;
+      if (!meus.length) {
+        html += '<p style="color:var(--text-muted);font-size:12px;margin:4px 0;padding:6px 0">Nenhum modelo cadastrado.</p>';
+      } else {
+        meus.forEach(mo => {
+          html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--border)">
+            <span style="font-size:13px;font-weight:400"><i class="ti ti-file" aria-hidden="true" style="vertical-align:-2px;margin-right:4px;color:var(--text-muted)"></i>${mo.nome}</span>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-outline" style="padding:4px 10px;font-size:11px" data-id="${mo.id}" onclick="editarModelo(this.dataset.id)" title="Editar"><i class="ti ti-edit" aria-hidden="true"></i></button>
+              <button class="btn btn-red" style="padding:4px 10px;font-size:11px" data-id="${mo.id}" onclick="deletarModelo(this.dataset.id)" title="Excluir"><i class="ti ti-trash" aria-hidden="true"></i></button>
+            </div></div>`;
+        });
+      }
+      html += '</div></div>';
+    });
+    cont.innerHTML = html;
+  } catch (e) {
+    cont.innerHTML = `<div style="background:var(--amber-pale);border:0.5px solid #f0d9a8;border-radius:8px;padding:14px;font-size:13px;color:var(--amber)">
+      <i class="ti ti-alert-triangle" aria-hidden="true"></i> Erro: ${e.message||e}<br>
+      <button class="btn btn-green" style="margin-top:8px;font-size:12px" onclick="loadModelosAdmin()"><i class="ti ti-refresh" aria-hidden="true"></i>Tentar novamente</button>
+    </div>`;
   }
-  const modelos = modData || [];
-  let html = '';
-  medicos.forEach(med => {
-    const meus = modelos.filter(m => m.medico_id === med.id);
-    html += `<div style="margin-bottom:16px;border:1.5px solid var(--border);border-radius:10px;overflow:hidden">
-      <div style="background:var(--green-pale);padding:10px 14px;font-weight:800;font-size:13px;display:flex;justify-content:space-between;align-items:center">
-        👨‍⚕️ ${med.nome}
-        <button class="btn btn-green" style="padding:5px 12px;font-size:12px"
-          data-med-id="${med.id}" data-med-nome="${med.nome.replace(/"/g,'&quot;')}"
-          onclick="novoModelo(this.dataset.medId,this.dataset.medNome)">+ Novo modelo</button>
-      </div><div style="padding:10px 14px">`;
-    if (!meus.length) {
-      html += '<p style="color:var(--text-muted);font-size:13px;margin:4px 0">Nenhum modelo cadastrado.</p>';
-    } else {
-      meus.forEach(mo => {
-        html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-          <span style="font-size:13px;font-weight:600">📄 ${mo.nome}</span>
-          <div style="display:flex;gap:6px">
-            <button class="btn btn-outline" style="padding:4px 10px;font-size:11px" data-id="${mo.id}" onclick="editarModelo(this.dataset.id)">✏️ Editar</button>
-            <button class="btn btn-red" style="padding:4px 10px;font-size:11px" data-id="${mo.id}" onclick="deletarModelo(this.dataset.id)">🗑️</button>
-          </div></div>`;
-      });
-    }
-    html += '</div></div>';
-  });
-  cont.innerHTML = html;
 }
 
 function novoModelo(medicoId, medicoNome) {
@@ -1267,14 +1312,57 @@ function marcadoresParaHtml(texto) {
   if (!texto) return '';
   if (/<[a-z]/i.test(texto)) {
     let h = texto;
+
+    // Remove divs vazios de quebra
     h = h.replace(/<div[^>]*><b[^>]*><br\s*\/?><\/b><\/div>/gi, '');
     h = h.replace(/<div[^>]*><br\s*\/?><\/div>/gi, '<br>');
+
+    // Remove tags vazias (b, strong, i, em, u sem conteúdo)
     h = h.replace(/<(b|strong|i|em|u)[^>]*>\s*<\/\1>/gi, '');
+
+    // Achatamento de bold/strong aninhado
     h = h.replace(/<b>(<b>[\s\S]*?<\/b>)<\/b>/gi, '$1');
+    h = h.replace(/<strong>(<strong>[\s\S]*?<\/strong>)<\/strong>/gi, '$1');
+
+    // ── BUG FIX: remove <b> ou <strong> que envolva TODO o conteúdo ──
+    // Browser pode envelopar tudo em <b> quando médico aplica negrito + segue digitando
+    const tryUnwrap = (regex) => {
+      const m = h.match(regex);
+      if (!m) return;
+      const inner = m[1];
+      // Só desfaz wrapper se NÃO houver mais <b> dentro (senão perderia formatação intencional)
+      if (!/<b[\s>]|<strong[\s>]/i.test(inner)) h = inner;
+    };
+    tryUnwrap(/^<b[^>]*>([\s\S]*)<\/b>$/i);
+    tryUnwrap(/^<strong[^>]*>([\s\S]*)<\/strong>$/i);
+    // Caso o wrapper esteja dentro do div data-lh
+    h = h.replace(
+      /^(<div[^>]*data-lh[^>]*>)<b[^>]*>([\s\S]*)<\/b>(<\/div>)$/i,
+      function(_, abr, inner, fim) {
+        if (/<b[\s>]|<strong[\s>]/i.test(inner)) return _;
+        return abr + inner + fim;
+      }
+    );
+    h = h.replace(
+      /^(<div[^>]*data-lh[^>]*>)<strong[^>]*>([\s\S]*)<\/strong>(<\/div>)$/i,
+      function(_, abr, inner, fim) {
+        if (/<b[\s>]|<strong[\s>]/i.test(inner)) return _;
+        return abr + inner + fim;
+      }
+    );
+
+    // Remove font-weight:bold inline em elementos pai (mantém só onde foi explícito como <b>)
+    // Spans com font-weight:bold viram <b>
+    h = h.replace(/<span([^>]*?)style="([^"]*?)font-weight:\s*(bold|700|800|900)([^"]*?)"([^>]*)>/gi,
+      function(_, before, sty1, w, sty2, after) {
+        const cleanStyle = (sty1 + sty2).replace(/font-weight:\s*(bold|700|800|900);?\s*/gi,'').trim();
+        const attrs = cleanStyle ? ` style="${cleanStyle}"` : '';
+        return `<span${before}${attrs}${after}><b>`;
+      }).replace(/(<span[^>]*<b>[\s\S]*?)<\/span>/g, '$1</b></span>');
+
     return h;
   }
-  let h = texto
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let h = texto.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   h = h.replace(/\*\*(.+?)\*\*/gs, '<strong>$1</strong>');
   h = h.replace(/__(.+?)__/gs, '<u>$1</u>');
   h = h.replace(/_(.+?)_/gs, '<em>$1</em>');
@@ -2231,9 +2319,11 @@ function buildPrint(data) {
 
   const solicitante = data.solicitante || (data.secoes?.solicitante) || '';
   const PAT = `<div class="print-patient-box">
-    <div class="pp-cell"><div class="pp-label">PACIENTE</div><div class="pp-value">${(data.paciente_nome||'').toUpperCase()}</div></div>
-    <div class="pp-cell"><div class="pp-label">DT. NASC.</div><div class="pp-value">${data.paciente_nasc?fmtDate(data.paciente_nasc):'—'}</div></div>
-    <div class="pp-cell"><div class="pp-label">IDADE</div><div class="pp-value">${(data.paciente_idade||'').toUpperCase()}</div></div>
+    <div class="ppb-top-row">
+      <div class="pp-cell"><div class="pp-label">PACIENTE</div><div class="pp-value">${(data.paciente_nome||'').toUpperCase()}</div></div>
+      <div class="pp-cell"><div class="pp-label">DT. NASC.</div><div class="pp-value">${data.paciente_nasc?fmtDate(data.paciente_nasc):'—'}</div></div>
+      <div class="pp-cell"><div class="pp-label">IDADE</div><div class="pp-value">${(data.paciente_idade||'').toUpperCase()}</div></div>
+    </div>
     <div class="ppb-bot-wrap">
       <div class="pp-cell" style="flex:1"><div class="pp-label">CONVÊNIO</div><div class="pp-value">${(data.convenio||'').toUpperCase()}</div></div>
       ${solicitante?`<div class="pp-cell" style="flex:2"><div class="pp-label">MÉDICO SOLICITANTE</div><div class="pp-value">${solicitante.toUpperCase()}</div></div>`:''}
@@ -2524,8 +2614,8 @@ async function loadInicio(contId) {
     ? `<button class="btn btn-green btn-big" style="flex:1;min-width:160px" onclick="novoLaudoDireto()">✏️ Novo Laudo</button>
        <button class="btn btn-outline btn-big" style="flex:1;min-width:160px" onclick="showTab('salvos',document.querySelectorAll('#screen-app nav .tab')[3])">📁 Concluídos</button>`
     : `<button class="btn btn-green btn-big" style="flex:1;min-width:160px" onclick="showSecTab('fila-sec',document.querySelectorAll('#screen-sec .tab')[1])">⏳ Fila do Dia</button>
-       <button class="btn btn-outline btn-big" style="flex:1;min-width:160px" onclick="showSecTab('concluidos-sec',document.querySelectorAll('#screen-sec .tab')[2])">✅ Concluídos</button>
-       ${isAdmin ? `<button class="btn btn-outline btn-big" style="flex:1;min-width:160px" onclick="showSecTab('admin-sec',document.querySelectorAll('#screen-sec .tab')[4])">⚙️ Administração</button>` : ''}`;
+       <button class="btn btn-outline btn-big" style="flex:1;min-width:160px" onclick="showSecTab('concluidos-sec',document.querySelectorAll('#screen-sec .tab')[2])"><i class="ti ti-check" aria-hidden="true"></i>Concluídos</button>
+       ${isAdmin ? `<button class="btn btn-outline btn-big" style="flex:1;min-width:160px" onclick="showSecTab('admin-sec',document.querySelectorAll('#screen-sec .tab')[4])"><i class="ti ti-settings" aria-hidden="true"></i>Administração</button>` : ''}`;
 
   // Título do card de pendentes
   const pendTitle = isMedico ? '⏳ Meus pendentes' : '⏳ Todos os pendentes';
@@ -2921,7 +3011,7 @@ function showSecTab(name, el, skipLoad) {
   if (name==='concluidos-sec') loadSecConcluidos();
   if (name==='lixeira-sec') loadLixeiraSec();
   if (name==='novo-sec') loadDoctorsForSec();
-  if (name==='admin-sec') { loadAdminSecDoctors(); loadAdminSecPatients(); }
+  if (name==='admin-sec') { loadAdminSecDoctors(); loadAdminSecPatients(); loadModelosAdmin(); loadSecoesAdmin(); }
 }
 
 async function loadAdminSecDoctors() {
@@ -3752,7 +3842,7 @@ async function exportarProducaoXLSX() {
 <div id="screen-app" class="screen">
   <header class="app-header">
     <div class="hdr-left">
-      <div class="hdr-logo">🩺</div>
+      <div class="hdr-logo">C</div>
       <div><div class="hdr-title">C.T.D.M.I.</div><div class="hdr-sub">Sistema de Laudos</div></div>
     </div>
     <div class="hdr-right">
@@ -3761,12 +3851,12 @@ async function exportarProducaoXLSX() {
     </div>
   </header>
   <nav>
-    <div class="tab active" onclick="showTab('inicio',this)">🏠 Início</div>
+    <div class="tab active" onclick="showTab('inicio',this)"><i class="ti ti-home" aria-hidden="true"></i>Início</div>
     <div class="tab" onclick="showTab('novo',this)">✏️ Novo Laudo</div>
-    <div class="tab" onclick="showTab('pendentes',this)">⏳ Pendentes <span class="tab-badge" id="pending-count" style="background:#d97706">0</span></div>
+    <div class="tab" onclick="showTab('pendentes',this)"><i class="ti ti-hourglass" aria-hidden="true"></i>Pendentes <span class="tab-badge" id="pending-count" style="background:#d97706">0</span></div>
     <div class="tab" onclick="showTab('salvos',this)">📁 Concluídos <span class="tab-badge" id="saved-count">0</span></div>
-    <div class="tab" onclick="showTab('lixeira',this)">🗑️ Lixeira <span class="tab-badge" id="lixeira-count" style="background:#9ca3af;display:none">0</span></div>
-    <div class="tab" id="tab-admin-btn" onclick="showTab('admin',this)" style="display:none">⚙️ Administração</div>
+    <div class="tab" onclick="showTab('lixeira',this)"><i class="ti ti-trash" aria-hidden="true"></i>Lixeira <span class="tab-badge" id="lixeira-count" style="background:#9ca3af;display:none">0</span></div>
+    <div class="tab" id="tab-admin-btn" onclick="showTab('admin',this)" style="display:none"><i class="ti ti-settings" aria-hidden="true"></i>Administração</div>
   </nav>
 
   <!-- TAB INÍCIO -->
@@ -3782,7 +3872,7 @@ async function exportarProducaoXLSX() {
       <span id="autosave-ind" style="opacity:0;transition:opacity 0.5s;background:var(--green-light);color:var(--green-dark);padding:3px 10px;border-radius:12px;font-weight:600"></span>
     </div>
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">👤</div><div class="card-title">Dados do Paciente</div></div>
+      <div class="card-hdr"><div class="card-ico"><i class="ti ti-user" aria-hidden="true"></i></div><div class="card-title">Dados do Paciente</div></div>
       <div class="g2">
         <div class="field s2"><label>Nome completo *</label><input type="text" id="p-nome" placeholder="Nome completo do paciente" oninput="this.value=this.value.toUpperCase()"></div>
         <div class="field"><label>Data de Nascimento</label><input type="date" id="p-nasc" oninput="calcIdade()"></div>
@@ -3801,7 +3891,7 @@ async function exportarProducaoXLSX() {
     </div>
 
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">📋</div><div class="card-title">Seções do Laudo</div></div>
+      <div class="card-hdr"><div class="card-ico"><i class="ti ti-clipboard-list" aria-hidden="true"></i></div><div class="card-title">Seções do Laudo</div></div>
 
       <div class="lb on" id="lb-venoso">
         <div class="lb-hdr" onclick="toggleLb('venoso')">
@@ -3892,7 +3982,7 @@ async function exportarProducaoXLSX() {
 
     </div>
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">🖼️</div><div class="card-title">Imagens do Exame (2 colunas × 3 linhas por página)</div></div>
+      <div class="card-hdr"><div class="card-ico"><i class="ti ti-photo" aria-hidden="true"></i></div><div class="card-title">Imagens do Exame (2 colunas × 3 linhas por página)</div></div>
       <div class="drop-zone" id="dz" onclick="document.getElementById('fi').click()" ondrop="onDrop(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)">
         <div class="dz-icon">📁</div>
         <div class="dz-main">Clique aqui ou arraste as imagens</div>
@@ -3916,7 +4006,7 @@ async function exportarProducaoXLSX() {
   <!-- TAB PENDENTES -->
   <div id="tab-pendentes" class="app-main" style="display:none">
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">⏳</div><div class="card-title">Laudos Pendentes — Aguardando Laudo Médico</div></div>
+      <div class="card-hdr"><div class="card-ico"><i class="ti ti-hourglass" aria-hidden="true"></i></div><div class="card-title">Laudos Pendentes — Aguardando Laudo Médico</div></div>
       <div id="pending-list-container"><div class="empty"><div class="ei">⏳</div><p>Nenhum laudo pendente.</p></div></div>
     </div>
   </div>
@@ -3924,7 +4014,7 @@ async function exportarProducaoXLSX() {
   <!-- TAB SALVOS -->
   <div id="tab-salvos" class="app-main" style="display:none">
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">📁</div><div class="card-title">Laudos Concluídos</div></div>
+      <div class="card-hdr"><div class="card-ico"><i class="ti ti-folder" aria-hidden="true"></i></div><div class="card-title">Laudos Concluídos</div></div>
       <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
         <input type="text" id="search-saved" placeholder="🔍 Nome do paciente..." oninput="searchSaved()" style="flex:2;min-width:140px;background:var(--off-white);border:1.5px solid var(--border);border-radius:8px;padding:9px 14px;font-family:Lato,sans-serif;font-size:13px;outline:none;color:var(--text)">
         <input type="text" id="filter-medico" placeholder="👨‍⚕️ Médico..." oninput="searchSaved()" style="flex:1;min-width:110px;background:var(--off-white);border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:Lato,sans-serif;font-size:13px;outline:none;color:var(--text)">
@@ -3939,7 +4029,7 @@ async function exportarProducaoXLSX() {
   <div id="tab-lixeira" class="app-main" style="display:none">
     <div class="card">
       <div class="card-hdr">
-        <div class="card-ico">🗑️</div>
+        <div class="card-ico"><i class="ti ti-trash" aria-hidden="true"></i></div>
         <div class="card-title">Lixeira</div>
       </div>
       <div class="tip" style="margin-bottom:12px">Laudos excluídos ficam aqui por <strong>30 dias</strong> antes de serem removidos definitivamente. Você pode restaurar ou excluir permanentemente.</div>
@@ -3953,12 +4043,12 @@ async function exportarProducaoXLSX() {
   <!-- TAB ADMIN -->
   <div id="tab-admin" class="app-main" style="display:none">
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">👨‍⚕️</div><div class="card-title">Médicos e Secretaria</div></div>
+      <div class="card-hdr"><div class="card-ico"><i class="ti ti-stethoscope" aria-hidden="true"></i></div><div class="card-title">Médicos e Secretaria</div></div>
       <div id="doctors-list"></div>
       <div class="abar"><button class="btn btn-green" onclick="openModal('modal-doctor')">+ Cadastrar Médico / Secretaria</button></div>
     </div>
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">👥</div><div class="card-title">Pacientes com Acesso</div></div>
+      <div class="card-hdr"><div class="card-ico"><i class="ti ti-users" aria-hidden="true"></i></div><div class="card-title">Pacientes com Acesso</div></div>
       <div class="tip">Pacientes conseguem fazer login e visualizar seus laudos. Pacientes podem fazer login e visualizar seus laudos.</div>
       <div id="patients-list"></div>
       <div class="abar"><button class="btn btn-green" onclick="openModal('modal-patient')">+ Cadastrar Paciente</button></div>
@@ -3970,7 +4060,7 @@ async function exportarProducaoXLSX() {
 <div id="screen-patient" class="screen">
   <header class="app-header">
     <div class="hdr-left">
-      <div class="hdr-logo">🩺</div>
+      <div class="hdr-logo">C</div>
       <div><div class="hdr-title">C.T.D.M.I.</div><div class="hdr-sub">Portal do Paciente</div></div>
     </div>
     <div class="hdr-right">
@@ -3980,7 +4070,7 @@ async function exportarProducaoXLSX() {
   </header>
   <div class="app-main">
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">📋</div><div class="card-title">Meus Laudos</div></div>
+      <div class="card-hdr"><div class="card-ico"><i class="ti ti-clipboard-list" aria-hidden="true"></i></div><div class="card-title">Meus Laudos</div></div>
       <div id="patient-laudos-list"><div class="empty"><div class="ei">📋</div><p>Nenhum laudo disponível.</p></div></div>
     </div>
   </div>
@@ -4043,7 +4133,7 @@ async function exportarProducaoXLSX() {
 <div id="screen-sec" class="screen" onshow="loadDoctorsForSec()">
   <header class="app-header">
     <div class="hdr-left">
-      <div class="hdr-logo">📋</div>
+      <div class="hdr-logo">C</div>
       <div><div class="hdr-title">C.T.D.M.I.</div><div class="hdr-sub" id="sec-screen-title">Secretaria</div></div>
     </div>
     <div class="hdr-right">
@@ -4052,19 +4142,19 @@ async function exportarProducaoXLSX() {
     </div>
   </header>
   <nav>
-    <div class="tab active" onclick="showSecTab('inicio-sec',this)">🏠 Início</div>
-    <div class="tab" onclick="showSecTab('novo-sec',this)">➕ Novo Paciente</div>
-    <div class="tab" onclick="showSecTab('fila-sec',this)">📋 Fila do Dia <span class="tab-badge" id="sec-queue-count" style="background:#d97706">0</span></div>
-    <div class="tab" onclick="showSecTab('concluidos-sec',this)">✅ Concluídos</div>
-    <div class="tab" onclick="showSecTab('lixeira-sec',this)">🗑️ Lixeira <span class="tab-badge" id="sec-lixeira-count" style="background:#9ca3af;display:none">0</span></div>
-    <div class="tab" id="sec-admin-tab" onclick="showSecTab('admin-sec',this)" style="display:none">⚙️ Administração</div>
-    <div class="tab" id="sec-producao-tab" onclick="showSecTab('producao-sec',this);carregarDashboardProducao()" style="display:none">📊 Produção</div>
+    <div class="tab active" onclick="showSecTab('inicio-sec',this)"><i class="ti ti-home" aria-hidden="true"></i>Início</div>
+    <div class="tab" onclick="showSecTab('novo-sec',this)"><i class="ti ti-user-plus" aria-hidden="true"></i>Novo Paciente</div>
+    <div class="tab" onclick="showSecTab('fila-sec',this)"><i class="ti ti-clock" aria-hidden="true"></i>Fila do Dia <span class="tab-badge" id="sec-queue-count" style="background:#d97706">0</span></div>
+    <div class="tab" onclick="showSecTab('concluidos-sec',this)"><i class="ti ti-check" aria-hidden="true"></i>Concluídos</div>
+    <div class="tab" onclick="showSecTab('lixeira-sec',this)"><i class="ti ti-trash" aria-hidden="true"></i>Lixeira <span class="tab-badge" id="sec-lixeira-count" style="background:#9ca3af;display:none">0</span></div>
+    <div class="tab" id="sec-admin-tab" onclick="showSecTab('admin-sec',this)" style="display:none"><i class="ti ti-settings" aria-hidden="true"></i>Administração</div>
+    <div class="tab" id="sec-producao-tab" onclick="showSecTab('producao-sec',this);carregarDashboardProducao()" style="display:none"><i class="ti ti-chart-bar" aria-hidden="true"></i>Produção</div>
   </nav>
 
   <!-- NOVO PACIENTE (Secretaria) -->
   <div id="tab-inicio-sec" class="app-main" style="display:block">
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">🏠</div><div class="card-title">Início</div></div>
+      <div class="card-hdr"><div class="card-ico"><i class="ti ti-home" aria-hidden="true"></i></div><div class="card-title">Início</div></div>
       <div class="card-body" id="dashboard-content-sec" style="padding:20px">
         <div class="empty"><div class="ei">⏳</div><p>Carregando...</p></div>
       </div>
@@ -4073,7 +4163,7 @@ async function exportarProducaoXLSX() {
 
   <div id="tab-novo-sec" class="app-main">
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">👤</div><div class="card-title">Dados do Paciente</div></div>
+      <div class="card-hdr"><div class="card-ico"><i class="ti ti-user" aria-hidden="true"></i></div><div class="card-title">Dados do Paciente</div></div>
       <div class="g2">
         <div class="field s2"><label>Nome completo *</label><input type="text" id="sec-nome" placeholder="NOME COMPLETO DO PACIENTE" oninput="this.value=this.value.toUpperCase()"></div>
         <div class="field"><label>CPF <span style="font-weight:400;font-size:10px">(acesso ao portal)</span></label>
@@ -4103,7 +4193,7 @@ async function exportarProducaoXLSX() {
     </div>
 
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">🔬</div><div class="card-title">Tipos de Exame a Realizar</div></div>
+      <div class="card-hdr"><div class="card-ico"><i class="ti ti-microscope" aria-hidden="true"></i></div><div class="card-title">Tipos de Exame a Realizar</div></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:4px">
         <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="venoso" id="sec-chk-venoso" checked> 🩸 Eco Doppler Venoso MMII</label>
         <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="venoso_mmii" id="sec-chk-venoso-mmii"> 🩸 Eco Doppler Venoso MMII</label>
@@ -4118,7 +4208,7 @@ async function exportarProducaoXLSX() {
     </div>
 
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">🖼️</div><div class="card-title">Imagens do Exame (opcional)</div></div>
+      <div class="card-hdr"><div class="card-ico"><i class="ti ti-photo" aria-hidden="true"></i></div><div class="card-title">Imagens do Exame (opcional)</div></div>
       <div class="drop-zone" id="dz-sec" onclick="document.getElementById('fi-sec').click()" ondrop="onDropSec(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)">
         <div class="dz-icon">📁</div>
         <div class="dz-main">Clique aqui ou arraste as imagens</div>
@@ -4136,7 +4226,7 @@ async function exportarProducaoXLSX() {
   <!-- FILA DO DIA -->
   <div id="tab-fila-sec" class="app-main" style="display:none">
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">⏳</div><div class="card-title">Fila do Dia — Aguardando Médico</div></div>
+      <div class="card-hdr"><div class="card-ico"><i class="ti ti-hourglass" aria-hidden="true"></i></div><div class="card-title">Fila do Dia — Aguardando Médico</div></div>
       <div id="sec-queue-list"><div class="empty"><div class="ei">📋</div><p>Nenhum paciente na fila.</p></div></div>
     </div>
   </div>
@@ -4144,7 +4234,7 @@ async function exportarProducaoXLSX() {
   <!-- ADMIN TAB (admin only) -->
   <div id="tab-lixeira-sec" class="app-main" style="display:none">
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">🗑️</div><div class="card-title">Lixeira</div></div>
+      <div class="card-hdr"><div class="card-ico"><i class="ti ti-trash" aria-hidden="true"></i></div><div class="card-title">Lixeira</div></div>
       <div class="tip" style="margin-bottom:12px">Laudos excluídos ficam aqui por <strong>30 dias</strong>. Você pode restaurar ou excluir permanentemente.</div>
       <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
         <button class="btn btn-red" style="font-size:12px;padding:7px 14px" onclick="purgeAllLixeira()">🗑️ Esvaziar Lixeira</button>
@@ -4155,29 +4245,29 @@ async function exportarProducaoXLSX() {
 
   <div id="tab-admin-sec" class="app-main" style="display:none">
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">👥</div><div class="card-title">Médicos e Secretaria</div></div>
+      <div class="card-hdr"><div class="card-ico"><i class="ti ti-users" aria-hidden="true"></i></div><div class="card-title">Médicos e Secretaria</div></div>
       <div id="admin-sec-doctors"></div>
       <button class="btn btn-green" style="margin-top:12px" onclick="openModal('modal-doctor')">+ Cadastrar Médico / Secretaria</button>
     </div>
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">📄</div><div class="card-title">Modelos de Laudo</div>
-        <button class="btn btn-green" style="margin-left:auto;padding:5px 14px;font-size:12px" onclick="loadModelosAdmin()">🔄 Atualizar</button>
+      <div class="card-hdr"><div class="card-ico"><i class="ti ti-file" aria-hidden="true"></i></div><div class="card-title">Modelos de Laudo</div>
+        <button class="btn btn-green" style="margin-left:auto;padding:5px 14px;font-size:12px" onclick="loadModelosAdmin()"><i class="ti ti-refresh" aria-hidden="true"></i>Atualizar</button>
       </div>
       <div id="admin-modelos-cont" style="margin-top:4px"><p style="color:var(--text-muted);font-size:13px">Clique em Atualizar para carregar.</p></div>
     </div>
 
     <div class="card">
       <div class="card-hdr">
-        <div class="card-ico">🗂️</div>
+        <div class="card-ico"><i class="ti ti-folders" aria-hidden="true"></i></div>
         <div class="card-title">Seções de Exame</div>
-        <button class="btn btn-green" style="margin-left:auto;padding:5px 14px;font-size:12px" onclick="loadSecoesAdmin()">🔄 Atualizar</button>
+        <button class="btn btn-green" style="margin-left:auto;padding:5px 14px;font-size:12px" onclick="loadSecoesAdmin()"><i class="ti ti-refresh" aria-hidden="true"></i>Atualizar</button>
       </div>
       <div class="tip" style="font-size:12px;margin-bottom:12px">Crie seções de exame e defina quais médicos têm acesso a cada uma.</div>
       <div id="admin-secoes-cont"><p style="color:var(--text-muted);font-size:13px">Clique em Atualizar para carregar.</p></div>
     </div>
 
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">👤</div><div class="card-title">Pacientes com Acesso</div></div>
+      <div class="card-hdr"><div class="card-ico"><i class="ti ti-user" aria-hidden="true"></i></div><div class="card-title">Pacientes com Acesso</div></div>
       <div class="tip">Pacientes conseguem fazer login e visualizar seus laudos. Pacientes podem fazer login e visualizar seus laudos.</div>
       <div id="admin-sec-patients" style="margin-top:12px"></div>
       <button class="btn btn-green" style="margin-top:12px" onclick="openModal('modal-patient')">+ Cadastrar Paciente</button>
@@ -4190,7 +4280,7 @@ async function exportarProducaoXLSX() {
     <!-- Filtros -->
     <div class="card" style="padding:14px 16px">
       <div class="card-hdr" style="margin-bottom:12px">
-        <div class="card-ico">📊</div>
+        <div class="card-ico"><i class="ti ti-chart-bar" aria-hidden="true"></i></div>
         <div class="card-title">Produção Médica</div>
         <button class="btn btn-outline" style="margin-left:auto;padding:5px 14px;font-size:12px" onclick="exportarProducaoXLSX()">⬇️ Exportar XLSX</button>
       </div>
@@ -4250,7 +4340,7 @@ async function exportarProducaoXLSX() {
     <!-- Tabela por médico -->
     <div class="card">
       <div class="card-hdr" style="margin-bottom:12px">
-        <div class="card-ico">👨‍⚕️</div>
+        <div class="card-ico"><i class="ti ti-stethoscope" aria-hidden="true"></i></div>
         <div class="card-title">Produção por Médico</div>
       </div>
       <div id="dash-tabela-medicos">
@@ -4261,7 +4351,7 @@ async function exportarProducaoXLSX() {
     <!-- Detalhamento por convênio -->
     <div class="card" id="dash-card-convenios" style="display:none">
       <div class="card-hdr" style="margin-bottom:12px">
-        <div class="card-ico">🏥</div>
+        <div class="card-ico"><i class="ti ti-building-hospital" aria-hidden="true"></i></div>
         <div class="card-title">Exames por Convênio</div>
       </div>
       <div id="dash-tabela-convenios"></div>
@@ -4270,7 +4360,7 @@ async function exportarProducaoXLSX() {
     <!-- Detalhamento individual (expandido ao clicar em médico) -->
     <div class="card" id="dash-card-detalhe" style="display:none">
       <div class="card-hdr" style="margin-bottom:12px">
-        <div class="card-ico">🔍</div>
+        <div class="card-ico"><i class="ti ti-search" aria-hidden="true"></i></div>
         <div class="card-title" id="dash-detalhe-titulo">Detalhe</div>
         <button class="btn btn-outline" style="margin-left:auto;padding:4px 10px;font-size:11px" onclick="document.getElementById('dash-card-detalhe').style.display='none'">✕ Fechar</button>
       </div>
@@ -4282,7 +4372,7 @@ async function exportarProducaoXLSX() {
   <!-- CONCLUÍDOS (leitura) -->
   <div id="tab-concluidos-sec" class="app-main" style="display:none">
     <div class="card">
-      <div class="card-hdr"><div class="card-ico">✅</div><div class="card-title">Laudos Concluídos</div></div>
+      <div class="card-hdr"><div class="card-ico"><i class="ti ti-check" aria-hidden="true"></i></div><div class="card-title">Laudos Concluídos</div></div>
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
           <input type="text" id="search-sec" placeholder="🔍 Nome do paciente..." oninput="searchSecConcluidos()" style="flex:2;min-width:130px;background:var(--off-white);border:1.5px solid var(--border);border-radius:8px;padding:9px 14px;font-family:Lato,sans-serif;font-size:13px;outline:none;color:var(--text)">
           <input type="text" id="filter-sec-medico" placeholder="👨‍⚕️ Médico..." oninput="searchSecConcluidos()" style="flex:1;min-width:100px;background:var(--off-white);border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:Lato,sans-serif;font-size:13px;outline:none;color:var(--text)">
