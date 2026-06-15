@@ -1313,52 +1313,69 @@ function marcadoresParaHtml(texto) {
   if (/<[a-z]/i.test(texto)) {
     let h = texto;
 
-    // Remove divs vazios de quebra
+    // ── 1. Remove divs vazios de quebra ──
     h = h.replace(/<div[^>]*><b[^>]*><br\s*\/?><\/b><\/div>/gi, '');
     h = h.replace(/<div[^>]*><br\s*\/?><\/div>/gi, '<br>');
 
-    // Remove tags vazias (b, strong, i, em, u sem conteúdo)
+    // ── 2. Normaliza font-size em px → pt (browsers convertem 11pt → 14.6667px) ──
+    h = h.replace(/font-size:\s*14\.6\d*px/gi, 'font-size: 11pt');
+    h = h.replace(/font-size:\s*16px/gi, 'font-size: 12pt');
+    h = h.replace(/font-size:\s*13\.3\d*px/gi, 'font-size: 10pt');
+    h = h.replace(/font-size:\s*12px/gi, 'font-size: 9pt');
+
+    // ── 3. Remove tags vazias ──
     h = h.replace(/<(b|strong|i|em|u)[^>]*>\s*<\/\1>/gi, '');
 
-    // Achatamento de bold/strong aninhado
+    // ── 4. Achatamento bold/strong aninhado ──
     h = h.replace(/<b>(<b>[\s\S]*?<\/b>)<\/b>/gi, '$1');
     h = h.replace(/<strong>(<strong>[\s\S]*?<\/strong>)<\/strong>/gi, '$1');
 
-    // ── BUG FIX: remove <b> ou <strong> que envolva TODO o conteúdo ──
-    // Browser pode envelopar tudo em <b> quando médico aplica negrito + segue digitando
+    // ── 5. FIX CRÍTICO: usa DOMParser para reparar tags <b> não fechadas/aninhadas ──
+    // Quando o navegador renderiza HTML inválido, automaticamente fecha as tags
+    try {
+      const parser = new DOMParser();
+      const wrapper = parser.parseFromString('<div>' + h + '</div>', 'text/html');
+      const root = wrapper.body.firstChild;
+      if (root) {
+        // Achata <b> que envolve elementos de bloco (br, div) deixando o bold escapar
+        // Procura padrões: <b>...<br><br>texto normal...</b> e quebra em <b>...</b><br><br>texto
+        root.querySelectorAll('b, strong').forEach(b => {
+          // Se o <b> contém múltiplos parágrafos separados por <br><br>, divide
+          const html = b.innerHTML;
+          if (html.includes('<br><br>') || html.match(/<br>\s*<br>/i)) {
+            // Pega apenas a primeira parte (até o primeiro <br><br>) como bold
+            const parts = html.split(/<br\s*\/?>\s*<br\s*\/?>/i);
+            if (parts.length > 1 && parts[0].trim()) {
+              const firstBold = document.createElement(b.tagName.toLowerCase());
+              firstBold.innerHTML = parts[0];
+              const rest = parts.slice(1).join('<br><br>');
+              const restNode = document.createElement('span');
+              restNode.innerHTML = '<br><br>' + rest;
+              b.replaceWith(firstBold, ...restNode.childNodes);
+            }
+          }
+        });
+        h = root.innerHTML;
+      }
+    } catch(e) { /* fallback silencioso */ }
+
+    // ── 6. Remove wrapper <b> que envolve TODO o conteúdo ──
     const tryUnwrap = (regex) => {
       const m = h.match(regex);
       if (!m) return;
       const inner = m[1];
-      // Só desfaz wrapper se NÃO houver mais <b> dentro (senão perderia formatação intencional)
       if (!/<b[\s>]|<strong[\s>]/i.test(inner)) h = inner;
     };
     tryUnwrap(/^<b[^>]*>([\s\S]*)<\/b>$/i);
     tryUnwrap(/^<strong[^>]*>([\s\S]*)<\/strong>$/i);
-    // Caso o wrapper esteja dentro do div data-lh
-    h = h.replace(
-      /^(<div[^>]*data-lh[^>]*>)<b[^>]*>([\s\S]*)<\/b>(<\/div>)$/i,
-      function(_, abr, inner, fim) {
-        if (/<b[\s>]|<strong[\s>]/i.test(inner)) return _;
-        return abr + inner + fim;
-      }
-    );
-    h = h.replace(
-      /^(<div[^>]*data-lh[^>]*>)<strong[^>]*>([\s\S]*)<\/strong>(<\/div>)$/i,
-      function(_, abr, inner, fim) {
-        if (/<b[\s>]|<strong[\s>]/i.test(inner)) return _;
-        return abr + inner + fim;
-      }
-    );
 
-    // Remove font-weight:bold inline em elementos pai (mantém só onde foi explícito como <b>)
-    // Spans com font-weight:bold viram <b>
+    // ── 7. Remove font-weight:bold inline de spans (mantém só <b> e <strong> reais) ──
     h = h.replace(/<span([^>]*?)style="([^"]*?)font-weight:\s*(bold|700|800|900)([^"]*?)"([^>]*)>/gi,
       function(_, before, sty1, w, sty2, after) {
         const cleanStyle = (sty1 + sty2).replace(/font-weight:\s*(bold|700|800|900);?\s*/gi,'').trim();
         const attrs = cleanStyle ? ` style="${cleanStyle}"` : '';
-        return `<span${before}${attrs}${after}><b>`;
-      }).replace(/(<span[^>]*<b>[\s\S]*?)<\/span>/g, '$1</b></span>');
+        return `<span${before}${attrs}${after}>`;
+      });
 
     return h;
   }
