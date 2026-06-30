@@ -2226,13 +2226,13 @@ async function loadLaudo(id) {
   if(s.venoso_d) setEditor('txt-venoso-d', s.venoso_d?.texto || TEXTOS_PADRAO['venoso-d'] || '');
   if(s.venoso_e) setEditor('txt-venoso-e', s.venoso_e?.texto || TEXTOS_PADRAO['venoso-e'] || '');
   ['venoso_mmii','arterial','carotidas','aorta','cava','superiores','ecoca'].forEach(k => {
-    const chk = document.getElementById('chk-'+k);
-    const lbl = document.getElementById('lb-'+k);
-    const txt = document.getElementById('txt-'+k);
+    const elKey = k.replace(/_/g, '-'); // DB usa underscore, IDs do HTML usam hífen
+    const chk = document.getElementById('chk-'+elKey);
+    const lbl = document.getElementById('lb-'+elKey);
     if (s[k] !== undefined) {
       if(chk) chk.checked=s[k].ativo;
-      if(txt) setEditor('txt-'+k, s[k].texto || TEXTOS_PADRAO[k] || '');
       if(lbl) lbl.classList.toggle('on',s[k].ativo);
+      setEditor('txt-'+elKey, s[k].texto || TEXTOS_PADRAO[k] || '');
     } else {
       // Not in secoes = not selected by secretary, disable
       if(chk) { chk.checked=false; }
