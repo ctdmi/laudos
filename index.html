@@ -3429,6 +3429,7 @@ function searchSecConcluidos() {
 // ══════════════════════════════
 // PENDING (Doctor view)
 // ══════════════════════════════
+let pendingAll = [];
 async function loadPending() {
   const q = supa.from('laudos').select('id,paciente_nome,data_exame,convenio,solicitante,imagens,medico_responsavel_id')
     .eq('status','pendente').is('deleted_at', null).order('criado_em',{ascending:true});
@@ -3436,13 +3437,21 @@ async function loadPending() {
     q.eq('medico_responsavel_id', currentDoctor.id);
   }
   const { data } = await q;
-  const count = data?.length||0;
-  document.getElementById('pending-count').textContent = count;
+  pendingAll = data || [];
+  document.getElementById('pending-count').textContent = pendingAll.length;
+  const sp = document.getElementById('search-pending');
+  const sf = document.getElementById('filter-pending-convenio');
+  if (sp) sp.value = '';
+  if (sf) sf.value = '';
+  renderPending(pendingAll);
+}
+
+function renderPending(list) {
   const c = document.getElementById('pending-list-container');
-  if (!count) { c.innerHTML='<div class="empty"><div class="ei">⏳</div><p>Nenhum laudo pendente.</p></div>'; return; }
+  if (!list.length) { c.innerHTML='<div class="empty"><div class="ei">⏳</div><p>Nenhum laudo pendente.</p></div>'; return; }
 
   const groups = {};
-  data.forEach(r => {
+  list.forEach(r => {
     const key = r.data_exame||'sem-data';
     const label = r.data_exame ? fmtDate(r.data_exame) : 'Sem data';
     if (!groups[key]) groups[key]={label,items:[]};
@@ -3470,6 +3479,15 @@ async function loadPending() {
   c.innerHTML = html;
 }
 
+function searchPending() {
+  const q    = (document.getElementById('search-pending')?.value||'').toLowerCase();
+  const conv = (document.getElementById('filter-pending-convenio')?.value||'').toLowerCase();
+  renderPending(pendingAll.filter(r =>
+    (!q    || (r.paciente_nome||'').toLowerCase().includes(q)) &&
+    (!conv || (r.convenio||'').toLowerCase().includes(conv))
+  ));
+}
+
 async function openPendente(id) {
   laudoConcluido = false;
   await loadLaudo(id);
@@ -3485,13 +3503,22 @@ const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutos
 let sessionTimer = null;
 let sessionWarningTimer = null;
 
+function showSessionWarning() {
+  const t = document.getElementById('toast');
+  t.innerHTML = '<span>⚠️ Sessão encerra em 2 min por inatividade.</span>'
+    + '<button onclick="resetSessionTimer()" style="margin-left:12px;padding:5px 12px;border:none;border-radius:6px;background:var(--green);color:#fff;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">Estender</button>';
+  t.className = 'show inf';
+  // Fica visível até o logout ou clique em Estender
+}
+
 function resetSessionTimer() {
   clearTimeout(sessionTimer);
   clearTimeout(sessionWarningTimer);
+  // Fecha o aviso se estiver aberto
+  const t = document.getElementById('toast');
+  if (t.classList.contains('show')) t.classList.remove('show');
   // Aviso 2 min antes do timeout
-  sessionWarningTimer = setTimeout(() => {
-    toast('⚠️ Sessão será encerrada em 2 minutos por inatividade.', 'warn');
-  }, SESSION_TIMEOUT_MS - 2 * 60 * 1000);
+  sessionWarningTimer = setTimeout(showSessionWarning, SESSION_TIMEOUT_MS - 2 * 60 * 1000);
   // Logout automático
   sessionTimer = setTimeout(async () => {
     toast('Sessão encerrada por inatividade.', 'ok');
@@ -4118,6 +4145,10 @@ async function exportarProducaoXLSX() {
   <div id="tab-pendentes" class="app-main" style="display:none">
     <div class="card">
       <div class="card-hdr"><div class="card-ico"><i class="ti ti-hourglass" aria-hidden="true"></i></div><div class="card-title">Laudos Pendentes — Aguardando Laudo Médico</div></div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+        <input type="text" id="search-pending" placeholder="🔍 Nome do paciente..." oninput="searchPending()" style="flex:2;min-width:160px;background:var(--off-white);border:1.5px solid var(--border);border-radius:8px;padding:9px 14px;font-family:Lato,sans-serif;font-size:13px;outline:none;color:var(--text)">
+        <input type="text" id="filter-pending-convenio" placeholder="🏥 Convênio..." oninput="searchPending()" style="flex:1;min-width:120px;background:var(--off-white);border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:Lato,sans-serif;font-size:13px;outline:none;color:var(--text)">
+      </div>
       <div id="pending-list-container"><div class="empty"><div class="ei">⏳</div><p>Nenhum laudo pendente.</p></div></div>
     </div>
   </div>
