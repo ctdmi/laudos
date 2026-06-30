@@ -3132,19 +3132,26 @@ async function savePendente() {
     imagens: [],
   };
 
-  loading(true, 'Salvando na fila...');
+  const editId = window._editingSecId || null;
+  loading(true, editId ? 'Atualizando...' : 'Salvando na fila...');
 
-  // Insert laudo — tenta com cpf_paciente, faz fallback sem se a coluna não existir
+  // Insert (novo) ou update (edição) — tenta com cpf_paciente, faz fallback sem se a coluna não existir
   let laudoId = null;
-  let { data: laudoData, error } = await supa.from('laudos').insert(payload).select('id').single();
+  let q = editId
+    ? supa.from('laudos').update(payload).eq('id', editId).select('id').single()
+    : supa.from('laudos').insert(payload).select('id').single();
+  let { data: laudoData, error } = await q;
   if (error) {
     if (error.message.includes('cpf_paciente')) {
       // Coluna ainda não existe no banco — salva sem ela
       const { cpf_paciente: _, ...payloadSemCpf } = payload;
-      const res2 = await supa.from('laudos').insert(payloadSemCpf).select('id').single();
+      const q2 = editId
+        ? supa.from('laudos').update(payloadSemCpf).eq('id', editId).select('id').single()
+        : supa.from('laudos').insert(payloadSemCpf).select('id').single();
+      const res2 = await q2;
       if (res2.error) { loading(false); toast('Erro: ' + res2.error.message, 'err'); return; }
       laudoData = res2.data;
-      toast('⚠️ Execute o SQL: alter table laudos add column if not exists cpf_paciente text;', 'warn');
+      if (!editId) toast('⚠️ Execute o SQL: alter table laudos add column if not exists cpf_paciente text;', 'warn');
     } else {
       loading(false); toast('Erro: ' + error.message, 'err'); return;
     }
@@ -3159,7 +3166,8 @@ async function savePendente() {
 
   loading(false);
   const msgCpf = cpfRaw.length === 11 ? ' • Acesso criado para o paciente.' : '';
-  toast('Paciente adicionado à fila' + (mod ? ' — modelo "' + mod.nome + '"' : '') + msgCpf, 'ok');
+  toast((editId ? 'Paciente atualizado' : 'Paciente adicionado à fila') + (mod ? ' — modelo "' + mod.nome + '"' : '') + msgCpf, 'ok');
+  window._editingSecId = null;
   resetSecForm();
   loadSecQueue();
 }
@@ -3209,6 +3217,7 @@ async function upsertPaciente({ cpf, nome, tel, emailRec, laudoId }) {
 }
 
 function resetSecForm() {
+  window._editingSecId = null;
   ['sec-nome','sec-nasc','sec-convenio','sec-solicitante','sec-cpf','sec-tel','sec-email-rec'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
@@ -3217,6 +3226,8 @@ function resetSecForm() {
   const cpfStatus = document.getElementById('sec-cpf-status');
   if (cpfStatus) cpfStatus.textContent = '';
   document.querySelectorAll('.sec-exame-chk').forEach(chk => { chk.checked = chk.value === 'venoso'; });
+  const medSel = document.getElementById('sec-medico-id');
+  if (medSel) medSel.value = '';
   secImages=[]; renderSecImages();
 }
 
@@ -3270,11 +3281,24 @@ async function editSecPendente(id) {
   document.getElementById('sec-data').value = data.data_exame||todayISO();
   document.getElementById('sec-convenio').value = data.convenio||'';
   document.getElementById('sec-solicitante').value = data.solicitante||'';
+  document.getElementById('sec-cpf').value = data.cpf_paciente||'';
   secImages=(data.imagens||[]).map(i=>({id:Math.random(),src:i.src,name:i.name||''}));
   renderSecImages();
   // Switch to form and set editing id
   window._editingSecId = id;
   showSecTab('novo-sec', document.querySelectorAll('#screen-sec .tab')[0]);
+  // Restore médico responsável and tipos de exame — sem isso o laudo "editado" perdia o médico e a fila quebrava
+  await loadDoctorsForSec();
+  const medSel = document.getElementById('sec-medico-id');
+  if (medSel && data.medico_responsavel_id) {
+    medSel.value = data.medico_responsavel_id;
+    document.getElementById('sec-medico-nome').value = data.medico_responsavel_nome || '';
+    loadModelosForMedico(data.medico_responsavel_id, 'sec-modelo-sel');
+  }
+  const secoes = data.secoes || {};
+  document.querySelectorAll('.sec-exame-chk').forEach(chk => {
+    chk.checked = secoes[chk.value]?.ativo || false;
+  });
   toast('Editando paciente. Salve novamente para atualizar.','inf');
 }
 
