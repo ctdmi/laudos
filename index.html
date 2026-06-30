@@ -3191,11 +3191,24 @@ async function upsertPaciente({ cpf, nome, tel, emailRec, laudoId }) {
     const { error: updErr } = await supa.from('pacientes').update(upd).eq('id', existing.id);
     if (updErr) toast('Erro ao atualizar paciente: ' + updErr.message, 'err');
   } else {
+    // Salva sessão atual antes do signUp — o Supabase JS auto-loga o novo usuário,
+    // o que sobrescreveria a sessão da secretária/admin e causaria redirecionamento para
+    // screen-patient no próximo F5.
+    const { data: { session: sessaoOriginal } } = await supa.auth.getSession();
+
     // Cria conta auth
     const { data: authData, error: authErr } = await supa.auth.signUp({
       email: fakeEmail,
       password: cpf,
     });
+
+    // Restaura sessão original imediatamente após o signUp
+    if (sessaoOriginal?.access_token) {
+      await supa.auth.setSession({
+        access_token:  sessaoOriginal.access_token,
+        refresh_token: sessaoOriginal.refresh_token,
+      });
+    }
 
     if (authErr) {
       toast('Aviso: conta do paciente não criada (' + authErr.message + ')', 'warn');
