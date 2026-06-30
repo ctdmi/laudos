@@ -1749,6 +1749,17 @@ function calcIdade() {
 }
 
 function showTab(name, el, skipLoad) {
+  // Avisa antes de sair de um laudo em edição não salvo
+  if (name !== 'novo' && !skipLoad) {
+    const novoTab = document.getElementById('tab-novo');
+    const novoVisivel = novoTab && novoTab.style.display !== 'none';
+    if (novoVisivel && get('p-nome') && !laudoConcluido) {
+      const msg = editingLaudoId
+        ? 'Há alterações não salvas no laudo atual.\nDeseja sair mesmo assim? O rascunho já foi salvo automaticamente.'
+        : 'Há um laudo em preenchimento não salvo.\nDeseja sair e perder os dados digitados?';
+      if (!confirm(msg)) return;
+    }
+  }
   ['inicio','novo','pendentes','salvos','lixeira','admin'].forEach(t => { const e=document.getElementById('tab-'+t); if(e) e.style.display='none'; });
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   const tab = document.getElementById('tab-'+name);
@@ -1916,6 +1927,7 @@ async function saveLaudo() {
     }
   }
   loadSaved(); loadPending(); updateLixeiraBadge();
+  clearLaudoForm();
   setTimeout(() => { showTab('inicio', document.querySelector('#screen-app nav .tab')); }, 400);
 }
 
@@ -2988,14 +3000,25 @@ async function savePatient() {
 async function deleteDoctor(id) { if(!confirm('Remover médico?')) return; await supa.from('medicos').delete().eq('id',id); toast('Médico removido.','ok'); loadDoctors(); }
 async function deletePatient(id) { if(!confirm('Remover paciente?')) return; await supa.from('pacientes').delete().eq('id',id); toast('Paciente removido.','ok'); loadPatients(); }
 
+function clearLaudoForm() {
+  ['p-nome','p-nasc','p-convenio','p-solicitante'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('p-idade').value = '';
+  document.getElementById('p-data').value = todayISO();
+  ['venoso','arterial','carotidas'].forEach(k => { const c=document.getElementById('chk-'+k); const l=document.getElementById('lb-'+k); if(c)c.checked=true; if(l)l.classList.add('on'); });
+  ['venoso-mmii','aorta','cava','superiores','ecoca'].forEach(k => { const c=document.getElementById('chk-'+k); const l=document.getElementById('lb-'+k); if(c)c.checked=false; if(l)l.classList.remove('on'); });
+  ['txt-venoso-d','txt-venoso-e','txt-venoso-mmii','txt-arterial','txt-carotidas','txt-aorta','txt-cava','txt-superiores','txt-ecoca'].forEach(id => setEditor(id,''));
+  images=[]; renderImages();
+  editingLaudoId=null; editingLaudoMedico=null; laudoConcluido=false;
+  clearTimeout(autosaveTimer); autosaveTimer=null;
+  const retBtn = document.getElementById('btn-retornar-pendente');
+  if (retBtn) retBtn.style.display = 'none';
+  const ind = document.getElementById('autosave-ind');
+  if (ind) { ind.textContent=''; ind.style.opacity='0'; }
+}
+
 function resetForm() {
   if (!confirm('Limpar o formulário?')) return;
-  ['p-nome','p-nasc','p-convenio'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('p-idade').value='';
-  document.getElementById('p-data').value=todayISO();
-  ['venoso','arterial','carotidas'].forEach(k=>{document.getElementById('chk-'+k).checked=true;document.getElementById('lb-'+k).classList.add('on');});
-  ['aorta','cava','superiores'].forEach(k=>{document.getElementById('chk-'+k).checked=false;document.getElementById('lb-'+k).classList.remove('on');});
-  images=[]; renderImages(); editingLaudoId=null;
+  clearLaudoForm();
   toast('Formulário limpo.','inf');
 }
 
@@ -3256,6 +3279,11 @@ function resetSecForm() {
   const medSel = document.getElementById('sec-medico-id');
   if (medSel) medSel.value = '';
   secImages=[]; renderSecImages();
+  // Oculta banner de edição e restaura texto do botão
+  const banner = document.getElementById('sec-edit-banner');
+  if (banner) banner.style.display = 'none';
+  const btnSave = document.getElementById('btn-save-pendente');
+  if (btnSave) btnSave.innerHTML = '📋 Salvar na Fila do Médico';
 }
 
 
@@ -3326,6 +3354,21 @@ async function editSecPendente(id) {
   document.querySelectorAll('.sec-exame-chk').forEach(chk => {
     chk.checked = secoes[chk.value]?.ativo || false;
   });
+  // Busca tel/email do paciente (ficam na tabela pacientes, não no laudo)
+  if (data.cpf_paciente) {
+    const { data: pat } = await supa.from('pacientes').select('telefone,email_recuperacao').eq('cpf', data.cpf_paciente).limit(1);
+    if (pat?.[0]) {
+      const telEl = document.getElementById('sec-tel');
+      const emailEl = document.getElementById('sec-email-rec');
+      if (telEl)   telEl.value   = pat[0].telefone          || '';
+      if (emailEl) emailEl.value = pat[0].email_recuperacao || '';
+    }
+  }
+  // Banner de modo edição
+  const banner = document.getElementById('sec-edit-banner');
+  if (banner) { banner.style.display = 'flex'; document.getElementById('sec-edit-banner-nome').textContent = data.paciente_nome || ''; }
+  const btnSave = document.getElementById('btn-save-pendente');
+  if (btnSave) btnSave.innerHTML = '💾 Atualizar Paciente';
   toast('Editando paciente. Salve novamente para atualizar.','inf');
 }
 
@@ -4286,8 +4329,12 @@ async function exportarProducaoXLSX() {
       <div id="img-container-sec"></div>
     </div>
 
+    <div id="sec-edit-banner" style="display:none;background:var(--amber-pale);border:0.5px solid #f0d9a8;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:13px;color:var(--amber);align-items:center;justify-content:space-between;gap:12px">
+      <span>✏️ Editando: <strong id="sec-edit-banner-nome"></strong></span>
+      <button class="btn btn-outline" style="padding:5px 12px;font-size:12px;flex-shrink:0" onclick="resetSecForm()">✕ Cancelar edição</button>
+    </div>
     <div class="tip">💡 Após salvar, o laudo aparecerá na fila do médico como <strong>Pendente</strong>.</div>
-    <button class="btn btn-green btn-big" onclick="savePendente()">📋 Salvar na Fila do Médico</button>
+    <button class="btn btn-green btn-big" id="btn-save-pendente" onclick="savePendente()">📋 Salvar na Fila do Médico</button>
     <div class="abar"><button class="btn btn-outline" onclick="resetSecForm()">🔄 Limpar</button></div>
   </div>
 
