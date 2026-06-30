@@ -1222,6 +1222,20 @@ async function salvarModelo() {
     : await supa.from('modelos').insert({ medico_id: editingModeloMedicoId, nome, secoes });
   loading(false);
   if (error) { toast('Erro: ' + error.message, 'err'); return; }
+  // Atualiza modelosList em memória para que aplicarModelo() use a versão nova
+  // sem precisar trocar de aba ou recarregar a página
+  if (editingModeloId) {
+    const idx = modelosList.findIndex(m => m.id === editingModeloId);
+    if (idx >= 0) modelosList[idx] = { ...modelosList[idx], nome, secoes };
+  } else {
+    // Novo modelo: recarrega a lista completa do médico atual se ele estiver selecionado
+    const medSel = document.getElementById('sec-medico-id');
+    if (medSel?.value === editingModeloMedicoId) {
+      loadModelosForMedico(editingModeloMedicoId, 'sec-modelo-sel');
+    }
+    const medSelDoc = document.getElementById('medico-modelo-sel');
+    if (medSelDoc) loadModelosForMedico(editingModeloMedicoId, 'medico-modelo-sel');
+  }
   toast('Modelo salvo!', 'ok');
   closeModal('modal-modelo');
   loadModelosAdmin();
