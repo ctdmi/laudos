@@ -4547,7 +4547,7 @@ async function exportarProducaoXLSX() {
     </div>
     <input type="file" id="fi-sec-edit" multiple accept="image/*" style="display:none" onchange="onSecEditFileSelect(event)">
     <div id="sec-edit-img-grid"></div>
-    <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
+    <div style="display:flex;gap:10px;justify-content:flex-end;padding:14px 20px;border-top:1px solid var(--border);position:sticky;bottom:0;background:#fff;z-index:2">
       <button class="btn btn-outline" onclick="closeModal('modal-sec-images')">Cancelar</button>
       <button class="btn btn-green" onclick="saveSecEditImages()">💾 Salvar Imagens</button>
     </div>
