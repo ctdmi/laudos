@@ -3381,8 +3381,7 @@ async function deleteSecPendente(id) {
 
 let secConcluidosAll = [];
 async function loadSecConcluidos() {
-  const { data } = await supa.from('laudos').select('id,paciente_nome,data_exame,medico_nome,convenio')
-    .eq('status','concluido').is('deleted_at',null).order('data_exame',{ascending:false});
+  const { data } = await supa.rpc('get_laudos_concluidos_sec');
   secConcluidosAll = data||[];
   renderSecConcluidos(secConcluidosAll);
 }
@@ -3392,7 +3391,7 @@ function renderSecConcluidos(list) {
   const isAdmin = currentDoctor?.papel === 'admin';
   c.innerHTML = '<div class="saved-list">' + list.map(r=>`
     <div class="saved-row">
-      <div><div class="saved-name">${r.paciente_nome}</div><div class="saved-meta">📅 ${r.data_exame?fmtDate(r.data_exame):'—'} &nbsp;|&nbsp; 👨‍⚕️ ${r.medico_nome||'—'}</div></div>
+      <div><div class="saved-name">${r.paciente_nome}</div><div class="saved-meta">📅 ${r.data_exame?fmtDate(r.data_exame):'—'} &nbsp;|&nbsp; 👨‍⚕️ ${r.medico_nome||'—'} &nbsp;|&nbsp; ${r.tem_imagem ? `<span style="color:var(--green)">🖼️ ${r.qtd_imagens} imagem(ns)</span>` : `<span style="color:var(--red)">⚠️ Sem imagem</span>`}</div></div>
       <div class="saved-actions">
         ${isAdmin ? `<button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="secOpenEditor('${r.id}')">✏️ Editar</button>` : ''}
         <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="secAddImages('${r.id}','${r.paciente_nome}')">🖼️ Imagens</button>
