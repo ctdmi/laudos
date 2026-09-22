@@ -451,7 +451,7 @@ nav { background: var(--white); border-bottom: 0.5px solid var(--border); displa
   .print-section h4 { font-size: 10pt; font-weight: bold; margin-bottom: 4px; }
   .print-section p, .print-section .sec-body, .print-section .sec-body div  {
     font-size: 11pt;
-    line-height: 1.15;
+    line-height: 0.95;
     text-align: justify;
     white-space: pre-wrap;
     word-break: break-word;
@@ -2068,27 +2068,27 @@ const TEXTOS_ARTERIAL_VARIANTES = {
     'O exame com Doppler espectral e colorido revela:<br><br>',
     '<b>MEMBRO INFERIOR DIREITO</b><br><br>',
     '<b>Artéria Femoral Comum:</b> Calibre normal, paredes regulares, sem placas ateromatosas.<br>',
-    'Fluxo amplo laminar e trifásico.<br>',
+    'Fluxo amplo laminar e trifásico.<br><br>',
     '<b>Artéria Femoral Profunda:</b> Calibre normal.<br>',
-    'Ausência de estenoses hemodinamicamente significativas nos segmentos proximais.<br>',
+    'Ausência de estenoses hemodinamicamente significativas nos segmentos proximais.<br><br>',
     '<b>Artérias Femoral superficial e Poplítea:</b> Calibre normal, paredes regulares, ausência de placas ateromatosas.<br>',
     'Fluxo amplo laminar e trifásico.<br>',
-    'Ausência de estenoses hemodinamicamente significativas.<br>',
+    'Ausência de estenoses hemodinamicamente significativas.<br><br>',
     '<b>Artérias tibiais (anterior e posterior) e artéria fibular:</b> Calibre normal, com regularidades parietais.<br>',
     'Fluxo amplo laminar e trifásico.<br>',
     'Perfusão periférica adequada em repouso.<br><br>',
     '<b>MEMBRO INFERIOR ESQUERDO</b><br><br>',
     '<b>Artéria Femoral Comum:</b> Calibre normal, paredes regulares, sem placas ateromatosas.<br>',
-    'Fluxo amplo laminar e trifásico.<br>',
+    'Fluxo amplo laminar e trifásico.<br><br>',
     '<b>Artéria Femoral Profunda:</b> Calibre normal.<br>',
-    'Ausência de estenoses hemodinamicamente significativas nos segmentos proximais.<br>',
+    'Ausência de estenoses hemodinamicamente significativas nos segmentos proximais.<br><br>',
     '<b>Artérias Femoral superficial e Poplítea:</b> Calibre normal, paredes regulares, ausência de placas ateromatosas.<br>',
     'Fluxo amplo laminar e trifásico.<br>',
-    'Ausência de estenoses hemodinamicamente significativas.<br>',
+    'Ausência de estenoses hemodinamicamente significativas.<br><br>',
     '<b>Artérias tibiais (anterior e posterior) e artéria fibular:</b> Calibre normal, com regularidades parietais.<br>',
     'Fluxo amplo laminar e trifásico.<br>',
     'Perfusão periférica adequada em repouso.<br><br>',
-    'IMPRESSÃO:<br><br>',
+    '<b>IMPRESSÃO:</b><br><br>',
     'Artérias de calibres normais sem dilatações aneurismáticas.<br>',
     'Ausência de estenoses hemodinamicamente significativas nos segmentos visualizados.<br>',
     'Perfusão periférica adequada em repouso.',
@@ -2097,27 +2097,27 @@ const TEXTOS_ARTERIAL_VARIANTES = {
     'O exame com Doppler espectral e colorido revela:<br><br>',
     '<b>MEMBRO INFERIOR DIREITO</b><br><br>',
     '<b>Artéria Femoral Comum:</b> Calibre normal, paredes irregulares, com pequenas placas ateromatosas.<br>',
-    'Fluxo amplo laminar e trifásico.<br>',
+    'Fluxo amplo laminar e trifásico.<br><br>',
     '<b>Artéria Femoral Profunda:</b> Calibre normal.<br>',
-    'Ausência de estenoses hemodinamicamente significativas nos segmentos proximais.<br>',
+    'Ausência de estenoses hemodinamicamente significativas nos segmentos proximais.<br><br>',
     '<b>Artérias Femoral superficial e Poplítea:</b> Calibre normal, paredes irregulares, pequenas placas ateromatosas.<br>',
     'Fluxo amplo laminar e trifásico.<br>',
-    'Ausência de estenoses hemodinamicamente significativas.<br>',
+    'Ausência de estenoses hemodinamicamente significativas.<br><br>',
     '<b>Artérias tibiais (anterior e posterior) e artéria fibular:</b> Calibre normal, irregularidades parietais.<br>',
     'Fluxo amplo laminar e trifásico.<br>',
     'Perfusão periférica adequada em repouso.<br><br>',
     '<b>MEMBRO INFERIOR ESQUERDO</b><br><br>',
     '<b>Artéria Femoral Comum:</b> Calibre normal, paredes irregulares, com pequenas placas ateromatosas.<br>',
-    'Fluxo amplo laminar e trifásico.<br>',
+    'Fluxo amplo laminar e trifásico.<br><br>',
     '<b>Artéria Femoral Profunda:</b> Calibre normal.<br>',
-    'Ausência de estenoses hemodinamicamente significativas nos segmentos proximais.<br>',
+    'Ausência de estenoses hemodinamicamente significativas nos segmentos proximais.<br><br>',
     '<b>Artérias Femoral superficial e Poplítea:</b> Calibre normal, paredes irregulares, com pequenas placas ateromatosas.<br>',
     'Fluxo amplo laminar e trifásico.<br>',
-    'Ausência de estenoses hemodinamicamente significativas.<br>',
+    'Ausência de estenoses hemodinamicamente significativas.<br><br>',
     '<b>Artérias tibiais (anterior e posterior) e artéria fibular:</b> Calibre normal, com irregularidades parietais.<br>',
     'Fluxo amplo laminar e trifásico.<br>',
     'Perfusão periférica adequada em repouso.<br><br>',
-    'IMPRESSÃO:<br><br>',
+    '<b>IMPRESSÃO:</b><br><br>',
     'Artérias de calibres normais sem dilatações aneurismáticas.<br>',
     'Ausência de estenoses hemodinamicamente significativas nos segmentos visualizados.<br>',
     'Perfusão periférica adequada em repouso.',
@@ -2238,6 +2238,7 @@ function renderSaved(list) {
           <div class="saved-meta">📅 ${r.data_exame?fmtDate(r.data_exame):'—'} &nbsp;|&nbsp; 👨‍⚕️ ${r.medico_nome||'—'} &nbsp;|&nbsp; 🏥 ${r.convenio||'—'}</div>
         </div>
         <div class="saved-actions">
+          <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="viewLaudoPaciente('${r.id}')">👁️ Ver</button>
           <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="loadLaudo('${r.id}')">✏️ Abrir</button>
           <button class="btn btn-outline" style="padding:7px 12px;font-size:12px;color:var(--green);border-color:var(--green)" onclick="linkLaudoToPatient('${r.id}','${r.paciente_nome}')">🔗</button>
           <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="printById('${r.id}')">🖨️</button>
@@ -3471,6 +3472,7 @@ function renderSecConcluidos(list) {
     <div class="saved-row">
       <div><div class="saved-name">${r.paciente_nome}</div><div class="saved-meta">📅 ${r.data_exame?fmtDate(r.data_exame):'—'} &nbsp;|&nbsp; 👨‍⚕️ ${r.medico_nome||'—'} &nbsp;|&nbsp; ${r.tem_imagem ? `<span style="color:var(--green)">🖼️ ${r.qtd_imagens} imagem(ns)</span>` : `<span style="color:var(--red)">⚠️ Sem imagem</span>`}</div></div>
       <div class="saved-actions">
+        <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="viewLaudoPaciente('${r.id}')">👁️ Ver</button>
         ${isAdmin ? `<button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="secOpenEditor('${r.id}')">✏️ Editar</button>` : ''}
         <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="secAddImages('${r.id}','${r.paciente_nome}')">🖼️ Imagens</button>
         <button class="btn btn-outline" style="padding:7px 12px;font-size:12px;color:var(--green);border-color:var(--green)" onclick="linkLaudoToPatient('${r.id}','${r.paciente_nome}')">🔗 Vincular</button>
