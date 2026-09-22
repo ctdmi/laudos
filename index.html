@@ -450,8 +450,8 @@ nav { background: var(--white); border-bottom: 0.5px solid var(--border); displa
   .print-section .sec-body { margin-top: 10px; }
   .print-section h4 { font-size: 10pt; font-weight: bold; margin-bottom: 4px; }
   .print-section p, .print-section .sec-body, .print-section .sec-body div  {
-    font-size: 9.5pt;
-    line-height: 1.4;
+    font-size: 11pt;
+    line-height: 1.15;
     text-align: justify;
     white-space: pre-wrap;
     word-break: break-word;
@@ -1767,7 +1767,7 @@ function showTab(name, el, skipLoad) {
   if (el) el.classList.add('active');
   if (skipLoad) return;
   if (name==='inicio') loadInicio('dashboard-content');
-  if (name==='novo') loadModelosForMedico(currentDoctor?.id, 'medico-modelo-sel');
+  if (name==='novo') { loadModelosForMedico(currentDoctor?.id, 'medico-modelo-sel'); atualizarSeletorArterialHugnei(); }
   if (name==='salvos') loadSaved();
   if (name==='pendentes') loadPending();
   if (name==='lixeira') loadLixeira();
@@ -2061,6 +2061,84 @@ IMPRESSÃO:
 
 Ecocardiograma dentro dos limites da normalidade.`,
 };
+
+// ── Variantes rápidas de texto (seção Arterial MMII, exclusivo Dr. Hugnei) ──
+const TEXTOS_ARTERIAL_VARIANTES = {
+  normal: [
+    'O exame com Doppler espectral e colorido revela:<br><br>',
+    '<b>MEMBRO INFERIOR DIREITO</b><br><br>',
+    '<b>Artéria Femoral Comum:</b> Calibre normal, paredes regulares, sem placas ateromatosas.<br>',
+    'Fluxo amplo laminar e trifásico.<br>',
+    '<b>Artéria Femoral Profunda:</b> Calibre normal.<br>',
+    'Ausência de estenoses hemodinamicamente significativas nos segmentos proximais.<br>',
+    '<b>Artérias Femoral superficial e Poplítea:</b> Calibre normal, paredes regulares, ausência de placas ateromatosas.<br>',
+    'Fluxo amplo laminar e trifásico.<br>',
+    'Ausência de estenoses hemodinamicamente significativas.<br>',
+    '<b>Artérias tibiais (anterior e posterior) e artéria fibular:</b> Calibre normal, com regularidades parietais.<br>',
+    'Fluxo amplo laminar e trifásico.<br>',
+    'Perfusão periférica adequada em repouso.<br><br>',
+    '<b>MEMBRO INFERIOR ESQUERDO</b><br><br>',
+    '<b>Artéria Femoral Comum:</b> Calibre normal, paredes regulares, sem placas ateromatosas.<br>',
+    'Fluxo amplo laminar e trifásico.<br>',
+    '<b>Artéria Femoral Profunda:</b> Calibre normal.<br>',
+    'Ausência de estenoses hemodinamicamente significativas nos segmentos proximais.<br>',
+    '<b>Artérias Femoral superficial e Poplítea:</b> Calibre normal, paredes regulares, ausência de placas ateromatosas.<br>',
+    'Fluxo amplo laminar e trifásico.<br>',
+    'Ausência de estenoses hemodinamicamente significativas.<br>',
+    '<b>Artérias tibiais (anterior e posterior) e artéria fibular:</b> Calibre normal, com regularidades parietais.<br>',
+    'Fluxo amplo laminar e trifásico.<br>',
+    'Perfusão periférica adequada em repouso.<br><br>',
+    'IMPRESSÃO:<br><br>',
+    'Artérias de calibres normais sem dilatações aneurismáticas.<br>',
+    'Ausência de estenoses hemodinamicamente significativas nos segmentos visualizados.<br>',
+    'Perfusão periférica adequada em repouso.',
+  ].join(''),
+  ateromatose: [
+    'O exame com Doppler espectral e colorido revela:<br><br>',
+    '<b>MEMBRO INFERIOR DIREITO</b><br><br>',
+    '<b>Artéria Femoral Comum:</b> Calibre normal, paredes irregulares, com pequenas placas ateromatosas.<br>',
+    'Fluxo amplo laminar e trifásico.<br>',
+    '<b>Artéria Femoral Profunda:</b> Calibre normal.<br>',
+    'Ausência de estenoses hemodinamicamente significativas nos segmentos proximais.<br>',
+    '<b>Artérias Femoral superficial e Poplítea:</b> Calibre normal, paredes irregulares, pequenas placas ateromatosas.<br>',
+    'Fluxo amplo laminar e trifásico.<br>',
+    'Ausência de estenoses hemodinamicamente significativas.<br>',
+    '<b>Artérias tibiais (anterior e posterior) e artéria fibular:</b> Calibre normal, irregularidades parietais.<br>',
+    'Fluxo amplo laminar e trifásico.<br>',
+    'Perfusão periférica adequada em repouso.<br><br>',
+    '<b>MEMBRO INFERIOR ESQUERDO</b><br><br>',
+    '<b>Artéria Femoral Comum:</b> Calibre normal, paredes irregulares, com pequenas placas ateromatosas.<br>',
+    'Fluxo amplo laminar e trifásico.<br>',
+    '<b>Artéria Femoral Profunda:</b> Calibre normal.<br>',
+    'Ausência de estenoses hemodinamicamente significativas nos segmentos proximais.<br>',
+    '<b>Artérias Femoral superficial e Poplítea:</b> Calibre normal, paredes irregulares, com pequenas placas ateromatosas.<br>',
+    'Fluxo amplo laminar e trifásico.<br>',
+    'Ausência de estenoses hemodinamicamente significativas.<br>',
+    '<b>Artérias tibiais (anterior e posterior) e artéria fibular:</b> Calibre normal, com irregularidades parietais.<br>',
+    'Fluxo amplo laminar e trifásico.<br>',
+    'Perfusão periférica adequada em repouso.<br><br>',
+    'IMPRESSÃO:<br><br>',
+    'Artérias de calibres normais sem dilatações aneurismáticas.<br>',
+    'Ausência de estenoses hemodinamicamente significativas nos segmentos visualizados.<br>',
+    'Perfusão periférica adequada em repouso.',
+  ].join(''),
+};
+function isDrHugnei(nome) {
+  return (nome || '').toLowerCase().includes('hugnei');
+}
+function atualizarSeletorArterialHugnei() {
+  const wrap = document.getElementById('wrap-arterial-quicktext');
+  if (!wrap) return;
+  const nome = editingLaudoMedico?.nome || currentDoctor?.nome || '';
+  wrap.style.display = isDrHugnei(nome) ? 'flex' : 'none';
+}
+function inserirTextoArterial(variante) {
+  if (!variante) return;
+  const texto = TEXTOS_ARTERIAL_VARIANTES[variante];
+  if (!texto) return;
+  setEditor('txt-arterial', texto);
+  scheduleAutosave();
+}
 
 async function retornarPendente() {
   if (!editingLaudoId) return;
@@ -4063,6 +4141,13 @@ async function exportarProducaoXLSX() {
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-arterial" onchange="toggleLb('arterial')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
         <div class="lb-body">
+          <div id="wrap-arterial-quicktext" style="display:none;justify-content:flex-end;margin-bottom:6px">
+            <select class="fmt-font-sel" style="font-size:11px" onchange="inserirTextoArterial(this.value);this.value='';" title="Inserir texto padrão">
+              <option value="">📋 Inserir texto padrão…</option>
+              <option value="normal">Normal (sem alterações)</option>
+              <option value="ateromatose">Leve ateromatose</option>
+            </select>
+          </div>
           <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-arterial')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-arterial')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-arterial')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-arterial',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtLineHeight('txt-arterial',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-arterial')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-arterial')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-arterial" class="rich-editor" contenteditable="true" spellcheck="true" lang="pt-BR" data-editor="true" oninput="scheduleAutosave()"></div></div>
         </div>
       </div>
