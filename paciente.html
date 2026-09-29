@@ -1000,7 +1000,7 @@ async function loadPatientLaudos() {
   }
   const { data: laudos } = await supa.from('laudos').select('*').in('id', ids).is('deleted_at',null).order('data_exame',{ascending:false});
   if (!laudos?.length) { cont.innerHTML='<div class="empty"><div class="ei">📋</div><p>Nenhum laudo disponível.</p></div>'; return; }
-  const LABELS = { venoso_d:'Doppler Venoso (D)', venoso_e:'Doppler Venoso (E)', arterial:'Doppler Arterial',
+  const LABELS = { venoso_d:'Doppler Venoso (D)', venoso_e:'Doppler Venoso (E)', venoso_mmii:'Doppler Venoso (TVP)', arterial:'Doppler Arterial',
     carotidas:'Carótidas', aorta:'Aorta', cava:'Veia Cava', superiores:'Membros Sup.', ecoca:'Ecocardiograma' };
   cont.innerHTML = laudos.map(l => {
     const secs = Object.entries(l.secoes||{}).filter(([,v])=>v.ativo).map(([k])=>LABELS[k]||k).filter(Boolean).join(' · ');
@@ -1093,6 +1093,7 @@ function renderLaudo(data, container) {
   const TITLES = {
     venoso_d:'Sistema Venoso — Membro Inferior Direito',
     venoso_e:'Sistema Venoso — Membro Inferior Esquerdo',
+    venoso_mmii:'Ecocolor Doppler Venoso de Membros Inferiores',
     arterial:'Ecocolor Doppler Arterial dos Membros Inferiores',
     carotidas:'Ecocolor Doppler das Carótidas e Vertebrais',
     aorta:'Ecocolor Doppler de Aorta e Artérias Ilíacas',
@@ -1100,7 +1101,7 @@ function renderLaudo(data, container) {
     superiores:'Ecocolor Doppler dos Membros Superiores',
     ecoca:'Ecocardiograma com Doppler'
   };
-  const secs = ['venoso_d','venoso_e','arterial','carotidas','aorta','cava','superiores','ecoca'].filter(k=>s[k]?.ativo);
+  const secs = ['venoso_d','venoso_e','venoso_mmii','arterial','carotidas','aorta','cava','superiores','ecoca'].filter(k=>s[k]?.ativo);
   const imgs = data.imagens || [];
   let html = `<div class="lv-patient-box">
     <div><div class="lv-label">Paciente</div><div class="lv-value">${data.paciente_nome||'—'}</div></div>
@@ -1163,6 +1164,7 @@ function abrirLaudoMobile(data) {
   const TITLES = {
     venoso_d:'Sistema Venoso — Membro Inferior Direito',
     venoso_e:'Sistema Venoso — Membro Inferior Esquerdo',
+    venoso_mmii:'Ecocolor Doppler Venoso de Membros Inferiores',
     arterial:'Ecocolor Doppler Arterial dos Membros Inferiores',
     carotidas:'Ecocolor Doppler das Carótidas e Vertebrais',
     aorta:'Ecocolor Doppler de Aorta e Artérias Ilíacas',
@@ -1170,7 +1172,7 @@ function abrirLaudoMobile(data) {
     superiores:'Ecocolor Doppler dos Membros Superiores',
     ecoca:'Ecocardiograma com Doppler'
   };
-  const ORDER = ['venoso_d','venoso_e','arterial','carotidas','aorta','cava','superiores','ecoca'];
+  const ORDER = ['venoso_d','venoso_e','venoso_mmii','arterial','carotidas','aorta','cava','superiores','ecoca'];
   const active = ORDER.filter(k => s[k]?.ativo);
   const imgs = data.imagens || [];
 
@@ -1283,6 +1285,7 @@ function buildPrint(data) {
   const sections = [
     { key: 'venoso_d',   title: 'SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES', subtitle: 'MEMBRO INFERIOR DIREITO' },
     { key: 'venoso_e',   title: 'SISTEMA VENOSO SUPERFICIAL E PROFUNDO DOS MEMBROS INFERIORES', subtitle: 'MEMBRO INFERIOR ESQUERDO' },
+    { key: 'venoso_mmii', title: 'ECOCOLOR DOPPLER VENOSO DE MEMBROS INFERIORES', subtitle: null },
     { key: 'arterial',   title: 'ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES', subtitle: null },
     { key: 'carotidas',  title: 'ECOCOLOR DOPPLER DAS CARÓTIDAS E VERTEBRAIS', subtitle: null },
     { key: 'aorta',      title: 'ECOCOLOR DOPPLER DE AORTA E ARTÉRIAS ILÍACAS', subtitle: null },
