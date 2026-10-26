@@ -397,7 +397,7 @@ nav { background: var(--white); border-bottom: 0.5px solid var(--border); displa
   /* content area — strict height, clips at footer zone */
   .print-body {
     display: block;
-    max-height: 218mm;
+    max-height: 230mm;
     overflow: hidden;
   }
 
@@ -451,7 +451,7 @@ nav { background: var(--white); border-bottom: 0.5px solid var(--border); displa
   .print-section h4 { font-size: 10pt; font-weight: bold; margin-bottom: 4px; }
   .print-section p, .print-section .sec-body, .print-section .sec-body div  {
     font-size: 11pt;
-    line-height: 0.95;
+    line-height: 0.92;
     text-align: justify;
     white-space: pre-wrap;
     word-break: break-word;
@@ -676,6 +676,13 @@ nav { background: var(--white); border-bottom: 0.5px solid var(--border); displa
   .ilb-nav { width: 38px; height: 38px; font-size: 16px; }
   .ilb-close { width: 34px; height: 34px; }
 }
+.lado-seg { display: inline-flex; border: 1.5px solid var(--border-dark, #c9cdd4); border-radius: 8px; overflow: hidden; }
+.lado-seg label { position: relative; cursor: pointer; margin: 0; }
+.lado-seg input { position: absolute; opacity: 0; pointer-events: none; }
+.lado-seg span { display: block; padding: 7px 16px; font-size: 12px; font-weight: 700; background: #fff; color: var(--text-muted); border-right: 1px solid var(--border-dark, #c9cdd4); }
+.lado-seg label:last-child span { border-right: none; }
+.lado-seg input:checked + span { background: var(--green); color: #fff; }
+.lado-seg input:focus-visible + span { outline: 2px solid var(--green); outline-offset: -2px; }
 .lv-img { cursor: pointer; border-radius: 6px; overflow: hidden; }
 .lv-img img { width: 100%; display: block; transition: opacity .15s; }
 .lv-img:hover img { opacity: 0.85; }
@@ -1177,6 +1184,13 @@ function aplicarModelo(selectId) {
     }
     if (s[key].texto) setEditor(txtId, s[key].texto);
   });
+  if (s.venoso_d || s.venoso_e) {
+    const mD = !!s.venoso_d && s.venoso_d.ativo !== false;
+    const mE = !!s.venoso_e && s.venoso_e.ativo !== false;
+    document.getElementById('chk-venoso').checked = mD || mE;
+    document.getElementById('lb-venoso').classList.toggle('on', mD || mE);
+    setVenosoLado(ladoDeVenoso(mD, mE));
+  }
   toast('Modelo "' + modelo.nome + '" aplicado! ✓', 'ok');
   sel.value = '';
 }
@@ -1229,6 +1243,7 @@ function novoModelo(medicoId, medicoNome) {
   editingModeloId = null;
   editingModeloMedicoId = medicoId;
   document.getElementById('modal-modelo-titulo').textContent = 'Novo modelo — ' + medicoNome;
+  document.getElementById('wrap-modelo-arterial-quicktext').style.display = isDrHugnei(medicoNome) ? 'flex' : 'none';
   document.getElementById('modal-modelo-nome').value = '';
   Object.keys(MODELO_KEY_MAP).forEach(k => {
     const txt = document.getElementById('modal-modelo-txt-' + k);
@@ -1245,6 +1260,7 @@ async function editarModelo(id) {
   editingModeloId = id; editingModeloMedicoId = m.medico_id;
   const { data: med } = await supa.from('medicos').select('nome').eq('id', m.medico_id).single();
   document.getElementById('modal-modelo-titulo').textContent = 'Editar modelo — ' + (med?.nome || '');
+  document.getElementById('wrap-modelo-arterial-quicktext').style.display = isDrHugnei(med?.nome) ? 'flex' : 'none';
   document.getElementById('modal-modelo-nome').value = m.nome;
   const s = m.secoes || {};
   Object.keys(MODELO_KEY_MAP).forEach(k => {
@@ -1895,8 +1911,8 @@ function imgDrop(e, toIdx) {
 // ── SAVE ──
 function buildSecoesObj() {
   return {
-    venoso_d:     { ativo: document.getElementById('chk-venoso').checked,        texto: get('txt-venoso-d') },
-    venoso_e:     { ativo: document.getElementById('chk-venoso').checked,        texto: get('txt-venoso-e') },
+    venoso_d:     { ativo: venosoAtivos().d,                                     texto: get('txt-venoso-d') },
+    venoso_e:     { ativo: venosoAtivos().e,                                     texto: get('txt-venoso-e') },
     venoso_mmii:  { ativo: document.getElementById('chk-venoso-mmii')?.checked||false, texto: get('txt-venoso-mmii') },
     arterial:     { ativo: document.getElementById('chk-arterial').checked,      texto: get('txt-arterial') },
     carotidas:  { ativo: document.getElementById('chk-carotidas').checked,  texto: get('txt-carotidas') },
@@ -1905,6 +1921,29 @@ function buildSecoesObj() {
     superiores: { ativo: document.getElementById('chk-superiores').checked, texto: get('txt-superiores') },
     ecoca:      { ativo: document.getElementById('chk-ecoca').checked,      texto: get('txt-ecoca') },
   };
+}
+
+// ── LADO DO EXAME VENOSO (Direito / Esquerdo / Bilateral) ──
+// O lado não tem campo próprio no banco: é deduzido de venoso_d.ativo e venoso_e.ativo.
+function getVenosoLado() {
+  return document.querySelector('input[name="venoso-lado"]:checked')?.value || 'B';
+}
+function venosoAtivos() {
+  const on = !!document.getElementById('chk-venoso')?.checked;
+  const lado = getVenosoLado();
+  return { d: on && lado !== 'E', e: on && lado !== 'D' };
+}
+function ladoDeVenoso(d, e) { return d && e ? 'B' : d ? 'D' : e ? 'E' : 'B'; }
+function setVenosoLado(lado) {
+  if (!['D','E','B'].includes(lado)) lado = 'B';
+  const radio = document.querySelector('input[name="venoso-lado"][value="' + lado + '"]');
+  if (radio) radio.checked = true;
+  [['d', lado !== 'E'], ['e', lado !== 'D']].forEach(([k, mostrar]) => {
+    const wrap = document.getElementById('txt-venoso-' + k)?.closest('.fmt-wrap');
+    const rotulo = document.getElementById('lbl-venoso-' + k);
+    if (wrap) wrap.style.display = mostrar ? '' : 'none';
+    if (rotulo) rotulo.style.display = mostrar ? '' : 'none';
+  });
 }
 
 async function saveLaudo() {
@@ -2127,7 +2166,9 @@ const TEXTOS_ARTERIAL_VARIANTES = {
     '<b>Artérias Femoral superficial e Poplítea:</b> Calibre normal, paredes regulares, ausência de placas ateromatosas.<br>',
     'Fluxo amplo laminar e trifásico.<br>',
     'Ausência de estenoses hemodinamicamente significativas.<br><br>',
-    '<b>Artérias tibiais (anterior e posterior) e artéria fibular:</b> Calibre normal, com regularidades parietais.<br>',
+    '<b>Artéria fibular:</b> Calibre normal, com regularidades parietais.<br>',
+    'Fluxo amplo laminar e trifásico.<br><br>',
+    '<b>Artérias tibiais (anterior e posterior):</b> Calibre normal, com regularidades parietais.<br>',
     'Fluxo amplo laminar e trifásico.<br>',
     'Perfusão periférica adequada em repouso.<br><br>',
     '<b>MEMBRO INFERIOR ESQUERDO</b><br><br>',
@@ -2138,7 +2179,9 @@ const TEXTOS_ARTERIAL_VARIANTES = {
     '<b>Artérias Femoral superficial e Poplítea:</b> Calibre normal, paredes regulares, ausência de placas ateromatosas.<br>',
     'Fluxo amplo laminar e trifásico.<br>',
     'Ausência de estenoses hemodinamicamente significativas.<br><br>',
-    '<b>Artérias tibiais (anterior e posterior) e artéria fibular:</b> Calibre normal, com regularidades parietais.<br>',
+    '<b>Artéria fibular:</b> Calibre normal, com regularidades parietais.<br>',
+    'Fluxo amplo laminar e trifásico.<br><br>',
+    '<b>Artérias tibiais (anterior e posterior):</b> Calibre normal, com regularidades parietais.<br>',
     'Fluxo amplo laminar e trifásico.<br>',
     'Perfusão periférica adequada em repouso.<br><br>',
     '<b>IMPRESSÃO:</b><br><br>',
@@ -2156,7 +2199,9 @@ const TEXTOS_ARTERIAL_VARIANTES = {
     '<b>Artérias Femoral superficial e Poplítea:</b> Calibre normal, paredes irregulares, pequenas placas ateromatosas.<br>',
     'Fluxo amplo laminar e trifásico.<br>',
     'Ausência de estenoses hemodinamicamente significativas.<br><br>',
-    '<b>Artérias tibiais (anterior e posterior) e artéria fibular:</b> Calibre normal, irregularidades parietais.<br>',
+    '<b>Artéria fibular:</b> Calibre normal, irregularidades parietais.<br>',
+    'Fluxo amplo laminar e trifásico.<br><br>',
+    '<b>Artérias tibiais (anterior e posterior):</b> Calibre normal, irregularidades parietais.<br>',
     'Fluxo amplo laminar e trifásico.<br>',
     'Perfusão periférica adequada em repouso.<br><br>',
     '<b>MEMBRO INFERIOR ESQUERDO</b><br><br>',
@@ -2167,7 +2212,9 @@ const TEXTOS_ARTERIAL_VARIANTES = {
     '<b>Artérias Femoral superficial e Poplítea:</b> Calibre normal, paredes irregulares, com pequenas placas ateromatosas.<br>',
     'Fluxo amplo laminar e trifásico.<br>',
     'Ausência de estenoses hemodinamicamente significativas.<br><br>',
-    '<b>Artérias tibiais (anterior e posterior) e artéria fibular:</b> Calibre normal, com irregularidades parietais.<br>',
+    '<b>Artéria fibular:</b> Calibre normal, com irregularidades parietais.<br>',
+    'Fluxo amplo laminar e trifásico.<br><br>',
+    '<b>Artérias tibiais (anterior e posterior):</b> Calibre normal, com irregularidades parietais.<br>',
     'Fluxo amplo laminar e trifásico.<br>',
     'Perfusão periférica adequada em repouso.<br><br>',
     '<b>IMPRESSÃO:</b><br><br>',
@@ -2185,12 +2232,12 @@ function atualizarSeletorArterialHugnei() {
   const nome = editingLaudoMedico?.nome || currentDoctor?.nome || '';
   wrap.style.display = isDrHugnei(nome) ? 'flex' : 'none';
 }
-function inserirTextoArterial(variante) {
+function inserirTextoArterial(variante, alvo = 'txt-arterial') {
   if (!variante) return;
   const texto = TEXTOS_ARTERIAL_VARIANTES[variante];
   if (!texto) return;
-  setEditor('txt-arterial', texto);
-  scheduleAutosave();
+  setEditor(alvo, texto);
+  if (alvo === 'txt-arterial') scheduleAutosave();
 }
 
 async function retornarPendente() {
@@ -2221,8 +2268,8 @@ async function autosaveLaudo() {
   if (laudoConcluido) return; // never overwrite a concluded laudo with pendente
   if (!get('p-nome')) return;
   const secoes = {
-    venoso_d:    { ativo: document.getElementById('chk-venoso').checked,         texto: get('txt-venoso-d') },
-    venoso_e:    { ativo: document.getElementById('chk-venoso').checked,         texto: get('txt-venoso-e') },
+    venoso_d:    { ativo: venosoAtivos().d,                                      texto: get('txt-venoso-d') },
+    venoso_e:    { ativo: venosoAtivos().e,                                      texto: get('txt-venoso-e') },
     venoso_mmii: { ativo: document.getElementById('chk-venoso-mmii')?.checked||false, texto: get('txt-venoso-mmii') },
     arterial:    { ativo: document.getElementById('chk-arterial').checked,       texto: get('txt-arterial') },
     carotidas:  { ativo: document.getElementById('chk-carotidas').checked,  texto: get('txt-carotidas') },
@@ -2397,9 +2444,11 @@ async function loadLaudo(id) {
       if(lbl) lbl.classList.remove('on');
     }
   });
-  const vOn = s.venoso_d?.ativo||false;
+  const vD = !!s.venoso_d?.ativo, vE = !!s.venoso_e?.ativo;
+  const vOn = vD || vE;
   document.getElementById('chk-venoso').checked=vOn;
   document.getElementById('lb-venoso').classList.toggle('on',vOn);
+  setVenosoLado(ladoDeVenoso(vD, vE));
   images=(data.imagens||[]).filter(i=>i&&i.src).map(i=>({id:Math.random(),src:i.src,name:i.name||''}));
   renderImages();
   setTimeout(initEditores, 50);
@@ -2461,8 +2510,8 @@ async function printLaudo() {
     medico_nome: respNome,
     medico_crm:  respCrm,
     secoes: {
-      venoso_d:   { ativo: document.getElementById('chk-venoso').checked,    texto: get('txt-venoso-d') },
-      venoso_e:   { ativo: document.getElementById('chk-venoso').checked,    texto: get('txt-venoso-e') },
+      venoso_d:   { ativo: venosoAtivos().d,                                 texto: get('txt-venoso-d') },
+      venoso_e:   { ativo: venosoAtivos().e,                                 texto: get('txt-venoso-e') },
       arterial:   { ativo: document.getElementById('chk-arterial').checked,  texto: get('txt-arterial') },
       carotidas:  { ativo: document.getElementById('chk-carotidas').checked, texto: get('txt-carotidas') },
       aorta:      { ativo: document.getElementById('chk-aorta').checked,     texto: get('txt-aorta') },
@@ -2956,6 +3005,7 @@ function novoLaudoDireto() {
   document.getElementById('p-data').value = todayISO();
   ['venoso','arterial','carotidas'].forEach(k => { document.getElementById('chk-'+k).checked=true; document.getElementById('lb-'+k).classList.add('on'); });
   ['aorta','cava','superiores','ecoca'].forEach(k => { document.getElementById('chk-'+k).checked=false; document.getElementById('lb-'+k).classList.remove('on'); });
+  setVenosoLado('B');
   // Reset textareas to defaults
   setEditor('txt-venoso-d', TEXTOS_PADRAO['venoso-d']);
   setEditor('txt-venoso-e', TEXTOS_PADRAO['venoso-e']);
@@ -3179,6 +3229,7 @@ function clearLaudoForm() {
   document.getElementById('p-data').value = todayISO();
   ['venoso','arterial','carotidas'].forEach(k => { const c=document.getElementById('chk-'+k); const l=document.getElementById('lb-'+k); if(c)c.checked=true; if(l)l.classList.add('on'); });
   ['venoso-mmii','aorta','cava','superiores','ecoca'].forEach(k => { const c=document.getElementById('chk-'+k); const l=document.getElementById('lb-'+k); if(c)c.checked=false; if(l)l.classList.remove('on'); });
+  setVenosoLado('B');
   ['txt-venoso-d','txt-venoso-e','txt-venoso-mmii','txt-arterial','txt-carotidas','txt-aorta','txt-cava','txt-superiores','txt-ecoca'].forEach(id => setEditor(id,''));
   images=[]; renderImages();
   editingLaudoId=null; editingLaudoMedico=null; laudoConcluido=false;
@@ -4210,9 +4261,17 @@ async function exportarProducaoXLSX() {
           <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-venoso" checked onchange="toggleLb('venoso')"><div class="tog-track"></div><div class="tog-knob"></div></label>
         </div>
         <div class="lb-body">
-          <div style="margin-bottom:10px;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">🦵 Membro Inferior Direito</div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+            <span style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">Lado do exame</span>
+            <div class="lado-seg" role="radiogroup" aria-label="Lado do exame venoso">
+              <label><input type="radio" name="venoso-lado" value="D" onchange="setVenosoLado('D');scheduleAutosave()"><span>Direito</span></label>
+              <label><input type="radio" name="venoso-lado" value="E" onchange="setVenosoLado('E');scheduleAutosave()"><span>Esquerdo</span></label>
+              <label><input type="radio" name="venoso-lado" value="B" checked onchange="setVenosoLado('B');scheduleAutosave()"><span>Bilateral</span></label>
+            </div>
+          </div>
+          <div id="lbl-venoso-d" style="margin-bottom:10px;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">🦵 Membro Inferior Direito</div>
           <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-venoso-d')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-venoso-d')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-venoso-d')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-venoso-d',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtLineHeight('txt-venoso-d',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-venoso-d')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-venoso-d')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-venoso-d" class="rich-editor" contenteditable="true" spellcheck="true" lang="pt-BR" data-editor="true" oninput="scheduleAutosave()"></div></div>
-          <div style="margin-bottom:10px;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">🦵 Membro Inferior Esquerdo</div>
+          <div id="lbl-venoso-e" style="margin-bottom:10px;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">🦵 Membro Inferior Esquerdo</div>
           <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-venoso-e')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-venoso-e')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-venoso-e')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-venoso-e',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtLineHeight('txt-venoso-e',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-venoso-e')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-venoso-e')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-venoso-e" class="rich-editor" contenteditable="true" spellcheck="true" lang="pt-BR" data-editor="true" oninput="scheduleAutosave()"></div></div>
         </div>
       </div>
@@ -4812,6 +4871,13 @@ async function exportarProducaoXLSX() {
               style="width:14px;height:14px;accent-color:var(--green);cursor:pointer;flex-shrink:0">
             <label for="modal-modelo-chk-arterial"
               style="font-size:12px;font-weight:700;color:#374151;cursor:pointer">Eco Doppler Arterial</label>
+          </div>
+          <div id="wrap-modelo-arterial-quicktext" style="display:none;justify-content:flex-end;margin-bottom:6px">
+            <select class="fmt-font-sel" style="font-size:11px" onchange="inserirTextoArterial(this.value,'modal-modelo-txt-arterial');this.value='';" title="Inserir texto padrão">
+              <option value="">📋 Inserir texto padrão…</option>
+              <option value="normal">Normal (sem alterações)</option>
+              <option value="ateromatose">Leve ateromatose</option>
+            </select>
           </div>
           <div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtTa('modal-modelo-txt-arterial','bold')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtTa('modal-modelo-txt-arterial','italic')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtTa('modal-modelo-txt-arterial','underline')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho da fonte" onchange="fmtFonte('modal-modelo-txt-arterial',this.value);this.value='';"><option value="">pt</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="14">14</option><option value="16">16</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtTaLineHeight('modal-modelo-txt-arterial',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtTaMaiusculo('modal-modelo-txt-arterial')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtTaLimpar('modal-modelo-txt-arterial')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div>
           <div id="modal-modelo-txt-arterial" contenteditable="true" spellcheck="true" lang="pt-BR" data-editor="true"
