@@ -1718,7 +1718,13 @@ async function saveSecEditImages() {
   if (error) { toast('Erro: ' + error.message, 'err'); return; }
   toast('Imagens salvas!', 'ok');
   closeModal('modal-sec-images');
+  const idSalvo = secEditId;
   secEditId = null;
+  // Reflete na hora nas listas da secretaria
+  const naTela = id => { const e = document.getElementById(id); return !!(e && e.offsetParent); };
+  if (naTela('sec-queue-list')) loadSecQueue();
+  const itemConcluido = secConcluidosAll.find(r => r.id === idSalvo);
+  if (itemConcluido) { itemConcluido.qtd_imagens = processed.length; itemConcluido.tem_imagem = processed.length > 0; if (naTela('sec-concluidos-list')) searchSecConcluidos(); }
 }
 
 function onDropSecEdit(e){e.preventDefault();document.getElementById('sec-edit-img-grid').closest('.modal-box').querySelector('.drop-zone').classList.remove('over');Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('image/')).forEach(f=>{const r=new FileReader();r.onload=ev=>{secEditImages.push({id:Date.now()+Math.random(),src:ev.target.result,name:f.name});renderSecEditImages();};r.readAsDataURL(f);});}
@@ -1836,7 +1842,7 @@ function showTab(name, el, skipLoad) {
   if (el) el.classList.add('active');
   if (skipLoad) return;
   if (name==='inicio') loadInicio('dashboard-content');
-  if (name==='novo') { loadModelosForMedico(currentDoctor?.id, 'medico-modelo-sel'); atualizarSeletorArterialHugnei(); }
+  if (name==='novo') { loadModelosForMedico(currentDoctor?.id, 'medico-modelo-sel'); atualizarSeletorArterialHugnei(); atualizarBotaoBuscarImagens(); }
   if (name==='salvos') loadSaved();
   if (name==='pendentes') loadPending();
   if (name==='lixeira') loadLixeira();
@@ -1856,8 +1862,39 @@ function onFileSelect(e) { addImages(Array.from(e.target.files)); e.target.value
 function addImages(files) { files.forEach((f,idx) => { const r=new FileReader(); r.onload=ev=>{ images.push({id:Date.now()+Math.random(),src:ev.target.result,name:f.name,ordem:images.length}); renderImages(); }; r.readAsDataURL(f); }); }
 function removeImg(id) { images=images.filter(i=>i.id!==id); renderImages(); }
 function moveImg(from, to) { if(to<0||to>=images.length) return; const a=[...images]; const [x]=a.splice(from,1); a.splice(to,0,x); images=a; renderImages(); }
+function abrirImagemEditor(i) {
+  window.__laudoImgs = images;
+  openImgLightbox(i);
+}
+
+// Imagens que a secretaria pode ter anexado ao laudo depois que o médico abriu o editor.
+// imagensConhecidas = o que já foi carregado/salvo deste laudo; o que vier a mais no banco é novo.
+let imagensConhecidas = new Set();
+let imagensConhecidasId = null;
+async function buscarImagensNovas(silencioso) {
+  if (!editingLaudoId || imagensConhecidasId !== editingLaudoId) {
+    if (!silencioso) toast('Abra um laudo da fila para buscar imagens novas.', 'inf');
+    return 0;
+  }
+  const { data, error } = await supa.from('laudos').select('imagens').eq('id', editingLaudoId).single();
+  if (error || !data) { if (!silencioso) toast('Não foi possível buscar as imagens.', 'err'); return 0; }
+  const novas = (data.imagens || []).filter(i => i && i.src && !imagensConhecidas.has(i.src));
+  novas.forEach(i => { imagensConhecidas.add(i.src); images.push({ id: Math.random(), src: i.src, name: i.name || '' }); });
+  if (novas.length) renderImages();
+  if (!silencioso) toast(novas.length ? novas.length + ' imagem(ns) nova(s) adicionada(s).' : 'Nenhuma imagem nova.', novas.length ? 'ok' : 'inf');
+  return novas.length;
+}
+function atualizarBotaoBuscarImagens() {
+  const b = document.getElementById('btn-buscar-imagens');
+  if (b) b.style.display = editingLaudoId ? 'inline-flex' : 'none';
+}
 function renderImages() {
   const c = document.getElementById('img-container');
+  const btnVer = document.getElementById('btn-ver-imagens');
+  if (btnVer) {
+    btnVer.style.display = images.length ? 'inline-flex' : 'none';
+    document.getElementById('btn-ver-imagens-n').textContent = images.length;
+  }
   if (!images.length) { c.innerHTML = ''; return; }
   const pages = Math.ceil(images.length / 6);
   let html = '';
@@ -1872,7 +1909,7 @@ function renderImages() {
         ondragover="imgDragOver(event)"
         ondrop="imgDrop(event,${gi})"
         ondragleave="imgDragLeave(event)">
-        <img src="${img.src}">
+        <img src="${img.src}" style="cursor:zoom-in" title="Clique para ampliar" onclick="abrirImagemEditor(${gi})">
         <span class="img-num">${gi+1}</span>
         <div class="img-controls">
           <button class="ib-ctrl ${gi===0?'ib-disabled':''}" onclick="${gi>0?`moveImg(${gi},${gi-1})`:'void 0'}" title="Mover para esquerda">◀</button>
@@ -1961,6 +1998,8 @@ async function saveLaudo() {
   const snapMedId   = currentDoctor?.id   || null;
   const snapMedResp = currentDoctor?.nome || '';
   const snapPapel   = currentDoctor?.papel || 'medico';
+  // Imagens que a secretaria anexou depois que este laudo foi aberto não podem ser sobrescritas
+  const novasDaSecretaria = await buscarImagensNovas(true);
   const snapImages  = [...images];
 
   const totalImgs = snapImages.filter(i => i.src?.startsWith('data:')).length;
@@ -2003,9 +2042,14 @@ async function saveLaudo() {
   if (!editingLaudoId && result.data?.[0]?.id) {
     editingLaudoId = result.data[0].id;
   }
+  // Estado local = o que foi gravado (evita reenviar e duplicar imagens num novo salvar)
+  images = imagensFinais.map(i => ({ id: Math.random(), src: i.src, name: i.name || '' }));
+  imagensConhecidas = new Set(images.map(i => i.src));
+  imagensConhecidasId = editingLaudoId;
+  renderImages();
   laudoConcluido = true;
   clearTimeout(autosaveTimer); autosaveTimer = null;
-  toast('Laudo salvo com sucesso! ✓','ok');
+  toast('Laudo salvo com sucesso! ✓' + (novasDaSecretaria ? ` (${novasDaSecretaria} imagem(ns) nova(s) da secretaria incluída(s))` : ''),'ok');
   // Auto-link to patient if CPF is known
   const savedLaudoId = editingLaudoId;
   const { data: laudoInfo } = await supa.from('laudos').select('cpf_paciente').eq('id', savedLaudoId).single();
@@ -2450,6 +2494,8 @@ async function loadLaudo(id) {
   document.getElementById('lb-venoso').classList.toggle('on',vOn);
   setVenosoLado(ladoDeVenoso(vD, vE));
   images=(data.imagens||[]).filter(i=>i&&i.src).map(i=>({id:Math.random(),src:i.src,name:i.name||''}));
+  imagensConhecidas = new Set(images.map(i=>i.src));
+  imagensConhecidasId = id;
   renderImages();
   setTimeout(initEditores, 50);
   editingLaudoId=id;
@@ -3375,6 +3421,11 @@ async function savePendente() {
     }
   });
 
+  const editId = window._editingSecId || null;
+  const novasImgs = secImages.filter(i => i.src?.startsWith('data:')).length;
+  loading(true, novasImgs ? `Enviando ${novasImgs} imagem(ns)...` : (editId ? 'Atualizando...' : 'Salvando na fila...'));
+  const imagens = await processImagesForStorage([...secImages]);
+
   const payload = {
     paciente_nome:           nome,
     paciente_nasc:           document.getElementById('sec-nasc')?.value || '',
@@ -3390,10 +3441,9 @@ async function savePendente() {
     criado_por:              'secretaria',
     cpf_paciente:            cpfRaw || null,
     secoes,
-    imagens: [],
+    imagens,
   };
 
-  const editId = window._editingSecId || null;
   loading(true, editId ? 'Atualizando...' : 'Salvando na fila...');
 
   // Insert (novo) ou update (edição) — tenta com cpf_paciente, faz fallback sem se a coluna não existir
@@ -3512,7 +3562,7 @@ function resetSecForm() {
 
 
 async function loadSecQueue() {
-  const { data } = await supa.from('laudos').select('id,paciente_nome,data_exame,convenio,criado_em,medico_responsavel_nome')
+  const { data } = await supa.from('laudos').select('id,paciente_nome,data_exame,convenio,criado_em,medico_responsavel_nome,imagens')
     .eq('status','pendente').order('criado_em',{ascending:true});
   const count = data?.length||0;
   document.getElementById('sec-queue-count').textContent=count;
@@ -3536,9 +3586,10 @@ async function loadSecQueue() {
       html += `<div class="saved-row">
         <div>
           <div class="saved-name">${r.paciente_nome}</div>
-          <div class="saved-meta">🏥 ${r.convenio||'—'} &nbsp;|&nbsp; 👨‍⚕️ ${r.medico_responsavel_nome||'Médico não definido'}</div>
+          <div class="saved-meta">🏥 ${r.convenio||'—'} &nbsp;|&nbsp; 👨‍⚕️ ${r.medico_responsavel_nome||'Médico não definido'} &nbsp;|&nbsp; ${(r.imagens||[]).length>0 ? `<span style="color:var(--green)">🖼️ ${r.imagens.length} imagem(ns)</span>` : `<span style="color:var(--red)">⚠️ Sem imagem</span>`}</div>
         </div>
         <div class="saved-actions">
+          <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" data-id="${r.id}" data-nome="${(r.paciente_nome||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}" onclick="secAddImages(this.dataset.id,this.dataset.nome)">🖼️ Imagens</button>
           <button class="btn btn-outline" style="padding:7px 12px;font-size:12px" onclick="editSecPendente('${r.id}')">✏️ Editar</button>
           <button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="deleteSecPendente('${r.id}')">🗑️</button>
         </div>
@@ -4360,7 +4411,8 @@ async function exportarProducaoXLSX() {
     </div>
     <div class="card">
       <div class="card-hdr"><div class="card-ico"><i class="ti ti-photo" aria-hidden="true"></i></div><div class="card-title">Imagens do Exame (2 colunas × 3 linhas por página)</div></div>
-      <div class="drop-zone" id="dz" onclick="document.getElementById('fi').click()" ondrop="onDrop(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)">
+      <button type="button" id="btn-buscar-imagens" class="btn btn-outline" style="display:none;margin-bottom:10px;padding:7px 14px;font-size:12px" onclick="buscarImagensNovas()">🔄 Buscar imagens enviadas pela secretaria</button>
+      <div class="drop-zone" id="dz"onclick="document.getElementById('fi').click()" ondrop="onDrop(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)">
         <div class="dz-icon">📁</div>
         <div class="dz-main">Clique aqui ou arraste as imagens</div>
         <div class="dz-sub">JPG, PNG — pode selecionar vários de uma vez</div>
@@ -4369,6 +4421,7 @@ async function exportarProducaoXLSX() {
       <div id="img-container"></div>
     </div>
 
+    <button type="button" id="btn-ver-imagens" class="btn btn-green" style="display:none;position:fixed;right:24px;bottom:24px;z-index:300;align-items:center;gap:6px;padding:11px 18px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,0.25);border-radius:999px" onclick="abrirImagemEditor(0)" title="Ver as imagens do exame ampliadas">🖼️ Ver imagens (<span id="btn-ver-imagens-n">0</span>)</button>
     <div class="tip">💡 Clique em <strong>Salvar</strong> para guardar no banco de dados e depois <strong>Imprimir / PDF</strong> para gerar o documento. Para <strong>baixar como PDF</strong>: na janela de impressão, selecione <em>"Salvar como PDF"</em> como destino.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap">
       <button class="btn btn-green btn-big" id="btn-salvar-laudo" style="flex:1" onclick="saveLaudo()">💾 Salvar Laudo</button>
