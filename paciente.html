@@ -1001,7 +1001,7 @@ async function loadPatientLaudos() {
   const { data: laudos } = await supa.from('laudos').select('*').in('id', ids).is('deleted_at',null).order('data_exame',{ascending:false});
   if (!laudos?.length) { cont.innerHTML='<div class="empty"><div class="ei">📋</div><p>Nenhum laudo disponível.</p></div>'; return; }
   const LABELS = { venoso_d:'Doppler Venoso (D)', venoso_e:'Doppler Venoso (E)', venoso_mmii:'Doppler Venoso (TVP)', arterial:'Doppler Arterial',
-    carotidas:'Carótidas', aorta:'Aorta', cava:'Veia Cava', superiores:'Membros Sup.', ecoca:'Ecocardiograma' };
+    carotidas:'Carótidas', vasos_cervicais:'Vasos Cervicais', aorta:'Aorta', cava:'Veia Cava', superiores:'Membros Sup.', ecoca:'Ecocardiograma' };
   cont.innerHTML = laudos.map(l => {
     const secs = Object.entries(l.secoes||{}).filter(([,v])=>v.ativo).map(([k])=>LABELS[k]||k).filter(Boolean).join(' · ');
     return `<div class="saved-row" onclick="openLaudo('${l.id}')">
@@ -1096,12 +1096,13 @@ function renderLaudo(data, container) {
     venoso_mmii:'Ecocolor Doppler Venoso de Membros Inferiores',
     arterial:'Ecocolor Doppler Arterial dos Membros Inferiores',
     carotidas:'Ecocolor Doppler das Carótidas e Vertebrais',
+    vasos_cervicais:'Ecocolor Doppler dos Vasos Cervicais',
     aorta:'Ecocolor Doppler de Aorta e Artérias Ilíacas',
     cava:'Ecocolor Doppler da Veia Cava e Ilíacas',
     superiores:'Ecocolor Doppler dos Membros Superiores',
     ecoca:'Ecocardiograma com Doppler'
   };
-  const secs = ['venoso_d','venoso_e','venoso_mmii','arterial','carotidas','aorta','cava','superiores','ecoca'].filter(k=>s[k]?.ativo);
+  const secs = ['venoso_d','venoso_e','venoso_mmii','arterial','carotidas','vasos_cervicais','aorta','cava','superiores','ecoca'].filter(k=>s[k]?.ativo);
   const imgs = data.imagens || [];
   let html = `<div class="lv-patient-box">
     <div><div class="lv-label">Paciente</div><div class="lv-value">${data.paciente_nome||'—'}</div></div>
@@ -1167,12 +1168,13 @@ function abrirLaudoMobile(data) {
     venoso_mmii:'Ecocolor Doppler Venoso de Membros Inferiores',
     arterial:'Ecocolor Doppler Arterial dos Membros Inferiores',
     carotidas:'Ecocolor Doppler das Carótidas e Vertebrais',
+    vasos_cervicais:'Ecocolor Doppler dos Vasos Cervicais',
     aorta:'Ecocolor Doppler de Aorta e Artérias Ilíacas',
     cava:'Ecocolor Doppler da Veia Cava e Ilíacas',
     superiores:'Ecocolor Doppler dos Membros Superiores',
     ecoca:'Ecocardiograma com Doppler'
   };
-  const ORDER = ['venoso_d','venoso_e','venoso_mmii','arterial','carotidas','aorta','cava','superiores','ecoca'];
+  const ORDER = ['venoso_d','venoso_e','venoso_mmii','arterial','carotidas','vasos_cervicais','aorta','cava','superiores','ecoca'];
   const active = ORDER.filter(k => s[k]?.ativo);
   const imgs = data.imagens || [];
 
@@ -1288,6 +1290,7 @@ function buildPrint(data) {
     { key: 'venoso_mmii', title: 'ECOCOLOR DOPPLER VENOSO DE MEMBROS INFERIORES', subtitle: null },
     { key: 'arterial',   title: 'ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES', subtitle: null },
     { key: 'carotidas',  title: 'ECOCOLOR DOPPLER DAS CARÓTIDAS E VERTEBRAIS', subtitle: null },
+    { key: 'vasos_cervicais', title: 'ECOCOLOR DOPPLER DOS VASOS CERVICAIS', subtitle: null },
     { key: 'aorta',      title: 'ECOCOLOR DOPPLER DE AORTA E ARTÉRIAS ILÍACAS', subtitle: null },
     { key: 'cava',       title: 'ECOCOLOR DOPPLER DA VEIA CAVA E ILÍACAS', subtitle: null },
     { key: 'superiores', title: 'ECOCOLOR DOPPLER DOS MEMBROS SUPERIORES', subtitle: null },
