@@ -1505,7 +1505,7 @@ function fmtTaLineHeight(taId, lh) {
 function initEditores() {
   // Rich editors use txt- id directly (contenteditable divs)
   const ids = ['txt-venoso-d','txt-venoso-e','txt-arterial','txt-carotidas',
-               'txt-aorta','txt-cava','txt-superiores','txt-ecoca'];
+               'txt-vasos-cervicais','txt-aorta','txt-cava','txt-superiores','txt-ecoca'];
   ids.forEach(id => {
     const ed = document.getElementById(id);
     if (!ed || ed.dataset.editor !== 'true') return;
@@ -1842,7 +1842,7 @@ function showTab(name, el, skipLoad) {
   if (el) el.classList.add('active');
   if (skipLoad) return;
   if (name==='inicio') loadInicio('dashboard-content');
-  if (name==='novo') { loadModelosForMedico(currentDoctor?.id, 'medico-modelo-sel'); atualizarSeletorArterialHugnei(); atualizarBotaoBuscarImagens(); }
+  if (name==='novo') { loadModelosForMedico(currentDoctor?.id, 'medico-modelo-sel'); atualizarSeletorArterialHugnei(); atualizarSecaoVasosCervicais(); atualizarBotaoBuscarImagens(); }
   if (name==='salvos') loadSaved();
   if (name==='pendentes') loadPending();
   if (name==='lixeira') loadLixeira();
@@ -1852,6 +1852,10 @@ function showTab(name, el, skipLoad) {
 function toggleLb(name) {
   const chk=document.getElementById('chk-'+name);
   document.getElementById('lb-'+name).classList.toggle('on', chk.checked);
+  if (name === 'vasos-cervicais' && chk.checked) {
+    const ed = document.getElementById('txt-vasos-cervicais');
+    if (ed && !ed.textContent.trim()) setEditor('txt-vasos-cervicais', TEXTOS_PADRAO['vasos_cervicais']);
+  }
 }
 
 // ── IMAGES ──
@@ -1953,6 +1957,7 @@ function buildSecoesObj() {
     venoso_mmii:  { ativo: document.getElementById('chk-venoso-mmii')?.checked||false, texto: get('txt-venoso-mmii') },
     arterial:     { ativo: document.getElementById('chk-arterial').checked,      texto: get('txt-arterial') },
     carotidas:  { ativo: document.getElementById('chk-carotidas').checked,  texto: get('txt-carotidas') },
+    vasos_cervicais: { ativo: document.getElementById('chk-vasos-cervicais').checked, texto: get('txt-vasos-cervicais') },
     aorta:      { ativo: document.getElementById('chk-aorta').checked,      texto: get('txt-aorta') },
     cava:       { ativo: document.getElementById('chk-cava').checked,       texto: get('txt-cava') },
     superiores: { ativo: document.getElementById('chk-superiores').checked, texto: get('txt-superiores') },
@@ -2198,6 +2203,41 @@ IMPRESSÃO:
 Ecocardiograma dentro dos limites da normalidade.`,
 };
 
+// ── Seção "Vasos Cervicais" (exclusiva do Dr. Hugnei) ──
+// O título da seção sai no cabeçalho da impressão; aqui vai só o corpo. Título de cada veia em negrito + sublinhado.
+const TEXTO_VASOS_CERVICAIS = [
+  '<b><u>VEIA SUBCLÁVIA ESQUERDA:</u></b><br><br>',
+  'Veia subclávia esquerda encontra-se de calibre normal, compressível, sem trombos visíveis ao mapeamento a cores, com fluxos fásicos à respiração, sendo suas paredes lisas e sem irregularidades parietais detectáveis ao Doppler espectral, com manobras provocativas.<br><br>',
+  '<b><u>VEIA SUBCLÁVIA DIREITA:</u></b><br><br>',
+  'Veia subclávia direita encontra-se de calibre normal, compressível, sem trombos visíveis ao mapeamento a cores, com fluxos fásicos à respiração, sendo suas paredes lisas e sem irregularidades parietais detectáveis ao Doppler espectral, com manobras provocativas.<br><br>',
+  '<b><u>VEIA JUGULAR INTERNA ESQUERDA:</u></b><br><br>',
+  'Veia Jugular interna esquerda encontra-se de calibre normal, compressível, sem trombos visíveis ao mapeamento a cores, com fluxos fásicos à respiração, sendo suas paredes lisas e sem irregularidades parietais detectáveis ao Doppler espectral, com manobras provocativas.<br><br>',
+  '<b><u>VEIA JUGULAR INTERNA DIREITA:</u></b><br><br>',
+  'Veia Jugular interna direita encontra-se de calibre normal, compressível, sem trombos visíveis ao mapeamento a cores, com fluxos fásicos à respiração, sendo suas paredes lisas e sem irregularidades parietais detectáveis ao Doppler espectral, com manobras provocativas.',
+].join('');
+// chaves com _ (laudo salvo) e com - (modelos) apontam para o mesmo texto
+TEXTOS_PADRAO['vasos_cervicais'] = TEXTOS_PADRAO['vasos-cervicais'] = TEXTO_VASOS_CERVICAIS;
+
+// Mostra a seção só para o Dr. Hugnei (ou quando o laudo aberto já a tem ativa)
+function atualizarSecaoVasosCervicais() {
+  const lb = document.getElementById('lb-vasos-cervicais');
+  if (!lb) return;
+  const nome = editingLaudoMedico?.nome || currentDoctor?.nome || '';
+  const ativa = !!document.getElementById('chk-vasos-cervicais')?.checked;
+  lb.style.display = (isDrHugnei(nome) || ativa) ? '' : 'none';
+}
+// Na tela da secretária: o exame aparece só quando o médico escolhido é o Dr. Hugnei
+function atualizarExamesHugneiSec(limpar) {
+  const sel = document.getElementById('sec-medico-id');
+  const nome = sel?.options[sel.selectedIndex]?.dataset?.nome || '';
+  const chk = document.getElementById('sec-chk-vasos-cervicais');
+  const lbl = document.getElementById('sec-lbl-vasos-cervicais');
+  if (!chk || !lbl) return;
+  const ehHugnei = isDrHugnei(nome);
+  if (limpar && !ehHugnei) chk.checked = false;
+  lbl.style.display = (ehHugnei || chk.checked) ? '' : 'none';
+}
+
 // ── Variantes rápidas de texto (seção Arterial MMII, exclusivo Dr. Hugnei) ──
 const TEXTOS_ARTERIAL_VARIANTES = {
   normal: [
@@ -2317,6 +2357,7 @@ async function autosaveLaudo() {
     venoso_mmii: { ativo: document.getElementById('chk-venoso-mmii')?.checked||false, texto: get('txt-venoso-mmii') },
     arterial:    { ativo: document.getElementById('chk-arterial').checked,       texto: get('txt-arterial') },
     carotidas:  { ativo: document.getElementById('chk-carotidas').checked,  texto: get('txt-carotidas') },
+    vasos_cervicais: { ativo: document.getElementById('chk-vasos-cervicais').checked, texto: get('txt-vasos-cervicais') },
     aorta:      { ativo: document.getElementById('chk-aorta').checked,      texto: get('txt-aorta') },
     cava:       { ativo: document.getElementById('chk-cava').checked,       texto: get('txt-cava') },
     superiores: { ativo: document.getElementById('chk-superiores').checked, texto: get('txt-superiores') },
@@ -2474,7 +2515,7 @@ async function loadLaudo(id) {
   const s=data.secoes||{};
   if(s.venoso_d) setEditor('txt-venoso-d', s.venoso_d?.texto || TEXTOS_PADRAO['venoso-d'] || '');
   if(s.venoso_e) setEditor('txt-venoso-e', s.venoso_e?.texto || TEXTOS_PADRAO['venoso-e'] || '');
-  ['venoso_mmii','arterial','carotidas','aorta','cava','superiores','ecoca'].forEach(k => {
+  ['venoso_mmii','arterial','carotidas','vasos_cervicais','aorta','cava','superiores','ecoca'].forEach(k => {
     const elKey = k.replace(/_/g, '-'); // DB usa underscore, IDs do HTML usam hífen
     const chk = document.getElementById('chk-'+elKey);
     const lbl = document.getElementById('lb-'+elKey);
@@ -2560,6 +2601,7 @@ async function printLaudo() {
       venoso_e:   { ativo: venosoAtivos().e,                                 texto: get('txt-venoso-e') },
       arterial:   { ativo: document.getElementById('chk-arterial').checked,  texto: get('txt-arterial') },
       carotidas:  { ativo: document.getElementById('chk-carotidas').checked, texto: get('txt-carotidas') },
+      vasos_cervicais: { ativo: document.getElementById('chk-vasos-cervicais').checked, texto: get('txt-vasos-cervicais') },
       aorta:      { ativo: document.getElementById('chk-aorta').checked,     texto: get('txt-aorta') },
       cava:       { ativo: document.getElementById('chk-cava').checked,      texto: get('txt-cava') },
       superiores: { ativo: document.getElementById('chk-superiores').checked,texto: get('txt-superiores') },
@@ -2610,6 +2652,7 @@ function buildPrint(data) {
     { key: 'venoso_mmii', title: 'ECOCOLOR DOPPLER VENOSO DE MEMBROS INFERIORES', subtitle: null },
     { key: 'arterial',    title: 'ECOCOLOR DOPPLER ARTERIAL DOS MEMBROS INFERIORES', subtitle: null },
     { key: 'carotidas',  title: 'ECOCOLOR DOPPLER DAS CARÓTIDAS E VERTEBRAIS', subtitle: null },
+    { key: 'vasos_cervicais', title: 'ECOCOLOR DOPPLER DOS VASOS CERVICAIS', subtitle: null },
     { key: 'aorta',      title: 'ECOCOLOR DOPPLER DE AORTA E ARTÉRIAS ILÍACAS', subtitle: null },
     { key: 'cava',       title: 'ECOCOLOR DOPPLER DA VEIA CAVA E ILÍACAS', subtitle: null },
     { key: 'superiores', title: 'ECOCOLOR DOPPLER DOS MEMBROS SUPERIORES', subtitle: null },
@@ -2774,13 +2817,14 @@ async function viewLaudoPaciente(id) {
   if (!data) { toast('Erro ao carregar laudo.','err'); return; }
 
   const s = data.secoes || {};
-  const sectionOrder = ['venoso_d','venoso_e','venoso_mmii','arterial','carotidas','aorta','cava','superiores','ecoca'];
+  const sectionOrder = ['venoso_d','venoso_e','venoso_mmii','arterial','carotidas','vasos_cervicais','aorta','cava','superiores','ecoca'];
   const sectionTitles = {
     venoso_d:'Sistema Venoso — Membro Inferior Direito',
     venoso_e:'Sistema Venoso — Membro Inferior Esquerdo',
     venoso_mmii:'Ecocolor Doppler Venoso de Membros Inferiores',
     arterial:'Eco Doppler Arterial dos Membros Inferiores',
     carotidas:'Eco Doppler Carótidas e Vertebrais',
+    vasos_cervicais:'Ecocolor Doppler dos Vasos Cervicais',
     aorta:'Eco Doppler Aorta Abdominal',
     cava:'Eco Doppler Veia Cava e Ilíacas',
     superiores:'Eco Doppler Membros Superiores',
@@ -3050,7 +3094,8 @@ function novoLaudoDireto() {
   document.getElementById('p-idade').value='';
   document.getElementById('p-data').value = todayISO();
   ['venoso','arterial','carotidas'].forEach(k => { document.getElementById('chk-'+k).checked=true; document.getElementById('lb-'+k).classList.add('on'); });
-  ['aorta','cava','superiores','ecoca'].forEach(k => { document.getElementById('chk-'+k).checked=false; document.getElementById('lb-'+k).classList.remove('on'); });
+  ['vasos-cervicais','aorta','cava','superiores','ecoca'].forEach(k => { document.getElementById('chk-'+k).checked=false; document.getElementById('lb-'+k).classList.remove('on'); });
+  setEditor('txt-vasos-cervicais', '');
   setVenosoLado('B');
   // Reset textareas to defaults
   setEditor('txt-venoso-d', TEXTOS_PADRAO['venoso-d']);
@@ -3274,9 +3319,9 @@ function clearLaudoForm() {
   document.getElementById('p-idade').value = '';
   document.getElementById('p-data').value = todayISO();
   ['venoso','arterial','carotidas'].forEach(k => { const c=document.getElementById('chk-'+k); const l=document.getElementById('lb-'+k); if(c)c.checked=true; if(l)l.classList.add('on'); });
-  ['venoso-mmii','aorta','cava','superiores','ecoca'].forEach(k => { const c=document.getElementById('chk-'+k); const l=document.getElementById('lb-'+k); if(c)c.checked=false; if(l)l.classList.remove('on'); });
+  ['venoso-mmii','vasos-cervicais','aorta','cava','superiores','ecoca'].forEach(k => { const c=document.getElementById('chk-'+k); const l=document.getElementById('lb-'+k); if(c)c.checked=false; if(l)l.classList.remove('on'); });
   setVenosoLado('B');
-  ['txt-venoso-d','txt-venoso-e','txt-venoso-mmii','txt-arterial','txt-carotidas','txt-aorta','txt-cava','txt-superiores','txt-ecoca'].forEach(id => setEditor(id,''));
+  ['txt-venoso-d','txt-venoso-e','txt-venoso-mmii','txt-arterial','txt-carotidas','txt-vasos-cervicais','txt-aorta','txt-cava','txt-superiores','txt-ecoca'].forEach(id => setEditor(id,''));
   images=[]; renderImages();
   editingLaudoId=null; editingLaudoMedico=null; laudoConcluido=false;
   clearTimeout(autosaveTimer); autosaveTimer=null;
@@ -3552,6 +3597,7 @@ function resetSecForm() {
   document.querySelectorAll('.sec-exame-chk').forEach(chk => { chk.checked = chk.value === 'venoso'; });
   const medSel = document.getElementById('sec-medico-id');
   if (medSel) medSel.value = '';
+  atualizarExamesHugneiSec(true);
   secImages=[]; renderSecImages();
   // Oculta banner de edição e restaura texto do botão
   const banner = document.getElementById('sec-edit-banner');
@@ -3629,6 +3675,7 @@ async function editSecPendente(id) {
   document.querySelectorAll('.sec-exame-chk').forEach(chk => {
     chk.checked = secoes[chk.value]?.ativo || false;
   });
+  atualizarExamesHugneiSec();
   // Busca tel/email do paciente (ficam na tabela pacientes, não no laudo)
   if (data.cpf_paciente) {
     const { data: pat } = await supa.from('pacientes').select('telefone,email_recuperacao').eq('cpf', data.cpf_paciente).limit(1);
@@ -3885,6 +3932,7 @@ const EXAME_LABEL = {
   'arterial':    'Eco Doppler Arterial MMII',
   'superiores':  'Sistema Venoso MMSS',
   'carotidas':   'Eco Doppler Carótidas',
+  'vasos_cervicais': 'Eco Doppler Vasos Cervicais',
   'aorta':       'Eco Doppler Aorta Abdominal',
   'cava':        'Eco Doppler Veia Cava',
   'ecoca':       'Ecocardiograma com Doppler',
@@ -4368,6 +4416,16 @@ async function exportarProducaoXLSX() {
         </div>
       </div>
 
+      <div class="lb" id="lb-vasos-cervicais" style="display:none">
+        <div class="lb-hdr" onclick="toggleLb('vasos-cervicais')">
+          <span class="lb-title">ECOCOLOR DOPPLER DOS VASOS CERVICAIS</span>
+          <label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="chk-vasos-cervicais" onchange="toggleLb('vasos-cervicais')"><div class="tog-track"></div><div class="tog-knob"></div></label>
+        </div>
+        <div class="lb-body">
+          <div class="fmt-wrap"><div class="fmt-bar"><button type="button" class="fmt-btn fmt-btn-b" title="Negrito" onclick="fmtNegrito('txt-vasos-cervicais')">B</button><button type="button" class="fmt-btn fmt-btn-i" title="Itálico" onclick="fmtItalico('txt-vasos-cervicais')">I</button><button type="button" class="fmt-btn fmt-btn-u" title="Sublinhado" onclick="fmtSublinhado('txt-vasos-cervicais')"><span>S</span></button><div class="fmt-sep"></div><select class="fmt-font-sel" title="Tamanho" onchange="fmtFonte('txt-vasos-cervicais',this.value);this.value='';"><option value="">Fonte</option><option value="8">8pt</option><option value="9">9pt</option><option value="10">10pt</option><option value="11">11pt</option><option value="12">12pt</option><option value="14">14pt</option><option value="16">16pt</option><option value="18">18pt</option></select><select class="fmt-font-sel" title="Espaçamento entre linhas" onchange="fmtLineHeight('txt-vasos-cervicais',this.value);this.value='';"><option value="">↕</option><option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1.0">1.0</option><option value="1.1">1.1</option><option value="1.2">1.2</option><option value="1.3">1.3</option><option value="1.4">1.4</option><option value="1.5">1.5</option><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="2.0">2.0</option></select><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-aa" title="MAIÚSCULO/minúsculo" onclick="fmtMaiusculo('txt-vasos-cervicais')">Aa</button><div class="fmt-sep"></div><button type="button" class="fmt-btn fmt-btn-clr" title="Limpar formatação" onclick="fmtLimpar('txt-vasos-cervicais')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h7M7.5 2.5l-5 5 2.5 2.5 5-5L7.5 2.5zM4.5 10l-2 2"/></svg></button></div><div id="txt-vasos-cervicais" class="rich-editor" contenteditable="true" spellcheck="true" lang="pt-BR" data-editor="true" oninput="scheduleAutosave()"></div></div>
+        </div>
+      </div>
+
       <div class="lb" id="lb-aorta">
         <div class="lb-hdr" onclick="toggleLb('aorta')">
           <span class="lb-title">ECOCOLOR DOPPLER DE AORTA E ARTÉRIAS ILÍACAS</span>
@@ -4615,7 +4673,7 @@ async function exportarProducaoXLSX() {
           <input type="email" id="sec-email-rec" placeholder="email@exemplo.com">
         </div>
         <div class="field s2"><label>Médico Solicitante <span style="font-weight:400;font-size:10px">(opcional)</span></label><input type="text" id="sec-solicitante" placeholder="Dr(a). Nome do médico solicitante"></div>
-        <div class="field s2"><label>Médico Responsável pelo Laudo *</label><select id="sec-medico-id" onfocus="if(!this.options.length||this.options.length<2)loadDoctorsForSec()" onchange="document.getElementById('sec-medico-nome').value=this.options[this.selectedIndex].dataset.nome||'';loadModelosForMedico(this.value,'sec-modelo-sel')"><option value="">— Selecione o médico —</option></select><input type="hidden" id="sec-medico-nome"></div>
+        <div class="field s2"><label>Médico Responsável pelo Laudo *</label><select id="sec-medico-id" onfocus="if(!this.options.length||this.options.length<2)loadDoctorsForSec()" onchange="document.getElementById('sec-medico-nome').value=this.options[this.selectedIndex].dataset.nome||'';loadModelosForMedico(this.value,'sec-modelo-sel');atualizarExamesHugneiSec(true)"><option value="">— Selecione o médico —</option></select><input type="hidden" id="sec-medico-nome"></div>
       </div>
     </div>
 
@@ -4635,6 +4693,7 @@ async function exportarProducaoXLSX() {
         <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="carotidas" id="sec-chk-carotidas"> 🧠 Eco Doppler Carótidas/Vertebrais</label>
         <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="aorta" id="sec-chk-aorta"> 🔵 Eco Doppler Aorta Abdominal</label>
         <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="cava" id="sec-chk-cava"> 🔷 Eco Doppler Veia Cava</label>
+        <label class="exam-check-lbl" id="sec-lbl-vasos-cervicais" style="display:none"><input type="checkbox" class="sec-exame-chk" value="vasos_cervicais" id="sec-chk-vasos-cervicais"> 🩺 Eco Doppler Vasos Cervicais</label>
         <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="superiores" id="sec-chk-superiores"> 💪 Eco Doppler MMSS</label>
         <label class="exam-check-lbl"><input type="checkbox" class="sec-exame-chk" value="ecoca" id="sec-chk-ecoca"> 🫀 Ecocardiograma com Doppler</label>
       </div>
